@@ -1,0 +1,32 @@
+import { AudioStorageQueryable } from '../models/audio-storage-queryable.js';
+import { SuttaPlayerState } from '../models/sutta-player-state.js';
+import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js";
+export declare class SuttaPlayerView {
+    collectionElem: HTMLSelectElement;
+    suttaElem: HTMLSelectElement;
+    loadAudioElem: HTMLButtonElement;
+    loadTextElem: HTMLButtonElement;
+    playingSuttaElem: HTMLElement;
+    autoPlayElem: HTMLInputElement;
+    playNextElem: HTMLInputElement;
+    repeatElem: HTMLInputElement;
+    linkTextToAudioElem: HTMLInputElement;
+    audioPlayerElem: HTMLAudioElement;
+    suttaSummaryReferenceElem: HTMLElement;
+    suttaTextBodyElem: HTMLDivElement;
+    aboutSummaryReferenceElem: HTMLElement;
+    aboutTextBodyElem: HTMLDivElement;
+    private _playerState;
+    private _suttaStore;
+    private _audioStore;
+    constructor(mdl: SuttaPlayerState, store: SuttaStorageQueryable, audResolver: AudioStorageQueryable);
+    initialise(): Promise<void>;
+    refreshAudioControls(): void;
+    loadSuttasList(): void;
+    loadSuttaText(): Promise<void>;
+    loadSuttaAudio(): void;
+    updatePlayingSuttaInfo(baseRef: string, status: string): void;
+    toggleAboutInfo(): Promise<void>;
+    private _loadCollectionsList;
+    private _bindHtmlElements;
+}

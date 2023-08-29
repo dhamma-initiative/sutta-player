@@ -1,3 +1,6 @@
+audio/
+text/metadata/google-drive-audio/secret
+
 # Logs
 logs
 *.log

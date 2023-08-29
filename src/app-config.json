@@ -1,0 +1,4 @@
+{
+    "SuttaStorageQueryableImpl": "./json-fs/sutta-db.js",
+    "AudioRetrievableImpl": "./google-drive/google-drive-audio-db.js"
+}

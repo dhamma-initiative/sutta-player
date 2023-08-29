@@ -1,0 +1,16 @@
+{
+    "name": "Sutta Player",
+    "short_name": "SuttaPlayer",
+    "start_url": "index.html",
+    "display": "standalone",
+    "background_color": "#fff",
+    "description": "A media player of audio and text suttas from the Pāli Canon.",
+    "icons": [
+      {
+        "src": "img/dhamma-chakka192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      }
+    ]
+  }
+  

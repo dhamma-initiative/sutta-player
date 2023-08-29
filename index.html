@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <title>Sutta Player</title>
+    <style>
+      .body_bg {
+          background-image: url('./img/dhamma-chakka.png');
+          background-size: contain;
+      }
+    </style>
+  </head>
+  <body class="body_bg">
+    <main class="container">
+      <h3>Sutta Player</h3>
+      <!-- Grid -->
+      <div class="grid">
+        <label for="collection">Collection
+          <select id="collection" required>
+          </select>      
+        </label>
+
+        <label for="sutta">Sutta
+          <select id="sutta" required>
+          </select>      
+        </label>
+
+        <button id="loadAudio">Load audio</button>
+        <button id="loadText">Load text</button>
+      </div>
+
+      <div class="grid">
+        <p><em id="playingSutta">&#127911; awaiting load</em></p>
+        <fieldset>
+          <label for="autoPlay">
+            <input type="checkbox" role="switch" id="autoPlay" name="autoPlay" />
+            Auto play
+          </label>
+        </fieldset>
+        <fieldset>
+          <label for="playNext">
+            <input type="checkbox" role="switch" id="playNext" name="playNext" />
+            Play next
+          </label>
+        </fieldset>
+        <fieldset>
+          <label for="repeat">
+            <input type="checkbox" role="switch" id="repeat" name="repeat" />
+            Repeat
+          </label>
+        </fieldset>
+        <fieldset>
+          <label for="linkTextToAudio">
+            <input type="checkbox" role="switch" id="linkTextToAudio" name="linkTextToAudio" />
+            Link text to audio
+          </label>
+        </fieldset>
+      </div>
+      <section>
+        <audio controls style="min-width: 100%;" id="audioPlayer">
+        </audio>
+      </section>
+
+      <section>
+        <details open>
+          <summary id="suttaSummaryReference">&#128083; awaiting selection</summary>
+          <div style="white-space: pre-wrap;" id="suttaTextBody">
+          </div>
+        </details>
+      </section>
+
+      <section>
+        <details>
+          <summary id="aboutSummaryReference">About</summary>
+          <div style="white-space: pre-wrap;" id="aboutTextBody">
+          </div>
+        </details>
+      </section>
+    </main>
+
+    <script src="esm/sutta-player-app.js" type="module"></script>
+
+  </body>
+</html>
