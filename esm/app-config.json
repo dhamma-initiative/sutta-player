@@ -1,6 +1,6 @@
 {
     "SuttaStorageQueryableImpl": "./json-fs/sutta-db.js",
     "AudioRetrievableImpl": "./google-drive/google-drive-audio-db.js",
-    "hosts": ["localhost:9000", "https://dhamma-initiative.github.io"],
+    "hosts": ["localhost:9000", "dhamma-initiative.github.io"],
     "appRoots": ["", "/sutta-player"]
 }
