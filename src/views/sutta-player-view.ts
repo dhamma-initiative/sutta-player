@@ -1,22 +1,36 @@
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js'
-import { SuttaPlayerState } from '../models/sutta-player-state.js'
+import { SuttaPlayerState, SuttaSelection } from '../models/sutta-player-state.js'
 import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js"
 
 export class SuttaPlayerView {
-    collectionElem: HTMLSelectElement
-    suttaElem: HTMLSelectElement
-    loadAudioElem: HTMLButtonElement
-    loadTextElem: HTMLButtonElement
-    playingSuttaElem: HTMLElement
+    // settings
     autoPlayElem: HTMLInputElement
     playNextElem: HTMLInputElement
     repeatElem: HTMLInputElement
     linkTextToAudioElem: HTMLInputElement
+    toggleDownloadElem: HTMLInputElement
+    downloadProgressElem: HTMLProgressElement
+    audioCacherElem: HTMLAudioElement
+    resetAppElem: HTMLAnchorElement
+
+    // about
+    showAboutElem: HTMLAnchorElement
+    aboutDialogElem: HTMLDialogElement
+    aboutDialogCloseElem: HTMLAnchorElement
+    aboutTextBodyElem: HTMLParagraphElement
+
+    // selections
+    collectionElem: HTMLSelectElement
+    suttaElem: HTMLSelectElement
+    loadAudioElem: HTMLButtonElement
+    loadTextElem: HTMLButtonElement
+    loadRandomElem: HTMLButtonElement
+
+    // display
+    playingSuttaElem: HTMLElement
     audioPlayerElem: HTMLAudioElement
-    suttaSummaryReferenceElem: HTMLElement
+    displayingSuttaElem: HTMLElement
     suttaTextBodyElem: HTMLDivElement
-    aboutSummaryReferenceElem: HTMLElement
-    aboutTextBodyElem: HTMLDivElement
 
     private _playerState: SuttaPlayerState
     private _suttaStore: SuttaStorageQueryable
@@ -45,6 +59,8 @@ export class SuttaPlayerView {
         this.repeatElem.checked = this._playerState.repeat
         this.linkTextToAudioElem.checked = this._playerState.linkTextToAudio
         this.audioPlayerElem.loop = this._playerState.repeat
+        this.downloadProgressElem.value = 0
+        this.toggleDownloadElem.checked = this._playerState.isDownloading
     }
 
     public loadSuttasList() {
@@ -65,16 +81,22 @@ export class SuttaPlayerView {
         if (this._playerState.textSel.baseRef === null) 
             return
         const textBody = await this._suttaStore.querySuttaText(this._playerState.textSel.baseRef)
-        this.suttaSummaryReferenceElem.innerHTML = `&#128083; ${this._playerState.textSel.baseRef}`
         this.suttaTextBodyElem.innerHTML = textBody
+        this.displayingSuttaElem.innerHTML = `&#128083; ${this._playerState.textSel.baseRef}`
     }
 
     public loadSuttaAudio() {
-        if (this._playerState.audioSel.baseRef === null) 
-            return
-        const srcRef = this._audioStore.queryHtmlAudioSrcRef(this._playerState.audioSel.baseRef)
-        this.audioPlayerElem.src = srcRef
-        this.audioPlayerElem.currentTime = this._playerState.currentTime
+        const success = this.loadSuttaAudioWith(this._playerState.audioSel, this.audioPlayerElem)
+        if (success)
+            this.audioPlayerElem.currentTime = this._playerState.currentTime
+    }
+
+    public loadSuttaAudioWith(suttaSel: SuttaSelection, viewAudio: HTMLAudioElement): boolean {
+        if (suttaSel.baseRef === null)
+            return false
+        const srcRef = this._audioStore.queryHtmlAudioSrcRef(suttaSel.baseRef)
+        viewAudio.src = srcRef
+        return true
     }
 
     public updatePlayingSuttaInfo(baseRef: string, status: string) {
@@ -82,12 +104,18 @@ export class SuttaPlayerView {
         this.playingSuttaElem.innerHTML = `&#127911; ${baseRef}${info}`
     }
 
-    public async toggleAboutInfo() {
+    public async toggleAboutInfo(event: any) {
+        let isOpen = false
         if (this.aboutTextBodyElem.innerHTML.trim() === '') {
-            const textBody = await this._suttaStore.readTextFile('./README.md')
+            isOpen = true
+            let textBody = await this._suttaStore.readTextFile('./README.md')
+            textBody = textBody.replaceAll('###', '-')
+            textBody = textBody.replaceAll('#', '')
             this.aboutTextBodyElem.innerHTML = textBody + 'suttaplayer@gmail.com'
         } else
             this.aboutTextBodyElem.innerHTML = ''
+        this.aboutDialogElem.open = isOpen
+        event.preventDefault()
     }
 
     private _loadCollectionsList() {
@@ -103,19 +131,29 @@ export class SuttaPlayerView {
     }
 
     private _bindHtmlElements() {
-        this.collectionElem = <HTMLSelectElement> document.getElementById('collection')
-        this.suttaElem = <HTMLSelectElement> document.getElementById('sutta')
-        this.loadAudioElem = <HTMLButtonElement> document.getElementById('loadAudio')
-        this.loadTextElem = <HTMLButtonElement> document.getElementById('loadText')
-        this.playingSuttaElem = <HTMLElement> document.getElementById('playingSutta')
         this.autoPlayElem = <HTMLInputElement> document.getElementById('autoPlay')
         this.playNextElem = <HTMLInputElement> document.getElementById('playNext')
         this.repeatElem = <HTMLInputElement> document.getElementById('repeat')
         this.linkTextToAudioElem = <HTMLInputElement> document.getElementById('linkTextToAudio')
-        this.audioPlayerElem = <HTMLAudioElement> document.getElementById('audioPlayer')
-        this.suttaSummaryReferenceElem = <HTMLElement> document.getElementById('suttaSummaryReference')
-        this.suttaTextBodyElem = <HTMLDivElement> document.getElementById('suttaTextBody')
-        this.aboutSummaryReferenceElem = <HTMLElement> document.getElementById('aboutSummaryReference')
+        this.toggleDownloadElem = <HTMLInputElement> document.getElementById('toggleDownload')
+        this.downloadProgressElem = <HTMLProgressElement> document.getElementById('downloadProgress')
+        this.audioCacherElem = <HTMLAudioElement> document.getElementById('audioCacher')
+        this.resetAppElem = <HTMLAnchorElement> document.getElementById('resetApp')
+
+        this.showAboutElem = <HTMLAnchorElement> document.getElementById('showAbout')
+        this.aboutDialogElem = <HTMLDialogElement> document.getElementById('aboutDialog')
+        this.aboutDialogCloseElem = <HTMLAnchorElement> document.getElementById('aboutDialogClose')
         this.aboutTextBodyElem = <HTMLDivElement> document.getElementById('aboutTextBody')
+
+        this.collectionElem = <HTMLSelectElement> document.getElementById('collection')
+        this.suttaElem = <HTMLSelectElement> document.getElementById('sutta')
+        this.loadAudioElem = <HTMLButtonElement> document.getElementById('loadAudio')
+        this.loadTextElem = <HTMLButtonElement> document.getElementById('loadText')
+        this.loadRandomElem = <HTMLButtonElement> document.getElementById('loadRandom')
+
+        this.playingSuttaElem = <HTMLElement> document.getElementById('playingSutta')
+        this.audioPlayerElem = <HTMLAudioElement> document.getElementById('audioPlayer')
+        this.displayingSuttaElem = <HTMLElement> document.getElementById('displayingSutta')
+        this.suttaTextBodyElem = <HTMLDivElement> document.getElementById('suttaTextBody')
     }
 } 

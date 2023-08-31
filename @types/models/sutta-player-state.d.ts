@@ -1,4 +1,4 @@
-import { LocalStorageState } from './local-storage-state.js';
+import { LocalStorageState } from '../runtime/localstorage-state.js';
 import { SuttaStorageQueryable } from './sutta-storage-queryable.js';
 export declare class SuttaSelection extends LocalStorageState {
     context: string;
@@ -19,6 +19,7 @@ export declare class SuttaPlayerState extends LocalStorageState {
     playNext: boolean;
     repeat: boolean;
     linkTextToAudio: boolean;
+    isDownloading: boolean;
     currentTime: number;
     save(): void;
     load(): void;

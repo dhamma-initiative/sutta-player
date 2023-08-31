@@ -1,18 +1,29 @@
 export class SuttaPlayerView {
-    collectionElem;
-    suttaElem;
-    loadAudioElem;
-    loadTextElem;
-    playingSuttaElem;
+    // settings
     autoPlayElem;
     playNextElem;
     repeatElem;
     linkTextToAudioElem;
-    audioPlayerElem;
-    suttaSummaryReferenceElem;
-    suttaTextBodyElem;
-    aboutSummaryReferenceElem;
+    toggleDownloadElem;
+    downloadProgressElem;
+    audioCacherElem;
+    resetAppElem;
+    // about
+    showAboutElem;
+    aboutDialogElem;
+    aboutDialogCloseElem;
     aboutTextBodyElem;
+    // selections
+    collectionElem;
+    suttaElem;
+    loadAudioElem;
+    loadTextElem;
+    loadRandomElem;
+    // display
+    playingSuttaElem;
+    audioPlayerElem;
+    displayingSuttaElem;
+    suttaTextBodyElem;
     _playerState;
     _suttaStore;
     _audioStore;
@@ -36,6 +47,8 @@ export class SuttaPlayerView {
         this.repeatElem.checked = this._playerState.repeat;
         this.linkTextToAudioElem.checked = this._playerState.linkTextToAudio;
         this.audioPlayerElem.loop = this._playerState.repeat;
+        this.downloadProgressElem.value = 0;
+        this.toggleDownloadElem.checked = this._playerState.isDownloading;
     }
     loadSuttasList() {
         const suttaLov = this._suttaStore.querySuttaReferences(this._playerState.navSel.collectionIndex);
@@ -54,27 +67,38 @@ export class SuttaPlayerView {
         if (this._playerState.textSel.baseRef === null)
             return;
         const textBody = await this._suttaStore.querySuttaText(this._playerState.textSel.baseRef);
-        this.suttaSummaryReferenceElem.innerHTML = `&#128083; ${this._playerState.textSel.baseRef}`;
         this.suttaTextBodyElem.innerHTML = textBody;
+        this.displayingSuttaElem.innerHTML = `&#128083; ${this._playerState.textSel.baseRef}`;
     }
     loadSuttaAudio() {
-        if (this._playerState.audioSel.baseRef === null)
-            return;
-        const srcRef = this._audioStore.queryHtmlAudioSrcRef(this._playerState.audioSel.baseRef);
-        this.audioPlayerElem.src = srcRef;
-        this.audioPlayerElem.currentTime = this._playerState.currentTime;
+        const success = this.loadSuttaAudioWith(this._playerState.audioSel, this.audioPlayerElem);
+        if (success)
+            this.audioPlayerElem.currentTime = this._playerState.currentTime;
+    }
+    loadSuttaAudioWith(suttaSel, viewAudio) {
+        if (suttaSel.baseRef === null)
+            return false;
+        const srcRef = this._audioStore.queryHtmlAudioSrcRef(suttaSel.baseRef);
+        viewAudio.src = srcRef;
+        return true;
     }
     updatePlayingSuttaInfo(baseRef, status) {
         let info = status ? ` [${status}]` : '';
         this.playingSuttaElem.innerHTML = `&#127911; ${baseRef}${info}`;
     }
-    async toggleAboutInfo() {
+    async toggleAboutInfo(event) {
+        let isOpen = false;
         if (this.aboutTextBodyElem.innerHTML.trim() === '') {
-            const textBody = await this._suttaStore.readTextFile('./README.md');
+            isOpen = true;
+            let textBody = await this._suttaStore.readTextFile('./README.md');
+            textBody = textBody.replaceAll('###', '-');
+            textBody = textBody.replaceAll('#', '');
             this.aboutTextBodyElem.innerHTML = textBody + 'suttaplayer@gmail.com';
         }
         else
             this.aboutTextBodyElem.innerHTML = '';
+        this.aboutDialogElem.open = isOpen;
+        event.preventDefault();
     }
     _loadCollectionsList() {
         const colLov = this._suttaStore.queryCollectionNames();
@@ -88,20 +112,27 @@ export class SuttaPlayerView {
         }
     }
     _bindHtmlElements() {
-        this.collectionElem = document.getElementById('collection');
-        this.suttaElem = document.getElementById('sutta');
-        this.loadAudioElem = document.getElementById('loadAudio');
-        this.loadTextElem = document.getElementById('loadText');
-        this.playingSuttaElem = document.getElementById('playingSutta');
         this.autoPlayElem = document.getElementById('autoPlay');
         this.playNextElem = document.getElementById('playNext');
         this.repeatElem = document.getElementById('repeat');
         this.linkTextToAudioElem = document.getElementById('linkTextToAudio');
-        this.audioPlayerElem = document.getElementById('audioPlayer');
-        this.suttaSummaryReferenceElem = document.getElementById('suttaSummaryReference');
-        this.suttaTextBodyElem = document.getElementById('suttaTextBody');
-        this.aboutSummaryReferenceElem = document.getElementById('aboutSummaryReference');
+        this.toggleDownloadElem = document.getElementById('toggleDownload');
+        this.downloadProgressElem = document.getElementById('downloadProgress');
+        this.audioCacherElem = document.getElementById('audioCacher');
+        this.resetAppElem = document.getElementById('resetApp');
+        this.showAboutElem = document.getElementById('showAbout');
+        this.aboutDialogElem = document.getElementById('aboutDialog');
+        this.aboutDialogCloseElem = document.getElementById('aboutDialogClose');
         this.aboutTextBodyElem = document.getElementById('aboutTextBody');
+        this.collectionElem = document.getElementById('collection');
+        this.suttaElem = document.getElementById('sutta');
+        this.loadAudioElem = document.getElementById('loadAudio');
+        this.loadTextElem = document.getElementById('loadText');
+        this.loadRandomElem = document.getElementById('loadRandom');
+        this.playingSuttaElem = document.getElementById('playingSutta');
+        this.audioPlayerElem = document.getElementById('audioPlayer');
+        this.displayingSuttaElem = document.getElementById('displayingSutta');
+        this.suttaTextBodyElem = document.getElementById('suttaTextBody');
     }
 }
 //# sourceMappingURL=sutta-player-view.js.map

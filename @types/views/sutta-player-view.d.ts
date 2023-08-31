@@ -1,21 +1,28 @@
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js';
-import { SuttaPlayerState } from '../models/sutta-player-state.js';
+import { SuttaPlayerState, SuttaSelection } from '../models/sutta-player-state.js';
 import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js";
 export declare class SuttaPlayerView {
-    collectionElem: HTMLSelectElement;
-    suttaElem: HTMLSelectElement;
-    loadAudioElem: HTMLButtonElement;
-    loadTextElem: HTMLButtonElement;
-    playingSuttaElem: HTMLElement;
     autoPlayElem: HTMLInputElement;
     playNextElem: HTMLInputElement;
     repeatElem: HTMLInputElement;
     linkTextToAudioElem: HTMLInputElement;
+    toggleDownloadElem: HTMLInputElement;
+    downloadProgressElem: HTMLProgressElement;
+    audioCacherElem: HTMLAudioElement;
+    resetAppElem: HTMLAnchorElement;
+    showAboutElem: HTMLAnchorElement;
+    aboutDialogElem: HTMLDialogElement;
+    aboutDialogCloseElem: HTMLAnchorElement;
+    aboutTextBodyElem: HTMLParagraphElement;
+    collectionElem: HTMLSelectElement;
+    suttaElem: HTMLSelectElement;
+    loadAudioElem: HTMLButtonElement;
+    loadTextElem: HTMLButtonElement;
+    loadRandomElem: HTMLButtonElement;
+    playingSuttaElem: HTMLElement;
     audioPlayerElem: HTMLAudioElement;
-    suttaSummaryReferenceElem: HTMLElement;
+    displayingSuttaElem: HTMLElement;
     suttaTextBodyElem: HTMLDivElement;
-    aboutSummaryReferenceElem: HTMLElement;
-    aboutTextBodyElem: HTMLDivElement;
     private _playerState;
     private _suttaStore;
     private _audioStore;
@@ -25,8 +32,9 @@ export declare class SuttaPlayerView {
     loadSuttasList(): void;
     loadSuttaText(): Promise<void>;
     loadSuttaAudio(): void;
+    loadSuttaAudioWith(suttaSel: SuttaSelection, viewAudio: HTMLAudioElement): boolean;
     updatePlayingSuttaInfo(baseRef: string, status: string): void;
-    toggleAboutInfo(): Promise<void>;
+    toggleAboutInfo(event: any): Promise<void>;
     private _loadCollectionsList;
     private _bindHtmlElements;
 }

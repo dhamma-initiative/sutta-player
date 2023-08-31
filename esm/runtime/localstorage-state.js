@@ -31,4 +31,4 @@ export class LocalStorageState {
             localStorage.setItem(key, val);
     }
 }
-//# sourceMappingURL=local-storage-state.js.map
+//# sourceMappingURL=localstorage-state.js.map

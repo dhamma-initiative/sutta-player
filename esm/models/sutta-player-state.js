@@ -1,4 +1,4 @@
-import { LocalStorageState } from './local-storage-state.js';
+import { LocalStorageState } from '../runtime/localstorage-state.js';
 export class SuttaSelection extends LocalStorageState {
     context;
     collectionIndex = 0;
@@ -35,6 +35,7 @@ export class SuttaPlayerState extends LocalStorageState {
     playNext = false;
     repeat = false;
     linkTextToAudio = true;
+    isDownloading = false;
     currentTime = 0;
     save() {
         this.navSel.save();

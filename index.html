@@ -1,87 +1,141 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Sutta Player</title>
-    <style>
-      .body_bg {
-          background-image: url('./img/dhamma-chakka.png');
-          background-size: contain;
-      }
-    </style>
-  </head>
-  <body class="body_bg">
+    <meta name="description" content="Listen to, lend ear, set your heart on
+    knowing, and regard as worth grasping & mastering the words of the Tathāgata." />
+    <link rel="shortcut icon" href="favicon.ico" />
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+    <link rel="stylesheet" href="custom.css" />
+    <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+    <!-- Hero -->
+    <div class="hero" data-theme="dark">
+        <nav class="container-fluid">
+            <ul>
+                <li>
+                    <div class="contrast"><strong>Sutta Player</strong></div>
+                </li>
+            </ul>
+            <ul>
+                <li>
+                    <details role="list" dir="rtl">
+                        <summary aria-haspopup="listbox" role="link" class="contrast">&#9881; Settings</summary>
+                        <ul role="listbox">
+                            <li>
+                                <label for="autoPlay">
+                                    Auto play
+                                    <input type="checkbox" role="switch" id="autoPlay" name="autoPlay" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="playNext">
+                                    Play next
+                                    <input type="checkbox" role="switch" id="playNext" name="playNext" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="repeat">
+                                    Repeat track
+                                    <input type="checkbox" role="switch" id="repeat" name="repeat" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="linkTextToAudio">
+                                    Link text to audio
+                                    <input type="checkbox" role="switch" id="linkTextToAudio" name="linkTextToAudio" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="toggleDownload">
+                                    Download Album for offline use
+                                    <input type="checkbox" role="switch" id="toggleDownload" name="toggleDownload" />
+                                </label>
+                                <progress id="downloadProgress" value="0" max="100" dir="ltr"></progress>
+                                <audio id="audioCacher" controls style="display: none;"></audio>
+                                <a id="resetApp" href="#" role="button" style="display: none;">Reset App</a>
+                            </li>
+                            <li><a href="#" data-theme-switcher="auto">Auto mode</a></li>
+                            <li><a href="#" data-theme-switcher="light">Light mode</a></li>
+                            <li><a href="#" data-theme-switcher="dark">Dark mode</a></li>
+                        </ul>
+                    </details>
+                </li>
+                <li>
+                    <a id="showAbout" href="#" role="button" class="contrast">About</a>
+                </li>
+            </ul>
+        </nav>
+        <header class="container">
+            <hgroup>
+                <h2>
+                    Listen to, lend ear, set your heart on
+                    knowing, and regard as worth grasping & mastering the words of the Tathāgata.
+                </h2>
+            </hgroup>
+        </header>
+    </div>
+    <!-- ./ Hero -->
+
+    <!-- Main -->
     <main class="container">
-      <h3>Sutta Player</h3>
-      <!-- Grid -->
-      <div class="grid">
-        <label for="collection">Collection
-          <select id="collection" required>
-          </select>      
-        </label>
+        <section>
+            <details open>
+                <summary>&#8801; Album/Track selections</summary>
+                <nav class="container-fluid">
+                    <ul>
+                        <li>
+                            <select id="collection" required>
+                            </select>
+                        </li>
+                        <li>
+                            <select id="sutta" required>
+                            </select>
+                        </li>
+                    </ul>
+                </nav>
+                <nav class="container-fluid">
+                    <label>
+                        Load:
+                        <ul>
+                            <li><button id="loadAudio">Audio</button></li>
+                            <li><button id="loadText" class="secondary">Text</button></li>
+                            <li><button id="loadRandom" class="contrast">Random</button></li>
+                        </ul>
+                    </label>
+                </nav>
+            </details>
+        </section>
 
-        <label for="sutta">Sutta
-          <select id="sutta" required>
-          </select>      
-        </label>
-
-        <button id="loadAudio">Load audio</button>
-        <button id="loadText">Load text</button>
-      </div>
-
-      <div class="grid">
-        <p><em id="playingSutta">&#127911; awaiting load</em></p>
-        <fieldset>
-          <label for="autoPlay">
-            <input type="checkbox" role="switch" id="autoPlay" name="autoPlay" />
-            Auto play
-          </label>
-        </fieldset>
-        <fieldset>
-          <label for="playNext">
-            <input type="checkbox" role="switch" id="playNext" name="playNext" />
-            Play next
-          </label>
-        </fieldset>
-        <fieldset>
-          <label for="repeat">
-            <input type="checkbox" role="switch" id="repeat" name="repeat" />
-            Repeat
-          </label>
-        </fieldset>
-        <fieldset>
-          <label for="linkTextToAudio">
-            <input type="checkbox" role="switch" id="linkTextToAudio" name="linkTextToAudio" />
-            Link text to audio
-          </label>
-        </fieldset>
-      </div>
-      <section>
-        <audio controls style="min-width: 100%;" id="audioPlayer">
-        </audio>
-      </section>
-
-      <section>
         <details open>
-          <summary id="suttaSummaryReference">&#128083; awaiting selection</summary>
-          <div style="white-space: pre-wrap;" id="suttaTextBody">
-          </div>
+            <summary id="playingSutta">&#127911; awaiting load</summary>
+            <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload">
+            </audio>
         </details>
-      </section>
 
-      <section>
-        <details>
-          <summary id="aboutSummaryReference">About</summary>
-          <div style="white-space: pre-wrap;" id="aboutTextBody">
-          </div>
+        <details open>
+            <summary id="displayingSutta">&#128083; awaiting load</summary>
+            <p id="suttaTextBody" style="white-space: pre-wrap;"></p>
         </details>
-      </section>
+
+        <dialog id="aboutDialog">
+            <article>
+                <header>
+                    <a id="aboutDialogClose" href="#" aria-label="Close" class="close"></a>
+                    <div>About</div>
+                </header>
+                <p id="aboutTextBody" style="white-space: pre-wrap;"></p>
+            </article>
+        </dialog>
     </main>
 
     <script src="esm/sutta-player-app.js" type="module"></script>
+</body>
 
-  </body>
 </html>

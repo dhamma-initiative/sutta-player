@@ -5,4 +5,5 @@ export declare class SuttaPlayerApp {
     private _controller;
     start(): Promise<void>;
     stop(): Promise<void>;
+    setUpThemeConfig(): void;
 }
