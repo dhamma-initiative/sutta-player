@@ -25,6 +25,8 @@ export class SuttaPlayerController {
 
     public async setup() {
         this._model.load()
+        if (this._model.navSel.baseRef === null)
+            this._model.navSel.updateBaseRef(this._suttaStore)
         await this._view.initialise()
 		this._registerListeners()
     }
@@ -118,8 +120,8 @@ export class SuttaPlayerController {
 
     private _onCollectionSelected(forceColIdx: number) {
         this._model.navSel.collectionIndex = (forceColIdx === null) ? Number(this._view.collectionElem.value) : forceColIdx
-        this._model.navSel.suttaIndex = -1
-        this._view.suttaElem.selectedIndex = 0
+        this._model.navSel.suttaIndex = 0
+        this._view.suttaElem.selectedIndex = this._model.navSel.suttaIndex
         this._model.navSel.updateBaseRef(this._suttaStore)
         this._view.loadSuttasList()
     }

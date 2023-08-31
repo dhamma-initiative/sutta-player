@@ -65,16 +65,14 @@ export class SuttaPlayerView {
 
     public loadSuttasList() {
         const suttaLov = this._suttaStore.querySuttaReferences(this._playerState.navSel.collectionIndex)
-        this.suttaElem.selectedIndex = -1
         this.suttaElem.innerHTML = ''
         for (let i = 0; i < suttaLov.length; i++) {
             let option = document.createElement('option')
             option.value = `${i}`
-            if (i === this._playerState.navSel.suttaIndex)
-                option.selected = true
             option.innerText = suttaLov[i]
             this.suttaElem.append(option)
         }
+        this.suttaElem.selectedIndex = this._playerState.navSel.suttaIndex
     }
 
     public async loadSuttaText() {
@@ -123,11 +121,10 @@ export class SuttaPlayerView {
         for (let i = 0; i < colLov.length; i++) {
             let option = document.createElement('option')
             option.value = `${i}`
-            if (i === this._playerState.navSel.collectionIndex)
-                option.selected = true
             option.innerText = colLov[i]
             this.collectionElem.append(option)
         }
+        this.collectionElem.selectedIndex = this._playerState.navSel.collectionIndex
     }
 
     private _bindHtmlElements() {

@@ -2,7 +2,7 @@ import { LocalStorageState } from '../runtime/localstorage-state.js';
 export class SuttaSelection extends LocalStorageState {
     context;
     collectionIndex = 0;
-    suttaIndex = -1;
+    suttaIndex = 0;
     baseRef = null;
     constructor(ctx) {
         super();
@@ -31,8 +31,8 @@ export class SuttaPlayerState extends LocalStorageState {
     navSel = new SuttaSelection('navSel');
     textSel = new SuttaSelection('textSel');
     audioSel = new SuttaSelection('audioSel');
-    autoPlay = false;
-    playNext = false;
+    autoPlay = true;
+    playNext = true;
     repeat = false;
     linkTextToAudio = true;
     isDownloading = false;

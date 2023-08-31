@@ -4,7 +4,7 @@ import { SuttaStorageQueryable } from './sutta-storage-queryable.js'
 export class SuttaSelection extends LocalStorageState {
     context: string
     collectionIndex: number = 0
-    suttaIndex: number = -1
+    suttaIndex: number = 0
     baseRef: string = null
 
     constructor(ctx: string) {
@@ -39,8 +39,8 @@ export class SuttaPlayerState extends LocalStorageState {
     navSel: SuttaSelection = new SuttaSelection('navSel')
     textSel: SuttaSelection = new SuttaSelection('textSel')
     audioSel: SuttaSelection = new SuttaSelection('audioSel')
-    autoPlay: boolean = false
-    playNext: boolean = false
+    autoPlay: boolean = true
+    playNext: boolean = true
     repeat: boolean = false
     linkTextToAudio: boolean = true
     isDownloading: boolean = false
