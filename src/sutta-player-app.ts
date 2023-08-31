@@ -109,7 +109,7 @@ export class SuttaPlayerApp {
 
     static {
 		window.addEventListener('load', async () => {
-            CacheUtils.initialise('../service-worker.js')
+            CacheUtils.initialise('/service-worker.js')
 			SuttaPlayerApp._SINGLETON = new SuttaPlayerApp()
 			await SuttaPlayerApp._SINGLETON.start()
 		})
