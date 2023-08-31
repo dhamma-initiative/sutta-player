@@ -13,6 +13,21 @@ export class SuttaPlayerApp {
 
     private _controller: SuttaPlayerController
 
+    public queryAppRoot() {
+        const host = location.host
+        let idxPos = appConfig.hosts.indexOf(host)
+        let ret = ''
+        if (idxPos > -1)
+            ret = appConfig.appRoots[idxPos]
+        else {
+            console.log(`registered hosts: ${appConfig.hosts}`)
+            console.log(`registered appRoots: ${appConfig.appRoots}`)
+        }
+        console.log(`host: ${host}`)
+        console.log(`appRoot: ${ret}`)
+        return ret
+    }
+
     public async start() {
         this._suttaStorage = await SuttaStorageQueryableFactory.create(appConfig.SuttaStorageQueryableImpl)
         this._audioStorage = await AudioStorageQueryableFactory.create(appConfig.AudioRetrievableImpl)
@@ -109,8 +124,9 @@ export class SuttaPlayerApp {
 
     static {
 		window.addEventListener('load', async () => {
-            CacheUtils.initialise('/service-worker.js')
 			SuttaPlayerApp._SINGLETON = new SuttaPlayerApp()
+            const appRoot = SuttaPlayerApp._SINGLETON.queryAppRoot()
+            CacheUtils.initialise(appRoot + '/service-worker.js')
 			await SuttaPlayerApp._SINGLETON.start()
 		})
 
