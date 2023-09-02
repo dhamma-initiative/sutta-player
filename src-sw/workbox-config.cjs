@@ -10,6 +10,7 @@ module.exports = {
 		'**/tsconfig.json',
 		'**/src/**/*',
 		'**/src-sw/**/*',
+		'**/text/metadata/**/*',
 	],	
 	swDest: 'service-worker.js',
 	swSrc: 'service-worker.js'
