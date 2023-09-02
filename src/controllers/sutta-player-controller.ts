@@ -4,8 +4,8 @@ import { AudioStorageQueryable } from '../models/audio-storage-queryable.js'
 import { SuttaPlayerState, SuttaSelection } from '../models/sutta-player-state.js'
 import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js"
 import { DeferredPromise } from '../runtime/deferred-promise.js'
-import { CacheUtils } from '../runtime/cache-utils.js'
 
+type OfflineProcessingCallback = (currTrack: SuttaSelection) => Promise<boolean>
 
 export class SuttaPlayerController {
     private _audioStore: AudioStorageQueryable
@@ -14,7 +14,7 @@ export class SuttaPlayerController {
     private _view: SuttaPlayerView
     private _model: SuttaPlayerState
 
-    private _cachedPromise: DeferredPromise<boolean>
+    private _downloadedPromise: DeferredPromise<boolean>
 
     public constructor(suttaStorage: SuttaStorageQueryable, audioStorage: AudioStorageQueryable) {
         this._suttaStore = suttaStorage
@@ -52,10 +52,10 @@ export class SuttaPlayerController {
         this._view.loadRandomElem.onclick = async () => {
             this._onLoadRandom()
         }
-        this._view.showAboutElem.onclick = async (event) => {
+        this._view.aboutMenuElem.onclick = async (event) => {
             this._view.toggleAboutInfo(event)
         }
-        this._view.aboutDialogCloseElem.onclick = this._view.showAboutElem.onclick
+        this._view.aboutDialogCloseElem.onclick = this._view.aboutMenuElem.onclick
         this._view.audioPlayerElem.onloadeddata = async () => {
             this._view.updatePlayingSuttaInfo(this._model.audioSel.baseRef, 'loaded')
         }
@@ -92,17 +92,37 @@ export class SuttaPlayerController {
             if (this._model.linkTextToAudio) 
                 this._onLoadText(this._model.audioSel)
         }
-        this._view.toggleDownloadElem.onchange = async () => {
-            this._model.isDownloading = this._view.toggleDownloadElem.checked
-            this._onDownloadCollection(this._model.isDownloading)
+        this._view.offlineMenuElem.onclick = async (event) => {
+            this._view.toggleOfflineDialog(event)
+        }
+        this._view.offlineDialogCloseElem.onclick = this._view.offlineMenuElem.onclick
+        this._view.downloadAlbumElem.onclick =async () => {
+            this._model.stopDwnlDel = 1
+            this._onDownloadAlbum()
+        }
+        this._view.deleteAlbumElem.onclick = async () => {
+            this._model.stopDwnlDel = 2
+            await this._onRemoveAlbum()
+        }
+        this._view.stopProcessingElem.onclick = async () => {
+            if (this._model.stopDwnlDel === 1) {
+                if (this._downloadedPromise !== null)
+                    this._downloadedPromise.resolve(false)
+            }
+            this._model.stopDwnlDel = 0
+            this._view.stopProcessingElem.checked = true
+
         }
         this._view.audioCacherElem.oncanplaythrough = async () => {
-            this._cachedPromise.resolve(true)
+            this._downloadedPromise.resolve(true)
         }
-        this._view.resetAppElem.onclick = async (event) => {
-            localStorage.clear()
-            CacheUtils.deleteCacheAndReloadApp(null)
-            event.preventDefault()
+        this._view.resetAppMenuElem.onclick = async (event) => {
+            this._view.toggleResetAppDialog(event)
+        }
+        this._view.resetAppCloseElem.onclick = this._view.resetAppMenuElem.onclick
+        this._view.resetAppConfirmElem.onclick = async (event) => {
+            await this._onResetAppConfirm()
+            this._view.toggleResetAppDialog(event)
         }
     }
 
@@ -154,26 +174,50 @@ export class SuttaPlayerController {
         await this._onLoadAudio(this._model.navSel)
     }
 
-    private async _onDownloadCollection(startDownloading: boolean) {
-        if (startDownloading) {
-            let downloadSel = new SuttaSelection('cache')
-            downloadSel.collectionIndex = this._model.navSel.collectionIndex
-            const fileList = this._suttaStore.querySuttaReferences(this._model.navSel.collectionIndex)
-            for (let i = 0; i < fileList.length; i++) {
-                let progVal = Math.round(((i+1)/fileList.length) * 100)
-                this._view.downloadProgressElem.value = progVal
-                this._cachedPromise = new DeferredPromise<boolean>()
-                downloadSel.suttaIndex = i
-                downloadSel.updateBaseRef(this._suttaStore)
-                const textBody = await this._suttaStore.querySuttaText(downloadSel.baseRef)
-                this._view.loadSuttaAudioWith(downloadSel, this._view.audioCacherElem)
-                let cont = await this._cachedPromise
-                if (!cont)
-                    break
-            }
-        } else 
-            this._cachedPromise.resolve(false)
-        this._view.downloadProgressElem.value = 0
-        this._view.toggleDownloadElem.checked = false
+    private async _onDownloadAlbum() {
+        const downloadHandler: OfflineProcessingCallback = async (currTrack: SuttaSelection) =>  {
+            this._downloadedPromise = new DeferredPromise<boolean>()
+            this._view.loadSuttaAudioWith(currTrack, this._view.audioCacherElem)
+            const wasDownloaded = await this._downloadedPromise
+            return wasDownloaded
+        }
+        this._onOfflineAlbumProcessing(downloadHandler)
+    }
+
+    private async _onRemoveAlbum() {
+        const removeHandler: OfflineProcessingCallback = async (currTrack: SuttaSelection) =>  {
+            const wasDeleted = await this._audioStore.removeFromCache(currTrack.baseRef)
+            return wasDeleted
+        }
+        this._onOfflineAlbumProcessing(removeHandler)
+    }
+
+    private async _onOfflineAlbumProcessing(handler: OfflineProcessingCallback) {
+        let processSel = new SuttaSelection('cache')
+        processSel.collectionIndex = this._model.navSel.collectionIndex
+        const fileList = this._suttaStore.querySuttaReferences(this._model.navSel.collectionIndex)
+        let urls: string[] = []
+        for (let i = 0; i < fileList.length; i++) {
+            let progVal = Math.round(((i+1)/fileList.length) * 100)
+            processSel.suttaIndex = i
+            processSel.updateBaseRef(this._suttaStore)
+            this._view.updateOfflineInfo(processSel.baseRef, progVal)
+            const wasProcessed = await handler(processSel)
+            console.log(`Processed: ${processSel.baseRef}`)
+            if (this._model.stopDwnlDel === 0)
+                break
+        }
+        this._model.stopDwnlDel = 0
+        this._view.updateOfflineInfo('', 0)
+        this._view.stopProcessingElem.checked = true    
+    }
+
+    private async _onResetAppConfirm() {
+        localStorage.clear()
+        let keys = await caches.keys()
+        for (let i = 0; i < keys.length; i++) 
+            await caches.delete(keys[i])            
+        const swReg = await navigator.serviceWorker.getRegistration()
+        await swReg.unregister()
     }
 } 

@@ -1,4 +1,6 @@
 export interface AudioStorageQueryable {
+    isInCache(suttaRef: string): Promise<boolean>
+    removeFromCache(suttaRef: string): Promise<boolean>
     queryHtmlAudioSrcRef(suttaRef: string): string
 }
 

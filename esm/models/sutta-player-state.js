@@ -35,8 +35,9 @@ export class SuttaPlayerState extends LocalStorageState {
     playNext = true;
     repeat = false;
     linkTextToAudio = true;
-    isDownloading = false;
     currentTime = 0;
+    colorTheme = 'light';
+    stopDwnlDel = 0; // transient
     save() {
         this.navSel.save();
         this.textSel.save();
@@ -46,6 +47,7 @@ export class SuttaPlayerState extends LocalStorageState {
         this._setItemBoolean('repeat', this.repeat);
         this._setItemBoolean('linkTextToAudio', this.linkTextToAudio);
         this._setItemNumber('currentTime', this.currentTime);
+        this._setItemString('colorTheme', this.colorTheme);
     }
     load() {
         this.navSel.load();
@@ -56,6 +58,7 @@ export class SuttaPlayerState extends LocalStorageState {
         this.repeat = this._getItemBoolean('repeat', this.repeat);
         this.linkTextToAudio = this._getItemBoolean('linkTextToAudio', this.linkTextToAudio);
         this.currentTime = this._getItemNumber('currentTime', this.currentTime);
+        this.colorTheme = this._getItemString('colorTheme', this.colorTheme);
     }
 }
 //# sourceMappingURL=sutta-player-state.js.map

@@ -1,7 +1,7 @@
 module.exports = {
 	globDirectory: '.',
 	globPatterns: [
-		'**/*.{json,js,ico,png,css,html,md}',
+		'**/*.{json,js,ico,png,css,html,txt,md}',
 	],
 	globIgnores: [
 		'**/package.json',
@@ -10,7 +10,6 @@ module.exports = {
 		'**/tsconfig.json',
 		'**/src/**/*',
 		'**/src-sw/**/*',
-		'**/text/**/*',
 	],	
 	swDest: 'service-worker.js',
 	swSrc: 'service-worker.js'

@@ -1,22 +1,36 @@
 export class CacheUtils {
     static initialise(jsRelativePath) {
-        if ("serviceWorker" in navigator) {
-            navigator.serviceWorker.register(jsRelativePath);
-        }
+        navigator.serviceWorker.register(jsRelativePath);
+        var refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (refreshing)
+                return;
+            refreshing = true;
+            window.location.reload();
+        });
     }
-    static async deleteCacheAndReloadApp(cacheName) {
-        if ("serviceWorker" in navigator) {
-            let delCount = 0;
-            const keys = await caches.keys();
-            keys.forEach(async (cacheNm) => {
-                if ((cacheNm === cacheName) || (cacheName === null)) {
-                    await caches.delete(cacheNm);
-                    delCount++;
-                }
-            });
-            if (delCount > 0)
-                setTimeout(() => { window.location.replace(''); }, 300);
+    static async isInCache(cacheName, urls, chkResp) {
+        let ret = [];
+        const cache = await caches.open(cacheName);
+        for (let i = 0; i < urls.length; i++) {
+            const cachedResponse = await cache.match(urls[i]);
+            let isCached = cachedResponse?.ok ? true : false;
+            if (!isCached && chkResp)
+                isCached = chkResp(cachedResponse);
+            ret.push(isCached);
         }
+        return ret;
+    }
+    static async deleteCachedUrls(cacheName, urls, options) {
+        const cache = await caches.open(cacheName);
+        // const allkeys = await cache.keys()
+        // const rqst = await cache.keys(urls[0], options)
+        let ret = [];
+        for (let i = 0; i < urls.length; i++) {
+            const wasDeleted = await cache.delete(urls[i], options);
+            ret.push(wasDeleted);
+        }
+        return ret;
     }
 }
 //# sourceMappingURL=cache-utils.js.map

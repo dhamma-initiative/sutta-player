@@ -5,7 +5,7 @@ export declare class SuttaPlayerController {
     private _suttaStore;
     private _view;
     private _model;
-    private _cachedPromise;
+    private _downloadedPromise;
     constructor(suttaStorage: SuttaStorageQueryable, audioStorage: AudioStorageQueryable);
     setup(): Promise<void>;
     tearDown(): Promise<void>;
@@ -16,5 +16,8 @@ export declare class SuttaPlayerController {
     private _onLoadAudio;
     private _onLoadText;
     private _onLoadRandom;
-    private _onDownloadCollection;
+    private _onDownloadAlbum;
+    private _onRemoveAlbum;
+    private _onOfflineAlbumProcessing;
+    private _onResetAppConfirm;
 }

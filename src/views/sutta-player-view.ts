@@ -8,13 +8,11 @@ export class SuttaPlayerView {
     playNextElem: HTMLInputElement
     repeatElem: HTMLInputElement
     linkTextToAudioElem: HTMLInputElement
-    toggleDownloadElem: HTMLInputElement
-    downloadProgressElem: HTMLProgressElement
-    audioCacherElem: HTMLAudioElement
-    resetAppElem: HTMLAnchorElement
+    offlineMenuElem: HTMLAnchorElement
+    resetAppMenuElem: HTMLAnchorElement
 
     // about
-    showAboutElem: HTMLAnchorElement
+    aboutMenuElem: HTMLAnchorElement
     aboutDialogElem: HTMLDialogElement
     aboutDialogCloseElem: HTMLAnchorElement
     aboutTextBodyElem: HTMLParagraphElement
@@ -32,12 +30,28 @@ export class SuttaPlayerView {
     displayingSuttaElem: HTMLElement
     suttaTextBodyElem: HTMLDivElement
 
-    private _playerState: SuttaPlayerState
+    // offline
+    offlineDialogElem: HTMLDialogElement
+    offlineDialogCloseElem: HTMLAnchorElement
+    offlineTitleElem: HTMLParagraphElement
+    downloadAlbumElem: HTMLInputElement
+    deleteAlbumElem: HTMLInputElement
+    stopProcessingElem: HTMLInputElement
+    processingInfoElem: HTMLDivElement
+    processingProgressElem: HTMLProgressElement
+    audioCacherElem: HTMLAudioElement
+
+    // reset app
+    resetAppDialogElem: HTMLDialogElement
+    resetAppCloseElem: HTMLAnchorElement
+    resetAppConfirmElem: HTMLAnchorElement
+
+    private _modelState: SuttaPlayerState
     private _suttaStore: SuttaStorageQueryable
     private _audioStore: AudioStorageQueryable
 
     constructor(mdl: SuttaPlayerState, store: SuttaStorageQueryable, audResolver: AudioStorageQueryable) {
-        this._playerState = mdl
+        this._modelState = mdl
         this._suttaStore = store
         this._audioStore = audResolver
 
@@ -53,18 +67,18 @@ export class SuttaPlayerView {
     }
 
     public refreshAudioControls() {
-        this.autoPlayElem.checked = this._playerState.autoPlay
-        this.audioPlayerElem.autoplay = this._playerState.autoPlay
-        this.playNextElem.checked = this._playerState.playNext
-        this.repeatElem.checked = this._playerState.repeat
-        this.linkTextToAudioElem.checked = this._playerState.linkTextToAudio
-        this.audioPlayerElem.loop = this._playerState.repeat
-        this.downloadProgressElem.value = 0
-        this.toggleDownloadElem.checked = this._playerState.isDownloading
+        this.autoPlayElem.checked = this._modelState.autoPlay
+        this.audioPlayerElem.autoplay = this._modelState.autoPlay
+        this.playNextElem.checked = this._modelState.playNext
+        this.repeatElem.checked = this._modelState.repeat
+        this.linkTextToAudioElem.checked = this._modelState.linkTextToAudio
+        this.audioPlayerElem.loop = this._modelState.repeat
+        this.processingProgressElem.value = 0
+        this.stopProcessingElem.checked = (this._modelState.stopDwnlDel === 0)
     }
 
     public loadSuttasList() {
-        const suttaLov = this._suttaStore.querySuttaReferences(this._playerState.navSel.collectionIndex)
+        const suttaLov = this._suttaStore.querySuttaReferences(this._modelState.navSel.collectionIndex)
         this.suttaElem.innerHTML = ''
         for (let i = 0; i < suttaLov.length; i++) {
             let option = document.createElement('option')
@@ -72,21 +86,21 @@ export class SuttaPlayerView {
             option.innerText = suttaLov[i]
             this.suttaElem.append(option)
         }
-        this.suttaElem.selectedIndex = this._playerState.navSel.suttaIndex
+        this.suttaElem.selectedIndex = this._modelState.navSel.suttaIndex
     }
 
     public async loadSuttaText() {
-        if (this._playerState.textSel.baseRef === null) 
+        if (this._modelState.textSel.baseRef === null) 
             return
-        const textBody = await this._suttaStore.querySuttaText(this._playerState.textSel.baseRef)
+        const textBody = await this._suttaStore.querySuttaText(this._modelState.textSel.baseRef)
         this.suttaTextBodyElem.innerHTML = textBody
-        this.displayingSuttaElem.innerHTML = `&#128083; ${this._playerState.textSel.baseRef}`
+        this.displayingSuttaElem.innerHTML = `&#128083; ${this._modelState.textSel.baseRef}`
     }
 
     public loadSuttaAudio() {
-        const success = this.loadSuttaAudioWith(this._playerState.audioSel, this.audioPlayerElem)
+        const success = this.loadSuttaAudioWith(this._modelState.audioSel, this.audioPlayerElem)
         if (success)
-            this.audioPlayerElem.currentTime = this._playerState.currentTime
+            this.audioPlayerElem.currentTime = this._modelState.currentTime
     }
 
     public loadSuttaAudioWith(suttaSel: SuttaSelection, viewAudio: HTMLAudioElement): boolean {
@@ -103,17 +117,49 @@ export class SuttaPlayerView {
     }
 
     public async toggleAboutInfo(event: any) {
-        let isOpen = false
+        if (event)
+            event.preventDefault()
         if (this.aboutTextBodyElem.innerHTML.trim() === '') {
-            isOpen = true
             let textBody = await this._suttaStore.readTextFile('./README.md')
             textBody = textBody.replaceAll('###', '-')
             textBody = textBody.replaceAll('#', '')
             this.aboutTextBodyElem.innerHTML = textBody + 'suttaplayer@gmail.com'
         } else
             this.aboutTextBodyElem.innerHTML = ''
-        this.aboutDialogElem.open = isOpen
-        event.preventDefault()
+        this.aboutDialogElem.open = !this.aboutDialogElem.open
+    }
+
+    public toggleOfflineDialog(event: any) {
+        if (event)
+            event.preventDefault()
+        this.offlineDialogElem.open = !this.offlineDialogElem.open
+        if (!this.offlineDialogElem.open)
+            return
+        if (this._modelState.stopDwnlDel === 0) {
+            let albumName = this.collectionElem.children[this.collectionElem.selectedIndex].innerHTML
+            this.offlineTitleElem.innerHTML = albumName
+        }
+    }
+
+    public toggleResetAppDialog(event: any) {
+        if (event)
+            event.preventDefault()
+        this.resetAppDialogElem.open = !this.resetAppDialogElem.open
+    }
+
+    public updateOfflineInfo(processingInfo: string, perc: number) {
+        let actn = 'Choose an action above'
+        let disableActivityActions = true
+        if (this._modelState.stopDwnlDel === 1)
+            actn = 'Downloading'
+        else if (this._modelState.stopDwnlDel === 2)
+            actn = 'Deleting'
+        else if (this._modelState.stopDwnlDel === 0 && processingInfo === '' && perc === 0)
+            disableActivityActions = false
+        this.processingInfoElem.innerHTML = `${actn} ${processingInfo}`
+        this.processingProgressElem.value = perc
+        this.downloadAlbumElem.disabled = disableActivityActions
+        this.deleteAlbumElem.disabled = disableActivityActions
     }
 
     private _loadCollectionsList() {
@@ -124,7 +170,7 @@ export class SuttaPlayerView {
             option.innerText = colLov[i]
             this.collectionElem.append(option)
         }
-        this.collectionElem.selectedIndex = this._playerState.navSel.collectionIndex
+        this.collectionElem.selectedIndex = this._modelState.navSel.collectionIndex
     }
 
     private _bindHtmlElements() {
@@ -132,12 +178,10 @@ export class SuttaPlayerView {
         this.playNextElem = <HTMLInputElement> document.getElementById('playNext')
         this.repeatElem = <HTMLInputElement> document.getElementById('repeat')
         this.linkTextToAudioElem = <HTMLInputElement> document.getElementById('linkTextToAudio')
-        this.toggleDownloadElem = <HTMLInputElement> document.getElementById('toggleDownload')
-        this.downloadProgressElem = <HTMLProgressElement> document.getElementById('downloadProgress')
-        this.audioCacherElem = <HTMLAudioElement> document.getElementById('audioCacher')
-        this.resetAppElem = <HTMLAnchorElement> document.getElementById('resetApp')
+        this.offlineMenuElem = <HTMLAnchorElement> document.getElementById('offlineMenu')
+        this.resetAppMenuElem = <HTMLAnchorElement> document.getElementById('resetAppMenu')
 
-        this.showAboutElem = <HTMLAnchorElement> document.getElementById('showAbout')
+        this.aboutMenuElem = <HTMLAnchorElement> document.getElementById('aboutMenu')
         this.aboutDialogElem = <HTMLDialogElement> document.getElementById('aboutDialog')
         this.aboutDialogCloseElem = <HTMLAnchorElement> document.getElementById('aboutDialogClose')
         this.aboutTextBodyElem = <HTMLDivElement> document.getElementById('aboutTextBody')
@@ -152,5 +196,19 @@ export class SuttaPlayerView {
         this.audioPlayerElem = <HTMLAudioElement> document.getElementById('audioPlayer')
         this.displayingSuttaElem = <HTMLElement> document.getElementById('displayingSutta')
         this.suttaTextBodyElem = <HTMLDivElement> document.getElementById('suttaTextBody')
+
+        this.offlineDialogElem = <HTMLDialogElement> document.getElementById('offlineDialog')
+        this.offlineDialogCloseElem = <HTMLAnchorElement> document.getElementById('offlineDialogClose')
+        this.offlineTitleElem = <HTMLParagraphElement> document.getElementById('offlineTitle')
+        this.downloadAlbumElem = <HTMLInputElement> document.getElementById('downloadAlbum')
+        this.deleteAlbumElem = <HTMLInputElement> document.getElementById('deleteAlbum')
+        this.stopProcessingElem = <HTMLInputElement> document.getElementById('stopProcessing')
+        this.processingInfoElem = <HTMLDivElement> document.getElementById('processingInfo')
+        this.processingProgressElem = <HTMLProgressElement> document.getElementById('processingProgress')
+        this.audioCacherElem = <HTMLAudioElement> document.getElementById('audioCacher')
+
+        this.resetAppDialogElem = <HTMLDialogElement> document.getElementById('resetAppDialog')
+        this.resetAppCloseElem = <HTMLAnchorElement> document.getElementById('resetAppClose')
+        this.resetAppConfirmElem = <HTMLAnchorElement> document.getElementById('resetAppConfirm')
     }
 } 

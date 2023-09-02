@@ -23,9 +23,13 @@ export class JsonFsSuttaDB {
         return ret;
     }
     async querySuttaText(baseRef) {
-        const relPath = `./text/suttas/${baseRef}.txt`;
+        const relPath = this.querySuttaTextUri(baseRef);
         const ret = this.readTextFile(relPath);
         return ret;
+    }
+    querySuttaTextUri(baseRef) {
+        const relPath = `./text/suttas/${baseRef}.txt`;
+        return relPath;
     }
     async readTextFile(relPath) {
         const resp = await fetch(relPath);

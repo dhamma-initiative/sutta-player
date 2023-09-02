@@ -6,6 +6,7 @@ export declare class JsonFsSuttaDB implements SuttaStorageQueryable {
     querySuttaReferences(colIdx: number): string[];
     querySuttaBaseReference(colIdx: number, suttaIdx: number): string;
     querySuttaText(baseRef: string): Promise<string>;
+    querySuttaTextUri(baseRef: string): string;
     readTextFile(relPath: string): Promise<string>;
     protected _querySuttaReferences(colRef: string): string[];
 }

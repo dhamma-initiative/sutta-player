@@ -48,10 +48,8 @@ export class SuttaPlayerApp {
             },
             // Get color scheme from local storage
             get schemeFromLocalStorage() {
-                if (typeof window.localStorage !== "undefined") {
-                    if (window.localStorage.getItem(this.localStorageKey) !== null) {
-                        return window.localStorage.getItem(this.localStorageKey);
-                    }
+                if (localStorage.getItem(this.localStorageKey) !== null) {
+                    return localStorage.getItem(this.localStorageKey);
                 }
                 return this._scheme;
             },
@@ -93,9 +91,7 @@ export class SuttaPlayerApp {
             },
             // Store scheme to local storage
             schemeToLocalStorage() {
-                if (typeof window.localStorage !== "undefined") {
-                    window.localStorage.setItem(this.localStorageKey, this.scheme);
-                }
+                localStorage.setItem(this.localStorageKey, this.scheme);
             },
         };
         // Init

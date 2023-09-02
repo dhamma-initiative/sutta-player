@@ -6,11 +6,9 @@ export declare class SuttaPlayerView {
     playNextElem: HTMLInputElement;
     repeatElem: HTMLInputElement;
     linkTextToAudioElem: HTMLInputElement;
-    toggleDownloadElem: HTMLInputElement;
-    downloadProgressElem: HTMLProgressElement;
-    audioCacherElem: HTMLAudioElement;
-    resetAppElem: HTMLAnchorElement;
-    showAboutElem: HTMLAnchorElement;
+    offlineMenuElem: HTMLAnchorElement;
+    resetAppMenuElem: HTMLAnchorElement;
+    aboutMenuElem: HTMLAnchorElement;
     aboutDialogElem: HTMLDialogElement;
     aboutDialogCloseElem: HTMLAnchorElement;
     aboutTextBodyElem: HTMLParagraphElement;
@@ -23,7 +21,19 @@ export declare class SuttaPlayerView {
     audioPlayerElem: HTMLAudioElement;
     displayingSuttaElem: HTMLElement;
     suttaTextBodyElem: HTMLDivElement;
-    private _playerState;
+    offlineDialogElem: HTMLDialogElement;
+    offlineDialogCloseElem: HTMLAnchorElement;
+    offlineTitleElem: HTMLParagraphElement;
+    downloadAlbumElem: HTMLInputElement;
+    deleteAlbumElem: HTMLInputElement;
+    stopProcessingElem: HTMLInputElement;
+    processingInfoElem: HTMLDivElement;
+    processingProgressElem: HTMLProgressElement;
+    audioCacherElem: HTMLAudioElement;
+    resetAppDialogElem: HTMLDialogElement;
+    resetAppCloseElem: HTMLAnchorElement;
+    resetAppConfirmElem: HTMLAnchorElement;
+    private _modelState;
     private _suttaStore;
     private _audioStore;
     constructor(mdl: SuttaPlayerState, store: SuttaStorageQueryable, audResolver: AudioStorageQueryable);
@@ -35,6 +45,9 @@ export declare class SuttaPlayerView {
     loadSuttaAudioWith(suttaSel: SuttaSelection, viewAudio: HTMLAudioElement): boolean;
     updatePlayingSuttaInfo(baseRef: string, status: string): void;
     toggleAboutInfo(event: any): Promise<void>;
+    toggleOfflineDialog(event: any): void;
+    toggleResetAppDialog(event: any): void;
+    updateOfflineInfo(processingInfo: string, perc: number): void;
     private _loadCollectionsList;
     private _bindHtmlElements;
 }

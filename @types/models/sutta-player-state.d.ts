@@ -19,8 +19,9 @@ export declare class SuttaPlayerState extends LocalStorageState {
     playNext: boolean;
     repeat: boolean;
     linkTextToAudio: boolean;
-    isDownloading: boolean;
     currentTime: number;
+    colorTheme: string;
+    stopDwnlDel: number;
     save(): void;
     load(): void;
 }

@@ -9,7 +9,7 @@
     knowing, and regard as worth grasping & mastering the words of the Tathāgata." />
     <link rel="shortcut icon" href="favicon.ico" />
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" crossorigin='anonymous'/>
     <link rel="stylesheet" href="custom.css" />
     <link rel="manifest" href="manifest.json">
 </head>
@@ -52,15 +52,8 @@
                                     <input type="checkbox" role="switch" id="linkTextToAudio" name="linkTextToAudio" />
                                 </label>
                             </li>
-                            <li>
-                                <label for="toggleDownload">
-                                    Download Album for offline use
-                                    <input type="checkbox" role="switch" id="toggleDownload" name="toggleDownload" />
-                                </label>
-                                <progress id="downloadProgress" value="0" max="100" dir="ltr"></progress>
-                                <audio id="audioCacher" controls style="display: none;"></audio>
-                                <a id="resetApp" href="#" role="button" style="display: none;">Reset App</a>
-                            </li>
+                            <li><a id="offlineMenu" href="#">...Offline</a></li>
+                            <li><a id="resetAppMenu" href="#" style="display: none;">...Reset App</a></li>
                             <li><a href="#" data-theme-switcher="auto">Auto mode</a></li>
                             <li><a href="#" data-theme-switcher="light">Light mode</a></li>
                             <li><a href="#" data-theme-switcher="dark">Dark mode</a></li>
@@ -68,7 +61,7 @@
                     </details>
                 </li>
                 <li>
-                    <a id="showAbout" href="#" role="button" class="contrast">About</a>
+                    <a id="aboutMenu" href="#" role="button" class="contrast">About</a>
                 </li>
             </ul>
         </nav>
@@ -133,6 +126,49 @@
                 <p id="aboutTextBody" style="white-space: pre-wrap;"></p>
             </article>
         </dialog>
+
+        <dialog id="offlineDialog">
+            <article>
+                <header>
+                    <a id="offlineDialogClose" href="#" aria-label="Close" class="close"></a>
+                    <div>Offline Album Management</div>
+                </header>
+                <strong><p id="offlineTitle"></p></strong>
+                <fieldset>
+                    <legend>Offline Action</legend>
+                    <label for="small">
+                      <input type="radio" id="downloadAlbum" name="offlineAction" value="downloadAlbum">
+                      Download Album for offline use
+                    </label>
+                    <label for="deleteAlbum">
+                      <input type="radio" id="deleteAlbum" name="offlineAction" value="deleteAlbum">
+                      Delete Album from offline use 
+                    </label>
+                    <label for="stopProcessing">
+                      <input type="radio" id="stopProcessing" name="offlineAction" value="stopProcessing" checked>
+                      Stop Processing
+                    </label>
+                </fieldset>
+                <div id="processingInfo"></div>
+                <progress id="processingProgress" value="0" max="100"></progress>
+                <audio id="audioCacher" controls style="display: none;"></audio>
+            </article>
+        </dialog>
+
+        <dialog id="resetAppDialog">
+            <article>
+                <h3>Reset Sutta Player App</h3>
+                <p>
+                  Resetting the application will delete the downloaded Albums and will install the latest app version from the website.
+                </p>
+                <p>Please confirm your action.</p>
+                <footer>
+                  <a id="resetAppClose" href="#" role="button" class="secondary">Cancel</a>
+                  <a id="resetAppConfirm" href="#" role="button">Confirm</a>
+                </footer>
+              </article>            
+        </dialog>
+
     </main>
 
     <script src="esm/sutta-player-app.js" type="module"></script>

@@ -43,8 +43,9 @@ export class SuttaPlayerState extends LocalStorageState {
     playNext: boolean = true
     repeat: boolean = false
     linkTextToAudio: boolean = true
-    isDownloading: boolean = false
     currentTime: number = 0
+    colorTheme: string = 'light'
+    stopDwnlDel: number = 0 // transient
 
     public save() {
         this.navSel.save()
@@ -55,6 +56,7 @@ export class SuttaPlayerState extends LocalStorageState {
         this._setItemBoolean('repeat', this.repeat)
         this._setItemBoolean('linkTextToAudio', this.linkTextToAudio)
         this._setItemNumber('currentTime', this.currentTime)
+        this._setItemString('colorTheme', this.colorTheme)
     }
 
     public load() {
@@ -66,5 +68,6 @@ export class SuttaPlayerState extends LocalStorageState {
         this.repeat = this._getItemBoolean('repeat', this.repeat)
         this.linkTextToAudio = this._getItemBoolean('linkTextToAudio', this.linkTextToAudio)
         this.currentTime = this._getItemNumber('currentTime', this.currentTime)
+        this.colorTheme = this._getItemString('colorTheme', this.colorTheme)
     }
 }
