@@ -1,12 +1,14 @@
+import { TrackSelection } from '../sutta-player-state.js';
 import { SuttaStorageQueryable } from '../sutta-storage-queryable.js';
 export declare function createSuttaStorageQueryable(): SuttaStorageQueryable;
 export declare class JsonFsSuttaDB implements SuttaStorageQueryable {
-    queryCollectionNames(): string[];
-    queryCollectionReferences(): string[];
-    querySuttaReferences(colIdx: number): string[];
-    querySuttaBaseReference(colIdx: number, suttaIdx: number): string;
-    querySuttaText(baseRef: string): Promise<string>;
-    querySuttaTextUri(baseRef: string): string;
+    queryAlbumNames(): string[];
+    queryAlbumReferences(): string[];
+    queryTrackReferences(albIdx: number): string[];
+    queryTrackBaseRef(albIdx: number, trackIdx: number): string;
+    queryTrackSelection(baseRef: string): TrackSelection;
+    queryTrackText(baseRef: string): Promise<string>;
+    queryTrackTextUri(baseRef: string): string;
     readTextFile(relPath: string): Promise<string>;
-    protected _querySuttaReferences(colRef: string): string[];
+    protected _queryTrackReferences(colRef: string): string[];
 }

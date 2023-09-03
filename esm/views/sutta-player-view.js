@@ -12,16 +12,18 @@ export class SuttaPlayerView {
     aboutDialogCloseElem;
     aboutTextBodyElem;
     // selections
-    collectionElem;
-    suttaElem;
+    albumTrackSelectionElem;
+    albumElem;
+    trackElem;
     loadAudioElem;
     loadTextElem;
     loadRandomElem;
+    shareLinkElem;
     // display
-    playingSuttaElem;
+    playingTrackElem;
     audioPlayerElem;
-    displayingSuttaElem;
-    suttaTextBodyElem;
+    displayingTrackElem;
+    trackTextBodyElem;
     // offline
     offlineDialogElem;
     offlineDialogCloseElem;
@@ -46,11 +48,11 @@ export class SuttaPlayerView {
         this._bindHtmlElements();
     }
     async initialise() {
-        this._loadCollectionsList();
-        this.loadSuttasList();
-        await this.loadSuttaText();
+        this._loadAlbumsList();
+        this.loadTracksList();
+        await this.loadTrackText();
         this.refreshAudioControls();
-        this.loadSuttaAudio();
+        this.loadTrackAudio();
     }
     refreshAudioControls() {
         this.autoPlayElem.checked = this._modelState.autoPlay;
@@ -62,39 +64,39 @@ export class SuttaPlayerView {
         this.processingProgressElem.value = 0;
         this.stopProcessingElem.checked = (this._modelState.stopDwnlDel === 0);
     }
-    loadSuttasList() {
-        const suttaLov = this._suttaStore.querySuttaReferences(this._modelState.navSel.collectionIndex);
-        this.suttaElem.innerHTML = '';
-        for (let i = 0; i < suttaLov.length; i++) {
+    loadTracksList() {
+        const trackLov = this._suttaStore.queryTrackReferences(this._modelState.navSel.albumIndex);
+        this.trackElem.innerHTML = '';
+        for (let i = 0; i < trackLov.length; i++) {
             let option = document.createElement('option');
             option.value = `${i}`;
-            option.innerText = suttaLov[i];
-            this.suttaElem.append(option);
+            option.innerText = trackLov[i];
+            this.trackElem.append(option);
         }
-        this.suttaElem.selectedIndex = this._modelState.navSel.suttaIndex;
+        this.trackElem.selectedIndex = this._modelState.navSel.trackIndex;
     }
-    async loadSuttaText() {
+    async loadTrackText() {
         if (this._modelState.textSel.baseRef === null)
             return;
-        const textBody = await this._suttaStore.querySuttaText(this._modelState.textSel.baseRef);
-        this.suttaTextBodyElem.innerHTML = textBody;
-        this.displayingSuttaElem.innerHTML = `&#128083; ${this._modelState.textSel.baseRef}`;
+        const textBody = await this._suttaStore.queryTrackText(this._modelState.textSel.baseRef);
+        this.trackTextBodyElem.innerHTML = textBody;
+        this.displayingTrackElem.innerHTML = `&#128083; ${this._modelState.textSel.baseRef}`;
     }
-    loadSuttaAudio() {
+    loadTrackAudio() {
         const success = this.loadSuttaAudioWith(this._modelState.audioSel, this.audioPlayerElem);
         if (success)
             this.audioPlayerElem.currentTime = this._modelState.currentTime;
     }
-    loadSuttaAudioWith(suttaSel, viewAudio) {
-        if (suttaSel.baseRef === null)
+    loadSuttaAudioWith(trackSel, viewAudio) {
+        if (trackSel.baseRef === null)
             return false;
-        const srcRef = this._audioStore.queryHtmlAudioSrcRef(suttaSel.baseRef);
+        const srcRef = this._audioStore.queryHtmlAudioSrcRef(trackSel.baseRef);
         viewAudio.src = srcRef;
         return true;
     }
-    updatePlayingSuttaInfo(baseRef, status) {
+    updatePlayingTrackInfo(baseRef, status) {
         let info = status ? ` [${status}]` : '';
-        this.playingSuttaElem.innerHTML = `&#127911; ${baseRef}${info}`;
+        this.playingTrackElem.innerHTML = `&#127911; ${baseRef}${info}`;
     }
     async toggleAboutInfo(event) {
         if (event)
@@ -116,7 +118,7 @@ export class SuttaPlayerView {
         if (!this.offlineDialogElem.open)
             return;
         if (this._modelState.stopDwnlDel === 0) {
-            let albumName = this.collectionElem.children[this.collectionElem.selectedIndex].innerHTML;
+            let albumName = this.albumElem.children[this.albumElem.selectedIndex].innerHTML;
             this.offlineTitleElem.innerHTML = albumName;
         }
     }
@@ -139,15 +141,15 @@ export class SuttaPlayerView {
         this.downloadAlbumElem.disabled = disableActivityActions;
         this.deleteAlbumElem.disabled = disableActivityActions;
     }
-    _loadCollectionsList() {
-        const colLov = this._suttaStore.queryCollectionNames();
+    _loadAlbumsList() {
+        const colLov = this._suttaStore.queryAlbumNames();
         for (let i = 0; i < colLov.length; i++) {
             let option = document.createElement('option');
             option.value = `${i}`;
             option.innerText = colLov[i];
-            this.collectionElem.append(option);
+            this.albumElem.append(option);
         }
-        this.collectionElem.selectedIndex = this._modelState.navSel.collectionIndex;
+        this.albumElem.selectedIndex = this._modelState.navSel.albumIndex;
     }
     _bindHtmlElements() {
         this.autoPlayElem = document.getElementById('autoPlay');
@@ -160,15 +162,17 @@ export class SuttaPlayerView {
         this.aboutDialogElem = document.getElementById('aboutDialog');
         this.aboutDialogCloseElem = document.getElementById('aboutDialogClose');
         this.aboutTextBodyElem = document.getElementById('aboutTextBody');
-        this.collectionElem = document.getElementById('collection');
-        this.suttaElem = document.getElementById('sutta');
+        this.albumTrackSelectionElem = document.getElementById('albumTrackSelection');
+        this.albumElem = document.getElementById('album');
+        this.trackElem = document.getElementById('track');
         this.loadAudioElem = document.getElementById('loadAudio');
         this.loadTextElem = document.getElementById('loadText');
         this.loadRandomElem = document.getElementById('loadRandom');
-        this.playingSuttaElem = document.getElementById('playingSutta');
+        this.shareLinkElem = document.getElementById('shareLink');
+        this.playingTrackElem = document.getElementById('playingTrack');
         this.audioPlayerElem = document.getElementById('audioPlayer');
-        this.displayingSuttaElem = document.getElementById('displayingSutta');
-        this.suttaTextBodyElem = document.getElementById('suttaTextBody');
+        this.displayingTrackElem = document.getElementById('displayingTrack');
+        this.trackTextBodyElem = document.getElementById('trackTextBody');
         this.offlineDialogElem = document.getElementById('offlineDialog');
         this.offlineDialogCloseElem = document.getElementById('offlineDialogClose');
         this.offlineTitleElem = document.getElementById('offlineTitle');

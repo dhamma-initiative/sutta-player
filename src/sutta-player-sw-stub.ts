@@ -3,7 +3,7 @@ import { precacheAndRoute } from 'workbox-precaching'
 import { registerRoute } from 'workbox-routing'
 import { CacheFirst } from 'workbox-strategies'
 
-import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, PluginJson, REGISTERROUTE, RegisterRoutePayloadJson } from './runtime/workbox-common.js'
+import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, PluginJson, REGISTERROUTE, RegisterRoutePayloadJson } from './runtime/cache-utils.js'
 
 declare const self: ServiceWorkerGlobalScope
 

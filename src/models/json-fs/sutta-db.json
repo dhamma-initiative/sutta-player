@@ -1,5 +1,5 @@
 {
-    "collectionName": [
+    "albumName": [
         "Aṅguttara Nikāya | The Numerical Collection",
         "Dīgha Nikāya | The Long Collection",
         "Dhammapada",
@@ -12,7 +12,7 @@
         "Majjhima Nikāya | The Middle Collection",
         "Saṁyutta Nikāya | The Connected Collection"
     ],
-    "collectionBaseDirectory": [
+    "albumBaseDirectory": [
         "AN", 
         "DN", 
         "KN/Dhp", 

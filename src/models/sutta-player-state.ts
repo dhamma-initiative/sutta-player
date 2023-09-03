@@ -1,44 +1,47 @@
 import { LocalStorageState } from '../runtime/localstorage-state.js'
 import { SuttaStorageQueryable } from './sutta-storage-queryable.js'
 
-export class SuttaSelection extends LocalStorageState {
+export class TrackSelection extends LocalStorageState {
     context: string
-    collectionIndex: number = 0
-    suttaIndex: number = 0
-    baseRef: string = null
+    albumIndex: number
+    trackIndex: number
+    baseRef: string
 
-    constructor(ctx: string) {
+    constructor(ctx: string, albIdx = 0, trkIdx = 0, bRef: string = null) {
         super()
         this.context = ctx
+        this.albumIndex = albIdx
+        this.trackIndex = trkIdx
+        this.baseRef = bRef
     }
 
-    public read(src: SuttaSelection) {
-        this.collectionIndex = src.collectionIndex
-        this.suttaIndex = src.suttaIndex
+    public read(src: TrackSelection) {
+        this.albumIndex = src.albumIndex
+        this.trackIndex = src.trackIndex
         this.baseRef = src.baseRef
     }
 
     public updateBaseRef(qry: SuttaStorageQueryable) {
-        this.baseRef = qry.querySuttaBaseReference(this.collectionIndex, this.suttaIndex)
+        this.baseRef = qry.queryTrackBaseRef(this.albumIndex, this.trackIndex)
     }
 
     public save() {
-        this._setItemNumber(`${this.context}.collectionIndex`, this.collectionIndex)
-        this._setItemNumber(`${this.context}.suttaIndex`, this.suttaIndex)
+        this._setItemNumber(`${this.context}.albumIndex`, this.albumIndex)
+        this._setItemNumber(`${this.context}.trackIndex`, this.trackIndex)
         this._setItemString(`${this.context}.baseRef`, this.baseRef)
     }
 
     public load() {
-        this.collectionIndex = this._getItemNumber(`${this.context}.collectionIndex`, this.collectionIndex)
-        this.suttaIndex = this._getItemNumber(`${this.context}.suttaIndex`, this.suttaIndex)
+        this.albumIndex = this._getItemNumber(`${this.context}.albumIndex`, this.albumIndex)
+        this.trackIndex = this._getItemNumber(`${this.context}.trackIndex`, this.trackIndex)
         this.baseRef = this._getItemString(`${this.context}.baseRef`, this.baseRef)
     }
 }
 
 export class SuttaPlayerState extends LocalStorageState {
-    navSel: SuttaSelection = new SuttaSelection('navSel')
-    textSel: SuttaSelection = new SuttaSelection('textSel')
-    audioSel: SuttaSelection = new SuttaSelection('audioSel')
+    navSel: TrackSelection = new TrackSelection('navSel')
+    textSel: TrackSelection = new TrackSelection('textSel')
+    audioSel: TrackSelection = new TrackSelection('audioSel')
     autoPlay: boolean = true
     playNext: boolean = true
     repeat: boolean = false

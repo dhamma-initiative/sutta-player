@@ -1,33 +1,47 @@
+import { TrackSelection } from '../sutta-player-state.js';
 import suttaDb from './sutta-db.json' assert { type: 'json' };
 export function createSuttaStorageQueryable() {
     return new JsonFsSuttaDB();
 }
 export class JsonFsSuttaDB {
-    queryCollectionNames() {
-        return suttaDb.collectionName;
+    queryAlbumNames() {
+        return suttaDb.albumName;
     }
-    queryCollectionReferences() {
-        return suttaDb.collectionBaseDirectory;
+    queryAlbumReferences() {
+        return suttaDb.albumBaseDirectory;
     }
-    querySuttaReferences(colIdx) {
-        colIdx = colIdx === -1 ? 0 : colIdx;
-        const key = suttaDb.collectionBaseDirectory[colIdx];
-        return this._querySuttaReferences(key);
+    queryTrackReferences(albIdx) {
+        albIdx = albIdx === -1 ? 0 : albIdx;
+        const key = suttaDb.albumBaseDirectory[albIdx];
+        return this._queryTrackReferences(key);
     }
-    querySuttaBaseReference(colIdx, suttaIdx) {
-        if (colIdx === -1 || suttaIdx === -1)
+    queryTrackBaseRef(albIdx, trackIdx) {
+        if (albIdx === -1 || trackIdx === -1)
             return null;
-        const basePath = this.queryCollectionReferences()[colIdx];
-        const baseName = this.querySuttaReferences(colIdx)[suttaIdx];
+        const basePath = this.queryAlbumReferences()[albIdx];
+        const baseName = this.queryTrackReferences(albIdx)[trackIdx];
         const ret = `${basePath}/${baseName}`;
         return ret;
     }
-    async querySuttaText(baseRef) {
-        const relPath = this.querySuttaTextUri(baseRef);
+    queryTrackSelection(baseRef) {
+        let baseName = baseRef.replace(/^.*[\\\/]/, '');
+        let basePath = baseRef.substring(0, baseRef.length - baseName.length);
+        if (basePath.startsWith('/'))
+            basePath = basePath.substring(1);
+        if (basePath.endsWith('/'))
+            basePath = basePath.substring(0, basePath.length - 1);
+        let albIdx = suttaDb.albumBaseDirectory.indexOf(basePath);
+        const lov = this._queryTrackReferences(basePath);
+        let trkIdx = lov.indexOf(baseName);
+        let ret = new TrackSelection('url', albIdx, trkIdx, baseRef);
+        return ret;
+    }
+    async queryTrackText(baseRef) {
+        const relPath = this.queryTrackTextUri(baseRef);
         const ret = await this.readTextFile(relPath);
         return ret;
     }
-    querySuttaTextUri(baseRef) {
+    queryTrackTextUri(baseRef) {
         const relPath = `./text/suttas/${baseRef}.txt`;
         return relPath;
     }
@@ -36,7 +50,7 @@ export class JsonFsSuttaDB {
         const text = await resp.text();
         return text;
     }
-    _querySuttaReferences(colRef) {
+    _queryTrackReferences(colRef) {
         const suttaRefs = suttaDb[colRef];
         return suttaRefs;
     }

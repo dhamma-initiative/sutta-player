@@ -1,10 +1,12 @@
+import { TrackSelection } from "./sutta-player-state";
 export interface SuttaStorageQueryable {
-    queryCollectionNames(): string[];
-    queryCollectionReferences(): string[];
-    querySuttaReferences(colIdx: number): string[];
-    querySuttaBaseReference(colIdx: number, suttaIdx: number): string;
-    querySuttaText(baseRef: string): Promise<string>;
-    querySuttaTextUri(baseRef: string): string;
+    queryAlbumNames(): string[];
+    queryAlbumReferences(): string[];
+    queryTrackReferences(albIdx: number): string[];
+    queryTrackBaseRef(albIdx: number, trackIdx: number): string;
+    queryTrackSelection(baseRef: string): TrackSelection;
+    queryTrackText(baseRef: string): Promise<string>;
+    queryTrackTextUri(baseRef: string): string;
     readTextFile(relPath: string): Promise<string>;
 }
 export declare class SuttaStorageQueryableFactory {

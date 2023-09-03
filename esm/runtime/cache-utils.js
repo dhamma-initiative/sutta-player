@@ -1,5 +1,12 @@
+export const REGISTERROUTE = 'RegisterRoute';
+export const CACHE_URLS = 'CACHE_URLS';
+export const CACHEFIRST = 'CacheFirst';
+export const CACHEABLERESPONSEPLUGIN = 'CacheableResponsePlugin';
 export class CacheUtils {
+    static ENABLE_CACHE = true;
     static initialise(jsRelativePath, options) {
+        if (!CacheUtils.ENABLE_CACHE)
+            return;
         navigator.serviceWorker.register(jsRelativePath, options);
         var refreshing = false;
         navigator.serviceWorker.addEventListener('controllerchange', () => {
@@ -23,14 +30,18 @@ export class CacheUtils {
     }
     static async deleteCachedUrls(cacheName, urls, options) {
         const cache = await caches.open(cacheName);
-        // const allkeys = await cache.keys()
-        // const rqst = await cache.keys(urls[0], options)
         let ret = [];
         for (let i = 0; i < urls.length; i++) {
             const wasDeleted = await cache.delete(urls[i], options);
             ret.push(wasDeleted);
         }
         return ret;
+    }
+    static async postMessage(msg) {
+        if (!CacheUtils.ENABLE_CACHE)
+            return;
+        const registration = await navigator.serviceWorker.ready;
+        registration.active.postMessage(msg);
     }
 }
 //# sourceMappingURL=cache-utils.js.map

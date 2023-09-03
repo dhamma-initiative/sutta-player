@@ -1,5 +1,4 @@
-import { CacheUtils } from '../../runtime/cache-utils.js'
-import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, REGISTERROUTE, RegisterRoutePayloadJson, WorkboxMessageUtils } from '../../runtime/workbox-common.js'
+import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, CacheUtils, REGISTERROUTE, RegisterRoutePayloadJson } from '../../runtime/cache-utils.js'
 import { AudioStorageQueryable } from '../audio-storage-queryable.js'
 
 import googleDriveAudioDB from './google-drive-audio-db.json' assert { type: 'json' }
@@ -14,6 +13,8 @@ export class GoogleDriveAudioDB implements AudioStorageQueryable {
     public static REST_API = '/uc?export=open&id='
 
     public constructor() {
+        if (!CacheUtils.ENABLE_CACHE)
+            return
         const payload: RegisterRoutePayloadJson = {
             url_origin: GoogleDriveAudioDB.ORIGIN,
             strategy: {
@@ -29,7 +30,7 @@ export class GoogleDriveAudioDB implements AudioStorageQueryable {
                 ]
             }
         }        
-        WorkboxMessageUtils.postMessage({
+        CacheUtils.postMessage({
             type: REGISTERROUTE,
             payload: payload
         })        

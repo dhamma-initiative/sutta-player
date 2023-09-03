@@ -4,7 +4,7 @@ export declare class SuttaPlayerApp {
     private _audioStorage;
     private _controller;
     static queryAppRoot(): string;
-    start(): Promise<void>;
+    start(appRoot: string): Promise<void>;
     stop(): Promise<void>;
     setUpThemeConfig(): void;
 }

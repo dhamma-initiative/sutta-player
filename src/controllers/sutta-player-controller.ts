@@ -1,22 +1,24 @@
 import { SuttaPlayerView } from '../views/sutta-player-view.js'
 
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js'
-import { SuttaPlayerState, SuttaSelection } from '../models/sutta-player-state.js'
+import { SuttaPlayerState, TrackSelection } from '../models/sutta-player-state.js'
 import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js"
 import { DeferredPromise } from '../runtime/deferred-promise.js'
 
-type OfflineProcessingCallback = (currTrack: SuttaSelection) => Promise<boolean>
+type OfflineProcessingCallback = (currTrack: TrackSelection) => Promise<boolean>
 
 export class SuttaPlayerController {
     private _audioStore: AudioStorageQueryable
     private _suttaStore: SuttaStorageQueryable
-    
+
+    private _appRoot: string
     private _view: SuttaPlayerView
     private _model: SuttaPlayerState
 
     private _downloadedPromise: DeferredPromise<boolean>
 
-    public constructor(suttaStorage: SuttaStorageQueryable, audioStorage: AudioStorageQueryable) {
+    public constructor(appRoot: string, suttaStorage: SuttaStorageQueryable, audioStorage: AudioStorageQueryable) {
+        this._appRoot = appRoot
         this._suttaStore = suttaStorage
         this._audioStore = audioStorage
         this._model = new SuttaPlayerState()
@@ -25,6 +27,7 @@ export class SuttaPlayerController {
 
     public async setup() {
         this._model.load()
+        this._loadShareLinkIfSpecified()
         if (this._model.navSel.baseRef === null)
             this._model.navSel.updateBaseRef(this._suttaStore)
         await this._view.initialise()
@@ -38,11 +41,11 @@ export class SuttaPlayerController {
     }
 
     private _registerListeners() {
-        this._view.collectionElem.onchange = async () => {
-            if (this._view.collectionElem.selectedIndex !== this._model.navSel.collectionIndex)
-                this._onCollectionSelected(null)
+        this._view.albumElem.onchange = async () => {
+            if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex)
+                this._onAlbumSelected(null)
         }
-        this._view.suttaElem.onclick = async () => {
+        this._view.trackElem.onclick = async () => {
             this._onSuttaSelected(null)
         }
         this._view.loadAudioElem.onclick = async () => {
@@ -54,18 +57,21 @@ export class SuttaPlayerController {
         this._view.loadRandomElem.onclick = async () => {
             await this._onLoadRandom()
         }
+        this._view.shareLinkElem.onclick = async () => {
+            this._onShareLink(this._model.navSel)
+        }
         this._view.aboutMenuElem.onclick = async (event) => {
             await this._view.toggleAboutInfo(event)
         }
         this._view.aboutDialogCloseElem.onclick = this._view.aboutMenuElem.onclick
         this._view.audioPlayerElem.onloadeddata = async () => {
-            this._view.updatePlayingSuttaInfo(this._model.audioSel.baseRef, 'loaded')
+            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'loaded')
         }
         this._view.audioPlayerElem.onplay = async () => {
-            this._view.updatePlayingSuttaInfo(this._model.audioSel.baseRef, 'playing')
+            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'playing')
         }
         this._view.audioPlayerElem.onpause = async () => {
-            this._view.updatePlayingSuttaInfo(this._model.audioSel.baseRef, 'paused')
+            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'paused')
         }
         this._view.audioPlayerElem.onended = async () => {
             await this._onAudioEnded()
@@ -126,58 +132,64 @@ export class SuttaPlayerController {
             await this._onResetAppConfirm()
             this._view.toggleResetAppDialog(event)
         }
+        this._view.playingTrackElem.ondblclick = async () => {
+            this._onLoadIntoNavSelector(this._model.audioSel)
+        }
+        this._view.displayingTrackElem.ondblclick = async () => {
+            this._onLoadIntoNavSelector(this._model.textSel)
+        }
     }
 
     private async _onAudioEnded() {
-        this._view.updatePlayingSuttaInfo(this._model.audioSel.baseRef, 'played')
+        this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'played')
         if (this._model.playNext) {
-            const fileList = this._suttaStore.querySuttaReferences(this._model.audioSel.collectionIndex)
-            if (this._model.audioSel.suttaIndex < fileList.length-1) {
-                this._model.audioSel.suttaIndex++
+            const fileList = this._suttaStore.queryTrackReferences(this._model.audioSel.albumIndex)
+            if (this._model.audioSel.trackIndex < fileList.length-1) {
+                this._model.audioSel.trackIndex++
                 this._model.audioSel.updateBaseRef(this._suttaStore)
                 await this._onLoadAudio(this._model.audioSel)
             }
         }
     }
 
-    private _onCollectionSelected(forceColIdx: number) {
-        this._model.navSel.collectionIndex = (forceColIdx === null) ? Number(this._view.collectionElem.value) : forceColIdx
-        this._model.navSel.suttaIndex = 0
-        this._view.suttaElem.selectedIndex = this._model.navSel.suttaIndex
+    private _onAlbumSelected(forceAlbIdx: number) {
+        this._model.navSel.albumIndex = (forceAlbIdx === null) ? Number(this._view.albumElem.value) : forceAlbIdx
+        this._model.navSel.trackIndex = 0
+        this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
         this._model.navSel.updateBaseRef(this._suttaStore)
-        this._view.loadSuttasList()
+        this._view.loadTracksList()
     }
 
-    private _onSuttaSelected(forceSuttaIdx: number) {
-        this._model.navSel.suttaIndex = (forceSuttaIdx === null) ?  Number(this._view.suttaElem.value) : forceSuttaIdx
+    private _onSuttaSelected(forceTrackIdx: number) {
+        this._model.navSel.trackIndex = (forceTrackIdx === null) ?  Number(this._view.trackElem.value) : forceTrackIdx
         this._model.navSel.updateBaseRef(this._suttaStore)
     }
 
-    private async _onLoadAudio(srcSel: SuttaSelection) {
+    private async _onLoadAudio(srcSel: TrackSelection) {
         this._model.currentTime = 0
         this._model.audioSel.read(srcSel)
-        this._view.loadSuttaAudio()
+        this._view.loadTrackAudio()
         if (this._model.linkTextToAudio) 
             await this._onLoadText(this._model.audioSel)
     }
 
-    private async _onLoadText(srcSel: SuttaSelection) {
+    private async _onLoadText(srcSel: TrackSelection) {
         this._model.textSel.read(srcSel)
-        await this._view.loadSuttaText()
+        await this._view.loadTrackText()
     }
 
     private async _onLoadRandom() {
-        this._model.navSel.collectionIndex = Math.round(Math.random() * this._view.collectionElem.length)
-        const fileList = this._suttaStore.querySuttaReferences(this._model.navSel.collectionIndex)
-        this._model.navSel.suttaIndex = Math.round(Math.random() * fileList.length)
+        this._model.navSel.albumIndex = Math.round(Math.random() * this._view.albumElem.length)
+        const fileList = this._suttaStore.queryTrackReferences(this._model.navSel.albumIndex)
+        this._model.navSel.trackIndex = Math.round(Math.random() * fileList.length)
         this._model.navSel.updateBaseRef(this._suttaStore)
-        this._view.collectionElem.selectedIndex = this._model.navSel.collectionIndex
-        this._view.suttaElem.selectedIndex = this._model.navSel.suttaIndex
+        this._view.albumElem.selectedIndex = this._model.navSel.albumIndex
+        this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
         await this._onLoadAudio(this._model.navSel)
     }
 
     private async _onDownloadAlbum() {
-        const downloadHandler: OfflineProcessingCallback = async (currTrack: SuttaSelection) =>  {
+        const downloadHandler: OfflineProcessingCallback = async (currTrack: TrackSelection) =>  {
             this._downloadedPromise = new DeferredPromise<boolean>()
             this._view.loadSuttaAudioWith(currTrack, this._view.audioCacherElem)
             const wasDownloaded = await this._downloadedPromise
@@ -187,7 +199,7 @@ export class SuttaPlayerController {
     }
 
     private async _onRemoveAlbum() {
-        const removeHandler: OfflineProcessingCallback = async (currTrack: SuttaSelection) =>  {
+        const removeHandler: OfflineProcessingCallback = async (currTrack: TrackSelection) =>  {
             const wasDeleted = await this._audioStore.removeFromCache(currTrack.baseRef)
             return wasDeleted
         }
@@ -195,13 +207,13 @@ export class SuttaPlayerController {
     }
 
     private async _onOfflineAlbumProcessing(handler: OfflineProcessingCallback) {
-        let processSel = new SuttaSelection('cache')
-        processSel.collectionIndex = this._model.navSel.collectionIndex
-        const fileList = this._suttaStore.querySuttaReferences(this._model.navSel.collectionIndex)
+        let processSel = new TrackSelection('cache')
+        processSel.albumIndex = this._model.navSel.albumIndex
+        const fileList = this._suttaStore.queryTrackReferences(this._model.navSel.albumIndex)
         let urls: string[] = []
         for (let i = 0; i < fileList.length; i++) {
             let progVal = Math.round(((i+1)/fileList.length) * 100)
-            processSel.suttaIndex = i
+            processSel.trackIndex = i
             processSel.updateBaseRef(this._suttaStore)
             this._view.updateOfflineInfo(processSel.baseRef, progVal)
             const wasProcessed = await handler(processSel)
@@ -221,5 +233,37 @@ export class SuttaPlayerController {
             await caches.delete(keys[i])            
         const swReg = await navigator.serviceWorker.getRegistration()
         await swReg.unregister()
+    }
+
+    private _onShareLink(srcSel: TrackSelection) {
+        let baseRefHref = location.protocol + '//' + location.host + this._appRoot
+        baseRefHref += '#' + srcSel.baseRef + `?startTime=${this._model.currentTime}`
+        navigator.clipboard.writeText(baseRefHref)
+    }
+
+    private _onLoadIntoNavSelector(srcSel: TrackSelection) {
+        this._model.navSel.read(srcSel)
+        this._view.albumElem.selectedIndex = this._model.navSel.albumIndex
+        this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
+    }
+
+    private _loadShareLinkIfSpecified() {
+        let href = location.href
+        let url = new URL(href)
+        if (url.hash) {
+            href = href.replace('#','')
+            url = new URL(href)
+            let baseRef = url.pathname.substring(this._appRoot.length)
+            if (baseRef.startsWith('/'))
+                baseRef = baseRef.substring(1)
+            let urlSel = this._suttaStore.queryTrackSelection(baseRef)
+            if (urlSel.albumIndex > -1 && urlSel.trackIndex > -1) {
+                this._model.navSel.read(urlSel)
+                this._model.audioSel.read(urlSel)
+                this._model.textSel.read(urlSel)
+                this._model.currentTime = Number(url.searchParams.get('startTime'))
+                this._view.albumTrackSelectionElem.open = false
+            }
+        }
     }
 } 

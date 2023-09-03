@@ -2351,7 +2351,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
   };
 
-  // esm/runtime/workbox-common.js
+  // esm/runtime/cache-utils.js
   var REGISTERROUTE = "RegisterRoute";
   var CACHEFIRST = "CacheFirst";
   var CACHEABLERESPONSEPLUGIN = "CacheableResponsePlugin";

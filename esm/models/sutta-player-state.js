@@ -1,36 +1,39 @@
 import { LocalStorageState } from '../runtime/localstorage-state.js';
-export class SuttaSelection extends LocalStorageState {
+export class TrackSelection extends LocalStorageState {
     context;
-    collectionIndex = 0;
-    suttaIndex = 0;
-    baseRef = null;
-    constructor(ctx) {
+    albumIndex;
+    trackIndex;
+    baseRef;
+    constructor(ctx, albIdx = 0, trkIdx = 0, bRef = null) {
         super();
         this.context = ctx;
+        this.albumIndex = albIdx;
+        this.trackIndex = trkIdx;
+        this.baseRef = bRef;
     }
     read(src) {
-        this.collectionIndex = src.collectionIndex;
-        this.suttaIndex = src.suttaIndex;
+        this.albumIndex = src.albumIndex;
+        this.trackIndex = src.trackIndex;
         this.baseRef = src.baseRef;
     }
     updateBaseRef(qry) {
-        this.baseRef = qry.querySuttaBaseReference(this.collectionIndex, this.suttaIndex);
+        this.baseRef = qry.queryTrackBaseRef(this.albumIndex, this.trackIndex);
     }
     save() {
-        this._setItemNumber(`${this.context}.collectionIndex`, this.collectionIndex);
-        this._setItemNumber(`${this.context}.suttaIndex`, this.suttaIndex);
+        this._setItemNumber(`${this.context}.albumIndex`, this.albumIndex);
+        this._setItemNumber(`${this.context}.trackIndex`, this.trackIndex);
         this._setItemString(`${this.context}.baseRef`, this.baseRef);
     }
     load() {
-        this.collectionIndex = this._getItemNumber(`${this.context}.collectionIndex`, this.collectionIndex);
-        this.suttaIndex = this._getItemNumber(`${this.context}.suttaIndex`, this.suttaIndex);
+        this.albumIndex = this._getItemNumber(`${this.context}.albumIndex`, this.albumIndex);
+        this.trackIndex = this._getItemNumber(`${this.context}.trackIndex`, this.trackIndex);
         this.baseRef = this._getItemString(`${this.context}.baseRef`, this.baseRef);
     }
 }
 export class SuttaPlayerState extends LocalStorageState {
-    navSel = new SuttaSelection('navSel');
-    textSel = new SuttaSelection('textSel');
-    audioSel = new SuttaSelection('audioSel');
+    navSel = new TrackSelection('navSel');
+    textSel = new TrackSelection('textSel');
+    audioSel = new TrackSelection('audioSel');
     autoPlay = true;
     playNext = true;
     repeat = false;

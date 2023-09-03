@@ -2,7 +2,7 @@ import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { precacheAndRoute } from 'workbox-precaching';
 import { registerRoute } from 'workbox-routing';
 import { CacheFirst } from 'workbox-strategies';
-import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, REGISTERROUTE } from './runtime/workbox-common.js';
+import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, REGISTERROUTE } from './runtime/cache-utils.js';
 precacheAndRoute(self.__WB_MANIFEST);
 class RouteFactory {
     registerRouteJson;

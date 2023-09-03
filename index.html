@@ -79,16 +79,16 @@
     <!-- Main -->
     <main class="container">
         <section>
-            <details open>
+            <details id="albumTrackSelection" open>
                 <summary>&#8801; Album/Track selections</summary>
                 <nav class="container-fluid">
                     <ul>
                         <li>
-                            <select id="collection" required>
+                            <select id="album" required>
                             </select>
                         </li>
                         <li>
-                            <select id="sutta" required>
+                            <select id="track" required>
                             </select>
                         </li>
                     </ul>
@@ -97,9 +97,10 @@
                     <label>
                         Load:
                         <ul>
-                            <li><button id="loadAudio">Audio</button></li>
-                            <li><button id="loadText" class="secondary">Text</button></li>
-                            <li><button id="loadRandom" class="contrast">Random</button></li>
+                            <li><button id="loadAudio">&#127911; Audio</button></li>
+                            <li><button id="loadText" class="secondary">&#128083; Text</button></li>
+                            <li><button id="loadRandom" class="contrast">&#10160; Random</button></li>
+                            <li><button id="shareLink" class="contrast">&#128464; Share</button></li>
                         </ul>
                     </label>
                 </nav>
@@ -107,14 +108,14 @@
         </section>
 
         <details open>
-            <summary id="playingSutta">&#127911; awaiting load</summary>
+            <summary id="playingTrack">&#127911; awaiting load</summary>
             <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload">
             </audio>
         </details>
 
         <details open>
-            <summary id="displayingSutta">&#128083; awaiting load</summary>
-            <p id="suttaTextBody" style="white-space: pre-wrap;"></p>
+            <summary id="displayingTrack">&#128083; awaiting load</summary>
+            <p id="trackTextBody" style="white-space: pre-wrap;"></p>
         </details>
 
         <dialog id="aboutDialog">

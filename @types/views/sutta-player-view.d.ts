@@ -1,5 +1,5 @@
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js';
-import { SuttaPlayerState, SuttaSelection } from '../models/sutta-player-state.js';
+import { SuttaPlayerState, TrackSelection } from '../models/sutta-player-state.js';
 import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js";
 export declare class SuttaPlayerView {
     autoPlayElem: HTMLInputElement;
@@ -12,15 +12,17 @@ export declare class SuttaPlayerView {
     aboutDialogElem: HTMLDialogElement;
     aboutDialogCloseElem: HTMLAnchorElement;
     aboutTextBodyElem: HTMLParagraphElement;
-    collectionElem: HTMLSelectElement;
-    suttaElem: HTMLSelectElement;
+    albumTrackSelectionElem: HTMLDetailsElement;
+    albumElem: HTMLSelectElement;
+    trackElem: HTMLSelectElement;
     loadAudioElem: HTMLButtonElement;
     loadTextElem: HTMLButtonElement;
     loadRandomElem: HTMLButtonElement;
-    playingSuttaElem: HTMLElement;
+    shareLinkElem: HTMLButtonElement;
+    playingTrackElem: HTMLElement;
     audioPlayerElem: HTMLAudioElement;
-    displayingSuttaElem: HTMLElement;
-    suttaTextBodyElem: HTMLDivElement;
+    displayingTrackElem: HTMLElement;
+    trackTextBodyElem: HTMLDivElement;
     offlineDialogElem: HTMLDialogElement;
     offlineDialogCloseElem: HTMLAnchorElement;
     offlineTitleElem: HTMLElement;
@@ -39,15 +41,15 @@ export declare class SuttaPlayerView {
     constructor(mdl: SuttaPlayerState, store: SuttaStorageQueryable, audResolver: AudioStorageQueryable);
     initialise(): Promise<void>;
     refreshAudioControls(): void;
-    loadSuttasList(): void;
-    loadSuttaText(): Promise<void>;
-    loadSuttaAudio(): void;
-    loadSuttaAudioWith(suttaSel: SuttaSelection, viewAudio: HTMLAudioElement): boolean;
-    updatePlayingSuttaInfo(baseRef: string, status: string): void;
+    loadTracksList(): void;
+    loadTrackText(): Promise<void>;
+    loadTrackAudio(): void;
+    loadSuttaAudioWith(trackSel: TrackSelection, viewAudio: HTMLAudioElement): boolean;
+    updatePlayingTrackInfo(baseRef: string, status: string): void;
     toggleAboutInfo(event: any): Promise<void>;
     toggleOfflineDialog(event: any): void;
     toggleResetAppDialog(event: any): void;
     updateOfflineInfo(processingInfo: string, perc: number): void;
-    private _loadCollectionsList;
+    private _loadAlbumsList;
     private _bindHtmlElements;
 }

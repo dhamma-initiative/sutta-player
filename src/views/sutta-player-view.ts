@@ -1,5 +1,5 @@
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js'
-import { SuttaPlayerState, SuttaSelection } from '../models/sutta-player-state.js'
+import { SuttaPlayerState, TrackSelection } from '../models/sutta-player-state.js'
 import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js"
 
 export class SuttaPlayerView {
@@ -18,17 +18,19 @@ export class SuttaPlayerView {
     aboutTextBodyElem: HTMLParagraphElement
 
     // selections
-    collectionElem: HTMLSelectElement
-    suttaElem: HTMLSelectElement
+    albumTrackSelectionElem: HTMLDetailsElement
+    albumElem: HTMLSelectElement
+    trackElem: HTMLSelectElement
     loadAudioElem: HTMLButtonElement
     loadTextElem: HTMLButtonElement
     loadRandomElem: HTMLButtonElement
+    shareLinkElem: HTMLButtonElement
 
     // display
-    playingSuttaElem: HTMLElement
+    playingTrackElem: HTMLElement
     audioPlayerElem: HTMLAudioElement
-    displayingSuttaElem: HTMLElement
-    suttaTextBodyElem: HTMLDivElement
+    displayingTrackElem: HTMLElement
+    trackTextBodyElem: HTMLDivElement
 
     // offline
     offlineDialogElem: HTMLDialogElement
@@ -59,11 +61,11 @@ export class SuttaPlayerView {
     }
 
     public async initialise() {
-        this._loadCollectionsList()
-        this.loadSuttasList()
-        await this.loadSuttaText()
+        this._loadAlbumsList()
+        this.loadTracksList()
+        await this.loadTrackText()
         this.refreshAudioControls()
-        this.loadSuttaAudio()
+        this.loadTrackAudio()
     }
 
     public refreshAudioControls() {
@@ -77,43 +79,43 @@ export class SuttaPlayerView {
         this.stopProcessingElem.checked = (this._modelState.stopDwnlDel === 0)
     }
 
-    public loadSuttasList() {
-        const suttaLov = this._suttaStore.querySuttaReferences(this._modelState.navSel.collectionIndex)
-        this.suttaElem.innerHTML = ''
-        for (let i = 0; i < suttaLov.length; i++) {
+    public loadTracksList() {
+        const trackLov = this._suttaStore.queryTrackReferences(this._modelState.navSel.albumIndex)
+        this.trackElem.innerHTML = ''
+        for (let i = 0; i < trackLov.length; i++) {
             let option = document.createElement('option')
             option.value = `${i}`
-            option.innerText = suttaLov[i]
-            this.suttaElem.append(option)
+            option.innerText = trackLov[i]
+            this.trackElem.append(option)
         }
-        this.suttaElem.selectedIndex = this._modelState.navSel.suttaIndex
+        this.trackElem.selectedIndex = this._modelState.navSel.trackIndex
     }
 
-    public async loadSuttaText() {
+    public async loadTrackText() {
         if (this._modelState.textSel.baseRef === null) 
             return
-        const textBody = await this._suttaStore.querySuttaText(this._modelState.textSel.baseRef)
-        this.suttaTextBodyElem.innerHTML = textBody
-        this.displayingSuttaElem.innerHTML = `&#128083; ${this._modelState.textSel.baseRef}`
+        const textBody = await this._suttaStore.queryTrackText(this._modelState.textSel.baseRef)
+        this.trackTextBodyElem.innerHTML = textBody
+        this.displayingTrackElem.innerHTML = `&#128083; ${this._modelState.textSel.baseRef}`
     }
 
-    public loadSuttaAudio() {
+    public loadTrackAudio() {
         const success = this.loadSuttaAudioWith(this._modelState.audioSel, this.audioPlayerElem)
         if (success)
             this.audioPlayerElem.currentTime = this._modelState.currentTime
     }
 
-    public loadSuttaAudioWith(suttaSel: SuttaSelection, viewAudio: HTMLAudioElement): boolean {
-        if (suttaSel.baseRef === null)
+    public loadSuttaAudioWith(trackSel: TrackSelection, viewAudio: HTMLAudioElement): boolean {
+        if (trackSel.baseRef === null)
             return false
-        const srcRef = this._audioStore.queryHtmlAudioSrcRef(suttaSel.baseRef)
+        const srcRef = this._audioStore.queryHtmlAudioSrcRef(trackSel.baseRef)
         viewAudio.src = srcRef
         return true
     }
 
-    public updatePlayingSuttaInfo(baseRef: string, status: string) {
+    public updatePlayingTrackInfo(baseRef: string, status: string) {
         let info = status ? ` [${status}]` : ''
-        this.playingSuttaElem.innerHTML = `&#127911; ${baseRef}${info}`
+        this.playingTrackElem.innerHTML = `&#127911; ${baseRef}${info}`
     }
 
     public async toggleAboutInfo(event: any) {
@@ -136,7 +138,7 @@ export class SuttaPlayerView {
         if (!this.offlineDialogElem.open)
             return
         if (this._modelState.stopDwnlDel === 0) {
-            let albumName = this.collectionElem.children[this.collectionElem.selectedIndex].innerHTML
+            let albumName = this.albumElem.children[this.albumElem.selectedIndex].innerHTML
             this.offlineTitleElem.innerHTML = albumName
         }
     }
@@ -162,15 +164,15 @@ export class SuttaPlayerView {
         this.deleteAlbumElem.disabled = disableActivityActions
     }
 
-    private _loadCollectionsList() {
-        const colLov = this._suttaStore.queryCollectionNames() 
+    private _loadAlbumsList() {
+        const colLov = this._suttaStore.queryAlbumNames() 
         for (let i = 0; i < colLov.length; i++) {
             let option = document.createElement('option')
             option.value = `${i}`
             option.innerText = colLov[i]
-            this.collectionElem.append(option)
+            this.albumElem.append(option)
         }
-        this.collectionElem.selectedIndex = this._modelState.navSel.collectionIndex
+        this.albumElem.selectedIndex = this._modelState.navSel.albumIndex
     }
 
     private _bindHtmlElements() {
@@ -186,16 +188,18 @@ export class SuttaPlayerView {
         this.aboutDialogCloseElem = <HTMLAnchorElement> document.getElementById('aboutDialogClose')
         this.aboutTextBodyElem = <HTMLDivElement> document.getElementById('aboutTextBody')
 
-        this.collectionElem = <HTMLSelectElement> document.getElementById('collection')
-        this.suttaElem = <HTMLSelectElement> document.getElementById('sutta')
+        this.albumTrackSelectionElem = <HTMLDetailsElement> document.getElementById('albumTrackSelection')
+        this.albumElem = <HTMLSelectElement> document.getElementById('album')
+        this.trackElem = <HTMLSelectElement> document.getElementById('track')
         this.loadAudioElem = <HTMLButtonElement> document.getElementById('loadAudio')
         this.loadTextElem = <HTMLButtonElement> document.getElementById('loadText')
         this.loadRandomElem = <HTMLButtonElement> document.getElementById('loadRandom')
+        this.shareLinkElem = <HTMLButtonElement> document.getElementById('shareLink')
 
-        this.playingSuttaElem = <HTMLElement> document.getElementById('playingSutta')
+        this.playingTrackElem = <HTMLElement> document.getElementById('playingTrack')
         this.audioPlayerElem = <HTMLAudioElement> document.getElementById('audioPlayer')
-        this.displayingSuttaElem = <HTMLElement> document.getElementById('displayingSutta')
-        this.suttaTextBodyElem = <HTMLDivElement> document.getElementById('suttaTextBody')
+        this.displayingTrackElem = <HTMLElement> document.getElementById('displayingTrack')
+        this.trackTextBodyElem = <HTMLDivElement> document.getElementById('trackTextBody')
 
         this.offlineDialogElem = <HTMLDialogElement> document.getElementById('offlineDialog')
         this.offlineDialogCloseElem = <HTMLAnchorElement> document.getElementById('offlineDialogClose')
