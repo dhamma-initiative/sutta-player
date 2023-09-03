@@ -24,7 +24,7 @@ export class JsonFsSuttaDB {
     }
     async querySuttaText(baseRef) {
         const relPath = this.querySuttaTextUri(baseRef);
-        const ret = this.readTextFile(relPath);
+        const ret = await this.readTextFile(relPath);
         return ret;
     }
     querySuttaTextUri(baseRef) {

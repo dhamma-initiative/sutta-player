@@ -8,7 +8,7 @@ export class SuttaPlayerApp {
     _suttaStorage;
     _audioStorage;
     _controller;
-    queryAppRoot() {
+    static queryAppRoot() {
         const host = location.host;
         let idxPos = appConfig.hosts.indexOf(host);
         let ret = '';
@@ -98,10 +98,10 @@ export class SuttaPlayerApp {
         themeSwitcher.init();
     }
     static {
+        const appRoot = SuttaPlayerApp.queryAppRoot();
+        CacheUtils.initialise(appRoot + 'sutta-player-sw.js');
         window.addEventListener('load', async () => {
             SuttaPlayerApp._SINGLETON = new SuttaPlayerApp();
-            const appRoot = SuttaPlayerApp._SINGLETON.queryAppRoot();
-            CacheUtils.initialise(appRoot + '/service-worker.js');
             await SuttaPlayerApp._SINGLETON.start();
         });
         window.addEventListener('unload', async () => {

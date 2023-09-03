@@ -9,8 +9,8 @@
     knowing, and regard as worth grasping & mastering the words of the Tathāgata." />
     <link rel="shortcut icon" href="favicon.ico" />
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" crossorigin='anonymous'/>
-    <link rel="stylesheet" href="custom.css" />
+    <link rel="stylesheet" href="css/pico-1.5.9/pico.min.css" />
+    <link rel="stylesheet" href="css/custom.css" />
     <link rel="manifest" href="manifest.json">
 </head>
 
@@ -133,16 +133,16 @@
                     <a id="offlineDialogClose" href="#" aria-label="Close" class="close"></a>
                     <div>Offline Album Management</div>
                 </header>
-                <strong><p id="offlineTitle"></p></strong>
+                <p><strong id="offlineTitle"></strong></p>
                 <fieldset>
                     <legend>Offline Action</legend>
-                    <label for="small">
+                    <label for="downloadAlbum">
                       <input type="radio" id="downloadAlbum" name="offlineAction" value="downloadAlbum">
-                      Download Album for offline use
+                      Download Album for offline use<br>
                     </label>
                     <label for="deleteAlbum">
                       <input type="radio" id="deleteAlbum" name="offlineAction" value="deleteAlbum">
-                      Delete Album from offline use 
+                      Delete Album from offline use<br>
                     </label>
                     <label for="stopProcessing">
                       <input type="radio" id="stopProcessing" name="offlineAction" value="stopProcessing" checked>

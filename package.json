@@ -6,8 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "sw-build": "esbuild --outfile=service-worker.js --bundle src-sw/service-worker.ts",
-    "sw-injest": "workbox injectManifest src-sw/workbox-config.cjs",
+    "sw-build": "esbuild --outfile=esm/sutta-player-sw-proxy.js --bundle esm/sutta-player-sw-stub.js",
+    "sw-injest": "workbox injectManifest src/workbox-config.cjs",
     "clean": "rm -rf esm/ @types/"
   },
   "author": "",

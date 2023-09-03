@@ -12,6 +12,6 @@ module.exports = {
 		'**/src-sw/**/*',
 		'**/text/metadata/**/*',
 	],	
-	swDest: 'service-worker.js',
-	swSrc: 'service-worker.js'
+	swDest: 'sutta-player-sw.js',
+	swSrc: 'esm/sutta-player-sw-proxy.js'
 };

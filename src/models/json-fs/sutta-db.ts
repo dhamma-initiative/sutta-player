@@ -32,7 +32,7 @@ export class JsonFsSuttaDB implements SuttaStorageQueryable {
 
     public async querySuttaText(baseRef: string): Promise<string> {
         const relPath = this.querySuttaTextUri(baseRef)
-        const ret = this.readTextFile(relPath)
+        const ret = await this.readTextFile(relPath)
         return ret
     }
 

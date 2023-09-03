@@ -23,7 +23,7 @@ export declare class SuttaPlayerView {
     suttaTextBodyElem: HTMLDivElement;
     offlineDialogElem: HTMLDialogElement;
     offlineDialogCloseElem: HTMLAnchorElement;
-    offlineTitleElem: HTMLParagraphElement;
+    offlineTitleElem: HTMLElement;
     downloadAlbumElem: HTMLInputElement;
     deleteAlbumElem: HTMLInputElement;
     stopProcessingElem: HTMLInputElement;

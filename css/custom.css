@@ -19,7 +19,7 @@
   /* Header */
   .hero {
     background-color: #394046;
-    background-image: url('./img/dhamma-chakka.png');
+    background-image: url('../img/dhamma-chakka.png');
     background-position: center;
     background-size: cover;
   }
@@ -62,4 +62,8 @@
   aside p {
     margin-bottom: var(--spacing-company);
     line-height: 1.25;
+  }
+
+  fieldset label {
+    height: 50px;
   }

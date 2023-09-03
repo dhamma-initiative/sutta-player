@@ -13,7 +13,7 @@ export class SuttaPlayerApp {
 
     private _controller: SuttaPlayerController
 
-    public queryAppRoot() {
+    public static queryAppRoot() {
         const host = location.host
         let idxPos = appConfig.hosts.indexOf(host)
         let ret = ''
@@ -119,10 +119,11 @@ export class SuttaPlayerApp {
     }
 
     static {
-		window.addEventListener('load', async () => {
+        const appRoot = SuttaPlayerApp.queryAppRoot()
+        CacheUtils.initialise(appRoot + 'sutta-player-sw.js')
+
+        window.addEventListener('load', async () => {
 			SuttaPlayerApp._SINGLETON = new SuttaPlayerApp()
-            const appRoot = SuttaPlayerApp._SINGLETON.queryAppRoot()
-            CacheUtils.initialise(appRoot + '/service-worker.js')
 			await SuttaPlayerApp._SINGLETON.start()
 		})
 

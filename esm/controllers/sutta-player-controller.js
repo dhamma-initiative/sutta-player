@@ -22,6 +22,8 @@ export class SuttaPlayerController {
     }
     async tearDown() {
         this._model.save();
+        this._view = null;
+        this._model = null;
     }
     _registerListeners() {
         this._view.collectionElem.onchange = async () => {
@@ -32,16 +34,16 @@ export class SuttaPlayerController {
             this._onSuttaSelected(null);
         };
         this._view.loadAudioElem.onclick = async () => {
-            this._onLoadAudio(this._model.navSel);
+            await this._onLoadAudio(this._model.navSel);
         };
         this._view.loadTextElem.onclick = async () => {
             this._onLoadText(this._model.navSel);
         };
         this._view.loadRandomElem.onclick = async () => {
-            this._onLoadRandom();
+            await this._onLoadRandom();
         };
         this._view.aboutMenuElem.onclick = async (event) => {
-            this._view.toggleAboutInfo(event);
+            await this._view.toggleAboutInfo(event);
         };
         this._view.aboutDialogCloseElem.onclick = this._view.aboutMenuElem.onclick;
         this._view.audioPlayerElem.onloadeddata = async () => {
@@ -54,7 +56,7 @@ export class SuttaPlayerController {
             this._view.updatePlayingSuttaInfo(this._model.audioSel.baseRef, 'paused');
         };
         this._view.audioPlayerElem.onended = async () => {
-            this._onAudioEnded();
+            await this._onAudioEnded();
         };
         this._view.audioPlayerElem.ontimeupdate = async () => {
             this._model.currentTime = this._view.audioPlayerElem.currentTime;
@@ -86,7 +88,7 @@ export class SuttaPlayerController {
         this._view.offlineDialogCloseElem.onclick = this._view.offlineMenuElem.onclick;
         this._view.downloadAlbumElem.onclick = async () => {
             this._model.stopDwnlDel = 1;
-            this._onDownloadAlbum();
+            await this._onDownloadAlbum();
         };
         this._view.deleteAlbumElem.onclick = async () => {
             this._model.stopDwnlDel = 2;
@@ -161,14 +163,14 @@ export class SuttaPlayerController {
             const wasDownloaded = await this._downloadedPromise;
             return wasDownloaded;
         };
-        this._onOfflineAlbumProcessing(downloadHandler);
+        await this._onOfflineAlbumProcessing(downloadHandler);
     }
     async _onRemoveAlbum() {
         const removeHandler = async (currTrack) => {
             const wasDeleted = await this._audioStore.removeFromCache(currTrack.baseRef);
             return wasDeleted;
         };
-        this._onOfflineAlbumProcessing(removeHandler);
+        await this._onOfflineAlbumProcessing(removeHandler);
     }
     async _onOfflineAlbumProcessing(handler) {
         let processSel = new SuttaSelection('cache');
@@ -181,7 +183,7 @@ export class SuttaPlayerController {
             processSel.updateBaseRef(this._suttaStore);
             this._view.updateOfflineInfo(processSel.baseRef, progVal);
             const wasProcessed = await handler(processSel);
-            console.log(`Processed: ${processSel.baseRef}`);
+            console.log(`Processed: ${processSel.baseRef}: ${wasProcessed}`);
             if (this._model.stopDwnlDel === 0)
                 break;
         }

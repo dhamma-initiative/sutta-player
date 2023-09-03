@@ -1,6 +1,6 @@
 export class CacheUtils {
-    public static initialise(jsRelativePath: string) {
-        navigator.serviceWorker.register(jsRelativePath)
+    public static initialise(jsRelativePath: string, options?: RegistrationOptions) {
+        navigator.serviceWorker.register(jsRelativePath, options)
         var refreshing = false
         navigator.serviceWorker.addEventListener('controllerchange',
           () => {

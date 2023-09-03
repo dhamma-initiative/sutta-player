@@ -33,7 +33,7 @@ export class SuttaPlayerView {
     // offline
     offlineDialogElem: HTMLDialogElement
     offlineDialogCloseElem: HTMLAnchorElement
-    offlineTitleElem: HTMLParagraphElement
+    offlineTitleElem: HTMLElement
     downloadAlbumElem: HTMLInputElement
     deleteAlbumElem: HTMLInputElement
     stopProcessingElem: HTMLInputElement
@@ -199,7 +199,7 @@ export class SuttaPlayerView {
 
         this.offlineDialogElem = <HTMLDialogElement> document.getElementById('offlineDialog')
         this.offlineDialogCloseElem = <HTMLAnchorElement> document.getElementById('offlineDialogClose')
-        this.offlineTitleElem = <HTMLParagraphElement> document.getElementById('offlineTitle')
+        this.offlineTitleElem = <HTMLElement> document.getElementById('offlineTitle')
         this.downloadAlbumElem = <HTMLInputElement> document.getElementById('downloadAlbum')
         this.deleteAlbumElem = <HTMLInputElement> document.getElementById('deleteAlbum')
         this.stopProcessingElem = <HTMLInputElement> document.getElementById('stopProcessing')
