@@ -6,5 +6,4 @@ export declare class SuttaPlayerApp {
     static queryAppRoot(): string;
     start(appRoot: string): Promise<void>;
     stop(): Promise<void>;
-    setUpThemeConfig(): void;
 }

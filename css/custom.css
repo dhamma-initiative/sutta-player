@@ -1,69 +1,182 @@
 /* Global CSS variables */
 :root {
-    --spacing-company: 3rem;
-    --font-weight: 400;
-    --border-radius: 0;
+  --spacing-company: 3rem;
+  --font-weight: 400;
+  --border-radius: 0;
+}
+
+/* Typography */
+h2,
+h3,
+hgroup> :last-child {
+  font-weight: 200;
+}
+
+small {
+  color: var(--muted-color);
+}
+
+/* Header */
+.hero {
+  background-color: #394046;
+  background-image: url('../img/dhamma-chakka.png');
+  background-position: center;
+  background-size: cover;
+  height: 200px;
+}
+
+header {
+  padding: var(--spacing-company) 0;
+}
+
+header hgroup> :last-child {
+  color: var(--h3-color);
+}
+
+header hgroup {
+  margin-bottom: var(--spacing-company);
+}
+
+.shortenedHeader {
+  height: 150px;
+}
+
+/* Nav */
+summary[role="link"].contrast:is([aria-current], :hover, :active, :focus) {
+  background-color: transparent;
+  color: var(--contrast-hover);
+}
+
+/* Main */
+@media (min-width: 992px) {
+  main .grid {
+    grid-column-gap: var(--spacing-company);
+    grid-template-columns: auto 25%;
   }
-  
-  /* Typography */
-  h2,
-  h3,
-  hgroup> :last-child {
-    font-weight: 200;
-  }
-  
-  small {
-    color: var(--muted-color);
-  }
-  
-  /* Header */
-  .hero {
-    background-color: #394046;
-    background-image: url('../img/dhamma-chakka.png');
-    background-position: center;
-    background-size: cover;
-  }
-  
-  header {
-    padding: var(--spacing-company) 0;
-  }
-  
-  header hgroup> :last-child {
-    color: var(--h3-color);
-  }
-  
-  header hgroup {
-    margin-bottom: var(--spacing-company);
-  }
-  
-  /* Nav */
-  summary[role="link"].contrast:is([aria-current], :hover, :active, :focus) {
-    background-color: transparent;
-    color: var(--contrast-hover);
-  }
-  
-  /* Main */
-  @media (min-width: 992px) {
-    main .grid {
-      grid-column-gap: var(--spacing-company);
-      grid-template-columns: auto 25%;
-    }
-  }
-  
-  form.grid {
-    grid-row-gap: 0;
-  }
-  
-  /* Aside nav */
-  aside img {
-    margin-bottom: 0.25rem;
-  }
-  
-  aside p {
-    margin-bottom: var(--spacing-company);
-    line-height: 1.25;
+}
+
+form.grid {
+  grid-row-gap: 0;
+}
+
+/* Aside nav */
+aside img {
+  margin-bottom: 0.25rem;
+}
+
+aside p {
+  margin-bottom: var(--spacing-company);
+  line-height: 1.25;
+}
+
+fieldset label {
+  height: 50px;
+}
+
+pre {
+  background-color: #fff;
+}
+
+#trackTextBody {
+  counter-reset: line-numbering;
+  font-family: revert;
+  white-space: pre-wrap;
+}
+
+.displayLineNums .line::before {
+  content: counter(line-numbering);
+  counter-increment: line-numbering;
+  padding-right: .8em;
+  /* space after numbers */
+  margin-right: 5px;
+  opacity: 0.25;
+}
+
+#snackbar {
+  visibility: hidden;
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  padding: 16px;
+  position: fixed;
+  z-index: 1;
+  left: 50%;
+  bottom: 30px;
+  font-size: 17px;
+}
+
+#snackbar.show {
+  visibility: visible;
+  -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+@-webkit-keyframes fadein {
+  from {
+    bottom: 0;
+    opacity: 0;
   }
 
-  fieldset label {
-    height: 50px;
+  to {
+    bottom: 30px;
+    opacity: 1;
   }
+}
+
+@keyframes fadein {
+  from {
+    bottom: 0;
+    opacity: 0;
+  }
+
+  to {
+    bottom: 30px;
+    opacity: 1;
+  }
+}
+
+@-webkit-keyframes fadeout {
+  from {
+    bottom: 30px;
+    opacity: 1;
+  }
+
+  to {
+    bottom: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes fadeout {
+  from {
+    bottom: 30px;
+    opacity: 1;
+  }
+
+  to {
+    bottom: 0;
+    opacity: 0;
+  }
+}
+
+#fabSection {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  right: 30px;
+  z-index: 99;
+  opacity: .4;
+}
+
+.linkNavButton {
+  outline: auto;
+}
+
+[data-theme="dark"] code,
+[data-theme="dark"] kbd,
+[data-theme="dark"] pre {
+    background-color: #11191f !important;
+}

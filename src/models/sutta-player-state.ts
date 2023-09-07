@@ -46,9 +46,21 @@ export class SuttaPlayerState extends LocalStorageState {
     playNext: boolean = true
     repeat: boolean = false
     linkTextToAudio: boolean = true
+    showLineNums: boolean = true
+    currentScrollY: number = 0
     currentTime: number = 0
-    colorTheme: string = 'light'
+    darkTheme: boolean = false
+
+    searchFor: string = ''
+    searchAllAlbums: boolean = false
+    useRegEx: boolean = false
+    ignoreDiacritics: boolean = true
+
+    audioState: number = -1 // transient [unspecified: -1, specified: 0, assigned: 1, loadedMetadata: 2, loaded: 3, playing: 4, paused: 5, ended: 6]
     stopDwnlDel: number = 0 // transient
+    bookmarkLineNum: number = 0 // trainsient
+    startSearch: boolean = false // transient
+    scrollTextWithAudio: boolean = false // transient
 
     public save() {
         this.navSel.save()
@@ -58,8 +70,15 @@ export class SuttaPlayerState extends LocalStorageState {
         this._setItemBoolean('playNext', this.playNext)
         this._setItemBoolean('repeat', this.repeat)
         this._setItemBoolean('linkTextToAudio', this.linkTextToAudio)
+        this._setItemBoolean('showLineNums', this.showLineNums)
+        this._setItemNumber('currentScrollY', window.scrollY)
         this._setItemNumber('currentTime', this.currentTime)
-        this._setItemString('colorTheme', this.colorTheme)
+        this._setItemBoolean('darkTheme', this.darkTheme)
+
+        this._setItemString('searchFor', this.searchFor)
+        this._setItemBoolean('searchAllAlbums', this.searchAllAlbums)
+        this._setItemBoolean('useRegEx', this.useRegEx)
+        this._setItemBoolean('ignoreDiacritics', this.ignoreDiacritics)
     }
 
     public load() {
@@ -70,7 +89,14 @@ export class SuttaPlayerState extends LocalStorageState {
         this.playNext = this._getItemBoolean('playNext', this.playNext)
         this.repeat = this._getItemBoolean('repeat', this.repeat)
         this.linkTextToAudio = this._getItemBoolean('linkTextToAudio', this.linkTextToAudio)
+        this.showLineNums = this._getItemBoolean('showLineNums', this.showLineNums)
         this.currentTime = this._getItemNumber('currentTime', this.currentTime)
-        this.colorTheme = this._getItemString('colorTheme', this.colorTheme)
+        this.currentScrollY = this._getItemNumber('currentScrollY', this.currentScrollY)
+        this.darkTheme = this._getItemBoolean('darkTheme', this.darkTheme)
+
+        this.searchFor = this._getItemString('searchFor', this.searchFor)
+        this.searchAllAlbums = this._getItemBoolean('searchAllAlbums', this.searchAllAlbums)
+        this.useRegEx = this._getItemBoolean('useRegEx', this.useRegEx)
+        this.ignoreDiacritics = this._getItemBoolean('ignoreDiacritics', this.ignoreDiacritics)
     }
 }

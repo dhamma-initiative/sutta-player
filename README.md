@@ -4,7 +4,9 @@ This Sutta Player is a combined text/audio media player with the purpose of help
 - Nothing missing (ie. critical features)
 - Nothing in excess (ie. commentary) 
 
-All sutta texts are translated by Ajaan Geoff (Ṭhānissaro Bhikkhu) and are sourced from https://dhammatalks.org/suttas. An AI text-to-speech model was trained using machine learning for synthesising both English and Pali (Sri-Lankan pronunciations). The model was then used to synthesise all suttas into mp3 audio. The 2021 VITS TTS model architecture was used to train a model with a custom corpus. There are several known inference issues with the trained model and the resultant mp3 files. These mp3 files are the best results that we could achieve using an open-source technology stack that was available to me as of mid 2023.
+All sutta texts are translated by Ajaan Geoff (Ṭhānissaro Bhikkhu) and are sourced from https://dhammatalks.org/suttas under the https://creativecommons.org/licenses/by-nc/4.0/ license. The changes made to the original content were the removal of introduction, notes, footnotes & see also sections among other minor corrections.
+
+An AI text-to-speech model was trained using machine learning for synthesising both English and Pali (Sri-Lankan pronunciations). The model was then used to synthesise all suttas into mp3 audio. The 2021 VITS TTS model architecture was used to train a model with a custom corpus. There are several known inference issues with the trained model and the resultant mp3 files. These mp3 files are the best results that we could achieve using an open-source technology stack that was available to me as of mid 2023.
 
 
 ### Why did you only use suttas from dhammatalks.org?
@@ -37,7 +39,7 @@ Ordination is not a requisite condition for release. Whether you are living at h
 ### Why don't you try fundraising to sponser your requisites and practice?
 'Monks, gains, offerings, & fame are a cruel thing, a harsh, bitter obstacle to the attainment of the unexcelled rest from bondage.' - Saṁyutta Nikāya 17:3
 
-Our goal is to attend to the four duties, complete the task and fade into obscurity. The footprints that we leave behind serve as an example to later generations to follow.
+Our goal is to attend to the four duties, complete the task and fade into obscurity. The footprints that we leave behind serve as an example for later generations to follow.
 
 
 ### What is your favourite quote from the Pali Canon?
@@ -49,7 +51,7 @@ Yes. It is a Dhutaṅga tradition to bypass no donors no matter who you are, how
 
 Yes. You may discuss any topic (sensual/divine/leading out) with us because it is all underpinned by Dhamma. It is through discussion (ie. verbal fabrication) that you end the bewilderment, stop the search and begin purifying your mind, purifying your views, overcoming perplexity, gaining clarity of what is and isn't the path and discerning the way.
 
-Yes. You may meditate with us which may or may not include a spontaneous Dhamma talk dependent on what I have observed during the session. 
+Yes. You may meditate with us which may or may not include a spontaneous Dhamma talk dependent on what I have observed and what occurs the my mind. 
 
 ---
 

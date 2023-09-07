@@ -51,8 +51,8 @@ export class JsonFsSuttaDB {
         return text;
     }
     _queryTrackReferences(colRef) {
-        const suttaRefs = suttaDb[colRef];
-        return suttaRefs;
+        const trackRefs = suttaDb[colRef];
+        return trackRefs;
     }
 }
 //# sourceMappingURL=sutta-db.js.map

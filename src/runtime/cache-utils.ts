@@ -40,7 +40,7 @@ export class CacheUtils {
             refreshing = true
             window.location.reload()
           }
-        );        
+        );
     }
 
     public static async isInCache(cacheName: string, urls: string[], chkResp?: (resp: Response) => boolean): Promise<boolean[]> {

@@ -1,72 +1,68 @@
 import { SuttaPlayerView } from '../views/sutta-player-view.js';
 import { SuttaPlayerState, TrackSelection } from '../models/sutta-player-state.js';
+import { CacheUtils } from '../runtime/cache-utils.js';
 import { DeferredPromise } from '../runtime/deferred-promise.js';
+import { SearchController } from './search-controller.js';
 export class SuttaPlayerController {
+    static VERSION = "v1.0.2";
     _audioStore;
     _suttaStore;
     _appRoot;
-    _view;
     _model;
+    _view;
+    _searchController;
+    _resetApp = false;
     _downloadedPromise;
+    _audDurPromise;
+    _lastScrollTime = 0;
+    _lineSelectionCb = (event) => {
+        this._onLineSelected(event);
+    };
     constructor(appRoot, suttaStorage, audioStorage) {
         this._appRoot = appRoot;
         this._suttaStore = suttaStorage;
         this._audioStore = audioStorage;
         this._model = new SuttaPlayerState();
         this._view = new SuttaPlayerView(this._model, this._suttaStore, this._audioStore);
+        this._searchController = new SearchController(this._model, this._view, this);
     }
     async setup() {
+        this._injectVersionInfo();
         this._model.load();
         this._loadShareLinkIfSpecified();
         if (this._model.navSel.baseRef === null)
             this._model.navSel.updateBaseRef(this._suttaStore);
-        await this._view.initialise();
+        await this._view.initialise(this._lineSelectionCb);
         this._registerListeners();
+        this._searchController.setup();
     }
     async tearDown() {
-        this._model.save();
+        this._searchController.tearDown();
+        if (!this._resetApp)
+            this._model.save();
         this._view = null;
         this._model = null;
     }
+    showUserMessage(msg, dur) {
+        this._view.showMessage(msg, dur);
+    }
+    _injectVersionInfo() {
+        let htmlVerTxt = document.getElementById('appHtmlViewVer').textContent;
+        document.getElementById('appJsCtrlVer').textContent = SuttaPlayerController.VERSION;
+        console.log(`App HTML View version: ${htmlVerTxt}`);
+        console.log(`App JS Controller version: ${SuttaPlayerController.VERSION}`);
+    }
     _registerListeners() {
-        this._view.albumElem.onchange = async () => {
-            if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex)
-                this._onAlbumSelected(null);
-        };
-        this._view.trackElem.onclick = async () => {
-            this._onSuttaSelected(null);
-        };
-        this._view.loadAudioElem.onclick = async () => {
-            await this._onLoadAudio(this._model.navSel);
-        };
-        this._view.loadTextElem.onclick = async () => {
-            this._onLoadText(this._model.navSel);
-        };
-        this._view.loadRandomElem.onclick = async () => {
-            await this._onLoadRandom();
-        };
-        this._view.shareLinkElem.onclick = async () => {
-            this._onShareLink(this._model.navSel);
-        };
-        this._view.aboutMenuElem.onclick = async (event) => {
-            await this._view.toggleAboutInfo(event);
-        };
-        this._view.aboutDialogCloseElem.onclick = this._view.aboutMenuElem.onclick;
-        this._view.audioPlayerElem.onloadeddata = async () => {
-            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'loaded');
-        };
-        this._view.audioPlayerElem.onplay = async () => {
-            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'playing');
-        };
-        this._view.audioPlayerElem.onpause = async () => {
-            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'paused');
-        };
-        this._view.audioPlayerElem.onended = async () => {
-            await this._onAudioEnded();
-        };
-        this._view.audioPlayerElem.ontimeupdate = async () => {
-            this._model.currentTime = this._view.audioPlayerElem.currentTime;
-        };
+        this._registerSettingsListeners();
+        this._registerNavigationListeners();
+        this._registerNavSearchListeners();
+        this._registerAboutListeners();
+        this._registerDisplayListeners();
+        this._registerOfflineListeners();
+        this._registerResetAppListeners();
+        this._registerMiscListeners();
+    }
+    _registerSettingsListeners() {
         this._view.autoPlayElem.onchange = async () => {
             this._model.autoPlay = this._view.autoPlayElem.checked;
             this._view.refreshAudioControls();
@@ -88,29 +84,203 @@ export class SuttaPlayerController {
             if (this._model.linkTextToAudio)
                 this._onLoadText(this._model.audioSel);
         };
+        this._view.showLineNumsElem.onchange = async () => {
+            this._model.showLineNums = this._view.showLineNumsElem.checked;
+            this._view.toggleLineNums();
+        };
+        this._view.searchAllAlbumsElem.onchange = async () => {
+            this._model.searchAllAlbums = this._view.searchAllAlbumsElem.checked;
+        };
+        this._view.useRegExElem.onchange = async () => {
+            this._model.useRegEx = this._view.useRegExElem.checked;
+        };
+        this._view.ignoreDiacriticsElem.onchange = async () => {
+            this._model.ignoreDiacritics = this._view.ignoreDiacriticsElem.checked;
+        };
+        this._view.darkThemeElem.onchange = async () => {
+            this._model.darkTheme = this._view.darkThemeElem.checked;
+            this._view.setColorTheme();
+        };
+    }
+    _registerNavigationListeners() {
+        this._view.albumElem.onchange = async () => {
+            if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex)
+                this._onAlbumSelected(null);
+        };
+        this._view.trackElem.onclick = async () => {
+            this._onTrackSelected(null);
+        };
+        this._view.loadAudioElem.onclick = async () => {
+            await this._onLoadAudio(this._model.navSel);
+        };
+        this._view.loadTextElem.onclick = async () => {
+            this._onLoadText(this._model.navSel);
+        };
+        this._view.loadRandomElem.onclick = async () => {
+            await this._onLoadRandom();
+        };
+        this._view.shareLinkElem.onclick = async () => {
+            this._onShareLink(this._model.navSel);
+        };
+    }
+    _registerNavSearchListeners() {
+        this._view.searchResultsElem.onclick = async (e) => {
+            await this._onSearchResultSelected();
+        };
+        let searchResultsSummaryElem = document.getElementById('searchResultSummary');
+        let searchFormElem = this._view.searchForElem.parentElement;
+        searchFormElem.onsubmit = async (e) => {
+            e.preventDefault();
+            await this._onSearchFor(searchResultsSummaryElem);
+        };
+    }
+    async _onSearchResultSelected() {
+        let rsltSel = this._getSearchResultSelection();
+        this._onLoadIntoNavSelector(rsltSel);
+        this._audDurPromise = new DeferredPromise();
+        await this._onLoadAudio(rsltSel);
+        if (!this._model.linkTextToAudio)
+            await this._onLoadText(rsltSel);
+        let lineChars = rsltSel.context.split('.');
+        let lineNum = Number(lineChars[0]);
+        this._view.scrollToLineNumber(lineNum);
+        this._model.bookmarkLineNum = lineNum;
+        this.showUserMessage(`Loading match on line ${lineChars[0]} of ${rsltSel.baseRef}`);
+        await this._managePromisedDuration(lineChars);
+    }
+    async _managePromisedDuration(lineChars) {
+        let timeOut = new Promise((res, rej) => {
+            setTimeout(() => {
+                res(-1);
+            }, 10000); // 10 sec
+        });
+        let audDur = await Promise.race([this._audDurPromise, timeOut]);
+        this._audDurPromise = null;
+        if (audDur === -1) {
+            let deleted = await this._audioStore.removeFromCache(this._model.audioSel.baseRef);
+            if (deleted)
+                this.showUserMessage(`Partial cache removed. Please try reloading...`);
+        }
+        else
+            this._view.seekToTimePosition(Number(lineChars[1]), Number(lineChars[2]), audDur);
+    }
+    async _onSearchFor(searchResultsSummaryElem) {
+        this._model.startSearch = !this._model.startSearch;
+        searchResultsSummaryElem.setAttribute('aria-busy', String(this._model.startSearch));
+        if (this._model.startSearch) {
+            await this._searchController.onStartSearch();
+            this._model.startSearch = false;
+        }
+        searchResultsSummaryElem.setAttribute('aria-busy', String(this._model.startSearch));
+    }
+    _getSearchResultSelection() {
+        let opt = this._view.searchResultsElem.selectedOptions[0];
+        let baseRef = opt.parentElement.label;
+        let ret = this._suttaStore.queryTrackSelection(baseRef);
+        ret.context = this._view.searchResultsElem.value;
+        return ret;
+    }
+    _registerDisplayListeners() {
+        this._view.audioPlayerElem.onloadedmetadata = async () => {
+            this._model.audioState = 2;
+            if (!isNaN(this._view.audioPlayerElem.duration)) {
+                if (this._audDurPromise)
+                    this._audDurPromise.resolve(this._view.audioPlayerElem.duration);
+            }
+            this._view.scrollPlayToggleElem.disabled = true;
+        };
+        this._view.audioPlayerElem.onloadeddata = async () => {
+            this._model.audioState = 3;
+            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'loaded');
+            this._view.scrollPlayToggleElem.disabled = false;
+        };
+        this._view.audioPlayerElem.onplay = async () => {
+            this._model.audioState = 4;
+            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'playing');
+            this._lastScrollTime = 0;
+            this._view.scrollPlayToggleElem.checked = true;
+        };
+        this._view.audioPlayerElem.onpause = async () => {
+            this._model.audioState = 5;
+            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'paused');
+            this._view.scrollPlayToggleElem.checked = false;
+        };
+        this._view.audioPlayerElem.onended = async () => {
+            this._model.audioState = 6;
+            this._view.scrollPlayToggleElem.checked = false;
+            await this._onAudioEnded();
+        };
+        this._view.audioPlayerElem.ontimeupdate = async () => {
+            let diff = this._view.audioPlayerElem.currentTime - this._lastScrollTime;
+            if (Math.abs(diff) > 2) { // at least 2 sec 
+                this._lastScrollTime = this._view.audioPlayerElem.currentTime;
+                this._view.syncTextPositionWithAudio();
+            }
+            this._model.currentTime = this._view.audioPlayerElem.currentTime;
+        };
+        this._view.linkNavToAudioElem.onclick = async (event) => {
+            event.preventDefault();
+            this._onLoadIntoNavSelector(this._model.audioSel);
+            this.showUserMessage(`Navigation selection sync'd to ${this._model.audioSel.baseRef}`);
+        };
+        this._view.linkNavToTextElem.onclick = async (event) => {
+            event.preventDefault();
+            this._onLoadIntoNavSelector(this._model.textSel);
+            this.showUserMessage(`Navigation selection sync'd to ${this._model.textSel.baseRef}`);
+        };
+    }
+    _registerOfflineListeners() {
         this._view.offlineMenuElem.onclick = async (event) => {
             this._view.toggleOfflineDialog(event);
         };
         this._view.offlineDialogCloseElem.onclick = this._view.offlineMenuElem.onclick;
-        this._view.downloadAlbumElem.onclick = async () => {
-            this._model.stopDwnlDel = 1;
-            await this._onDownloadAlbum();
-        };
-        this._view.deleteAlbumElem.onclick = async () => {
-            this._model.stopDwnlDel = 2;
-            await this._onRemoveAlbum();
-        };
-        this._view.stopProcessingElem.onclick = async () => {
-            if (this._model.stopDwnlDel === 1) {
+        this._view.downloadAlbumElem.onchange = async () => {
+            if (this._view.downloadAlbumElem.checked) {
+                this._model.stopDwnlDel = 1;
+                this._prepareOfflineControls([false, true], [null, null]);
+                await this._onDownloadAlbum();
+                this._prepareOfflineControls([false, false], [false, null]);
+            }
+            else {
+                this._model.stopDwnlDel = 0;
                 if (this._downloadedPromise !== null)
                     this._downloadedPromise.resolve(false);
+                this._prepareOfflineControls([false, false], [null, null]);
             }
-            this._model.stopDwnlDel = 0;
-            this._view.stopProcessingElem.checked = true;
+        };
+        this._view.deleteAlbumElem.onchange = async () => {
+            if (this._view.deleteAlbumElem.checked) {
+                this._model.stopDwnlDel = 2;
+                this._view.downloadAlbumElem.disabled = true;
+                this._prepareOfflineControls([true, false], [null, null]);
+                await this._onRemoveAlbum();
+                this._prepareOfflineControls([false, false], [null, false]);
+            }
+            else {
+                this._model.stopDwnlDel = 0;
+                this._prepareOfflineControls([false, false], [null, null]);
+            }
         };
         this._view.audioCacherElem.oncanplaythrough = async () => {
             this._downloadedPromise.resolve(true);
         };
+        this._view.removeAudioFromCacheElem.onclick = async () => {
+            if (this._model.audioState === 1) { // stuck in assigned state
+                let deleted = await this._audioStore.removeFromCache(this._model.audioSel.baseRef);
+                if (deleted)
+                    this._view.removeAudioFromCacheElem.style.display = "none";
+            }
+        };
+    }
+    _prepareOfflineControls(dwnDelDisable, dwnDelChecked) {
+        this._view.downloadAlbumElem.disabled = dwnDelDisable[0];
+        this._view.deleteAlbumElem.disabled = dwnDelDisable[1];
+        if (dwnDelChecked[0] !== null)
+            this._view.downloadAlbumElem.checked = dwnDelChecked[0];
+        if (dwnDelChecked[1] !== null)
+            this._view.deleteAlbumElem.checked = dwnDelChecked[1];
+    }
+    _registerResetAppListeners() {
         this._view.resetAppMenuElem.onclick = async (event) => {
             this._view.toggleResetAppDialog(event);
         };
@@ -119,16 +289,40 @@ export class SuttaPlayerController {
             await this._onResetAppConfirm();
             this._view.toggleResetAppDialog(event);
         };
-        this._view.playingTrackElem.ondblclick = async () => {
-            this._onLoadIntoNavSelector(this._model.audioSel);
+    }
+    _registerAboutListeners() {
+        this._view.aboutMenuElem.onclick = async (event) => {
+            await this._view.toggleAboutInfo(event);
         };
-        this._view.displayingTrackElem.ondblclick = async () => {
-            this._onLoadIntoNavSelector(this._model.textSel);
+        this._view.aboutDialogCloseElem.onclick = this._view.aboutMenuElem.onclick;
+    }
+    _registerMiscListeners() {
+        this._view.scrollPlayToggleElem.onchange = async () => {
+            if (this._view.scrollPlayToggleElem.checked)
+                await this._view.audioPlayerElem.play();
+            else
+                this._view.audioPlayerElem.pause();
+        };
+        this._view.scrollTextWithAudioElem.onchange = async () => {
+            this._model.scrollTextWithAudio = this._view.scrollTextWithAudioElem.checked;
+        };
+        this._view.gotoTopElem.onclick = async () => {
+            window.scroll(0, 0);
+        };
+        let fabSection = document.getElementById('fabSection');
+        window.onscroll = () => {
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+                fabSection.style.display = "block";
+            }
+            else {
+                fabSection.style.display = "none";
+            }
         };
     }
     async _onAudioEnded() {
         this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'played');
         if (this._model.playNext) {
+            window.scroll(0, 0);
             const fileList = this._suttaStore.queryTrackReferences(this._model.audioSel.albumIndex);
             if (this._model.audioSel.trackIndex < fileList.length - 1) {
                 this._model.audioSel.trackIndex++;
@@ -144,27 +338,38 @@ export class SuttaPlayerController {
         this._model.navSel.updateBaseRef(this._suttaStore);
         this._view.loadTracksList();
     }
-    _onSuttaSelected(forceTrackIdx) {
+    _onTrackSelected(forceTrackIdx) {
         this._model.navSel.trackIndex = (forceTrackIdx === null) ? Number(this._view.trackElem.value) : forceTrackIdx;
         this._model.navSel.updateBaseRef(this._suttaStore);
     }
     async _onLoadAudio(srcSel) {
         this._model.currentTime = 0;
+        this._model.audioState = -1;
         this._model.audioSel.read(srcSel);
         this._view.loadTrackAudio();
         if (this._model.linkTextToAudio)
             await this._onLoadText(this._model.audioSel);
     }
     async _onLoadText(srcSel) {
+        this._model.bookmarkLineNum = 0; // clear bookmark
         this._model.textSel.read(srcSel);
-        await this._view.loadTrackText();
+        await this._view.loadTrackText(this._lineSelectionCb);
+    }
+    _onLineSelected(event) {
+        let refId = event.target.id;
+        let num = this._view.parseLineNumber(refId);
+        this._model.bookmarkLineNum = num;
+        this.showUserMessage(`Bookmarked line ${num} for share link`);
     }
     async _onLoadRandom() {
         this._model.navSel.albumIndex = Math.round(Math.random() * this._view.albumElem.length);
         const fileList = this._suttaStore.queryTrackReferences(this._model.navSel.albumIndex);
         this._model.navSel.trackIndex = Math.round(Math.random() * fileList.length);
         this._model.navSel.updateBaseRef(this._suttaStore);
-        this._view.albumElem.selectedIndex = this._model.navSel.albumIndex;
+        if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
+            this._view.albumElem.selectedIndex = this._model.navSel.albumIndex;
+            this._view.loadTracksList();
+        }
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex;
         await this._onLoadAudio(this._model.navSel);
     }
@@ -175,16 +380,17 @@ export class SuttaPlayerController {
             const wasDownloaded = await this._downloadedPromise;
             return wasDownloaded;
         };
-        await this._onOfflineAlbumProcessing(downloadHandler);
+        await this._onOfflineAlbumProcessing(downloadHandler, 'Downloaded');
     }
     async _onRemoveAlbum() {
         const removeHandler = async (currTrack) => {
             const wasDeleted = await this._audioStore.removeFromCache(currTrack.baseRef);
             return wasDeleted;
         };
-        await this._onOfflineAlbumProcessing(removeHandler);
+        await this._onOfflineAlbumProcessing(removeHandler, 'Removed');
     }
-    async _onOfflineAlbumProcessing(handler) {
+    async _onOfflineAlbumProcessing(handler, msgType) {
+        this._view.offlineMenuElem.setAttribute('aria-busy', String(true));
         let processSel = new TrackSelection('cache');
         processSel.albumIndex = this._model.navSel.albumIndex;
         const fileList = this._suttaStore.queryTrackReferences(this._model.navSel.albumIndex);
@@ -199,27 +405,47 @@ export class SuttaPlayerController {
             if (this._model.stopDwnlDel === 0)
                 break;
         }
+        this._view.offlineMenuElem.setAttribute('aria-busy', String(false));
+        if (this._model.stopDwnlDel !== 0) {
+            this._view.updateOfflineInfo('Finished', 0);
+            if (!this._view.offlineDialogElem.open)
+                this.showUserMessage(msgType + ' Album');
+        }
+        else {
+            this._view.updateOfflineInfo('Cancelled', 0);
+            if (!this._view.offlineDialogElem.open)
+                this.showUserMessage('Cancelled Album Processing');
+        }
         this._model.stopDwnlDel = 0;
-        this._view.updateOfflineInfo('', 0);
-        this._view.stopProcessingElem.checked = true;
     }
     async _onResetAppConfirm() {
+        this._resetApp = true;
         localStorage.clear();
         let keys = await caches.keys();
         for (let i = 0; i < keys.length; i++)
             await caches.delete(keys[i]);
-        const swReg = await navigator.serviceWorker.getRegistration();
-        await swReg.unregister();
+        if (CacheUtils.ENABLE_CACHE) {
+            const swReg = await navigator.serviceWorker.getRegistration();
+            await swReg.unregister();
+        }
+        window.location.reload();
     }
     _onShareLink(srcSel) {
         let baseRefHref = location.protocol + '//' + location.host + this._appRoot;
         baseRefHref += '#' + srcSel.baseRef + `?startTime=${this._model.currentTime}`;
+        if (this._model.bookmarkLineNum > 0)
+            baseRefHref += `&line=${this._model.bookmarkLineNum}`;
         navigator.clipboard.writeText(baseRefHref);
+        this.showUserMessage('Share Link copied to clipboard');
     }
     _onLoadIntoNavSelector(srcSel) {
         this._model.navSel.read(srcSel);
-        this._view.albumElem.selectedIndex = this._model.navSel.albumIndex;
+        if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
+            this._view.albumElem.selectedIndex = this._model.navSel.albumIndex;
+            this._view.loadTracksList();
+        }
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex;
+        this.showUserMessage('Track loaded into Navigator selection');
     }
     _loadShareLinkIfSpecified() {
         let href = location.href;
@@ -236,6 +462,7 @@ export class SuttaPlayerController {
                 this._model.audioSel.read(urlSel);
                 this._model.textSel.read(urlSel);
                 this._model.currentTime = Number(url.searchParams.get('startTime'));
+                this._model.bookmarkLineNum = Number(url.searchParams.get('line'));
                 this._view.albumTrackSelectionElem.open = false;
             }
         }

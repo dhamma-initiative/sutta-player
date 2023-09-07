@@ -62,7 +62,7 @@ export class JsonFsSuttaDB implements SuttaStorageQueryable {
     }
 
     protected _queryTrackReferences(colRef: string): string[] {
-        const suttaRefs = suttaDb[colRef as keyof typeof suttaDb]
-        return suttaRefs
+        const trackRefs = suttaDb[colRef as keyof typeof suttaDb]
+        return trackRefs
     }
 }

@@ -36,8 +36,8 @@ export class GoogleDriveAudioDB implements AudioStorageQueryable {
         })        
     }
 
-    public async isInCache(suttaRef: string): Promise<boolean> {
-        const cacheKey = this.queryHtmlAudioSrcRef(suttaRef)
+    public async isInCache(trackRef: string): Promise<boolean> {
+        const cacheKey = this.queryHtmlAudioSrcRef(trackRef)
         const ret = await CacheUtils.isInCache(GoogleDriveAudioDB.CACHE_NAME, [cacheKey],
             (resp: Response) => {
                 let ret = resp?.ok ? true : false 
@@ -51,14 +51,14 @@ export class GoogleDriveAudioDB implements AudioStorageQueryable {
         return ret[0]
     }
 
-    public async removeFromCache(suttaRef: string): Promise<boolean> {
-        const cacheKey = this.queryHtmlAudioSrcRef(suttaRef)
+    public async removeFromCache(trackRef: string): Promise<boolean> {
+        const cacheKey = this.queryHtmlAudioSrcRef(trackRef)
         const ret = await CacheUtils.deleteCachedUrls(GoogleDriveAudioDB.CACHE_NAME, [cacheKey])
         return ret[0]
     }
 
-    public queryHtmlAudioSrcRef(suttaRef: string): string {
-        const shareId = googleDriveAudioDB[suttaRef as keyof typeof googleDriveAudioDB]
+    public queryHtmlAudioSrcRef(trackRef: string): string {
+        const shareId = googleDriveAudioDB[trackRef as keyof typeof googleDriveAudioDB]
         const ret = `${GoogleDriveAudioDB.ORIGIN}${GoogleDriveAudioDB.REST_API}${shareId}`
         return ret;
     }

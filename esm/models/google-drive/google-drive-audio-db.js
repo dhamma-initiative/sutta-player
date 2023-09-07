@@ -30,8 +30,8 @@ export class GoogleDriveAudioDB {
             payload: payload
         });
     }
-    async isInCache(suttaRef) {
-        const cacheKey = this.queryHtmlAudioSrcRef(suttaRef);
+    async isInCache(trackRef) {
+        const cacheKey = this.queryHtmlAudioSrcRef(trackRef);
         const ret = await CacheUtils.isInCache(GoogleDriveAudioDB.CACHE_NAME, [cacheKey], (resp) => {
             let ret = resp?.ok ? true : false;
             if (!ret) {
@@ -42,13 +42,13 @@ export class GoogleDriveAudioDB {
         });
         return ret[0];
     }
-    async removeFromCache(suttaRef) {
-        const cacheKey = this.queryHtmlAudioSrcRef(suttaRef);
+    async removeFromCache(trackRef) {
+        const cacheKey = this.queryHtmlAudioSrcRef(trackRef);
         const ret = await CacheUtils.deleteCachedUrls(GoogleDriveAudioDB.CACHE_NAME, [cacheKey]);
         return ret[0];
     }
-    queryHtmlAudioSrcRef(suttaRef) {
-        const shareId = googleDriveAudioDB[suttaRef];
+    queryHtmlAudioSrcRef(trackRef) {
+        const shareId = googleDriveAudioDB[trackRef];
         const ret = `${GoogleDriveAudioDB.ORIGIN}${GoogleDriveAudioDB.REST_API}${shareId}`;
         return ret;
     }

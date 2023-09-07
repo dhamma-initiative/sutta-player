@@ -28,6 +28,7 @@
                     <details role="list" dir="rtl">
                         <summary aria-haspopup="listbox" role="link" class="contrast">&#9881; Settings</summary>
                         <ul role="listbox">
+                            <li>:Audio</li>
                             <li>
                                 <label for="autoPlay">
                                     Auto play
@@ -46,17 +47,46 @@
                                     <input type="checkbox" role="switch" id="repeat" name="repeat" />
                                 </label>
                             </li>
+                            <li>:Text</li>
                             <li>
                                 <label for="linkTextToAudio">
                                     Link text to audio
                                     <input type="checkbox" role="switch" id="linkTextToAudio" name="linkTextToAudio" />
                                 </label>
                             </li>
-                            <li><a id="offlineMenu" href="#">...Offline</a></li>
-                            <li><a id="resetAppMenu" href="#" style="display: none;">...Reset App</a></li>
-                            <li><a href="#" data-theme-switcher="auto">Auto mode</a></li>
-                            <li><a href="#" data-theme-switcher="light">Light mode</a></li>
-                            <li><a href="#" data-theme-switcher="dark">Dark mode</a></li>
+                            <li>
+                                <label for="showLineNums">
+                                    Show text line numbers
+                                    <input type="checkbox" role="switch" id="showLineNums" name="showLineNums" />
+                                </label>
+                            </li>
+                            <li>:Search</li>
+                            <li>
+                                <label for="searchAllAlbums">
+                                    All albums
+                                    <input type="checkbox" role="switch" id="searchAllAlbums" name="searchAllAlbums" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="useRegEx">
+                                    RegEx
+                                    <input type="checkbox" role="switch" id="useRegEx" name="useRegEx" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="ignoreDiacritics">
+                                    Ignore diacritics
+                                    <input type="checkbox" role="switch" id="ignoreDiacritics" name="ignoreDiacritics" checked/>
+                                </label>
+                            </li>
+                            <li><a id="offlineMenu" aria-busy="false" href="#">...Offline</a></li>
+                            <li>
+                                <label for="darkTheme">
+                                    Dark/night theme
+                                    <input type="checkbox" role="switch" id="darkTheme" name="darkTheme" />
+                                </label>
+                            </li>
+                            <li><a id="resetAppMenu" href="#">...Reset App</a></li>
                         </ul>
                     </details>
                 </li>
@@ -65,7 +95,7 @@
                 </li>
             </ul>
         </nav>
-        <header class="container">
+        <header class="container shortenedHeader">
             <hgroup>
                 <h2>
                     Listen to, lend ear, set your heart on
@@ -78,51 +108,58 @@
 
     <!-- Main -->
     <main class="container">
-        <section>
-            <details id="albumTrackSelection" open>
-                <summary>&#8801; Album/Track selections</summary>
-                <nav class="container-fluid">
-                    <ul>
-                        <li>
+        <details id="albumTrackSelection" open>
+            <summary>&#8801; Album/Track selections</summary>
+            <table>
+                <tbody>
+                    <tr>
+                        <td colspan="2">
                             <select id="album" required>
                             </select>
-                        </li>
-                        <li>
+                        </td>
+                        <td colspan="2">
                             <select id="track" required>
                             </select>
-                        </li>
-                    </ul>
-                </nav>
-                <nav class="container-fluid">
-                    <label>
-                        Load:
-                        <ul>
-                            <li><button id="loadAudio">&#127911; Audio</button></li>
-                            <li><button id="loadText" class="secondary">&#128083; Text</button></li>
-                            <li><button id="loadRandom" class="contrast">&#10160; Random</button></li>
-                            <li><button id="shareLink" class="contrast">&#128464; Share</button></li>
-                        </ul>
-                    </label>
-                </nav>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><button id="loadAudio" title="Load track into audio player">A&#8609;</button></td>
+                        <td><button id="loadText" title="Load text into text viewer" class="secondary">T&#8609;</button></td>
+                        <td><button id="loadRandom" title="Load a random track into player & viewer" class="contrast">R&#8609;</button></td>
+                        <td><button id="shareLink" title="Copy selection to clipboard" class="contrast">&#8694;</button></td>
+                    </tr>
+                </tbody>          
+            </table>
+            <div>
+                <form>
+                    <input type="search" id="searchFor" name="searchFor" placeholder="Search">
+                </form>
+            </div>
+            <details id="searchSection">
+                <summary aria-busy="false" id="searchResultSummary">&nbsp;Results</summary>
+                <select id="searchResults" required size="10">
+                </select>                
             </details>
-        </section>
+        </details>
 
         <details open>
-            <summary id="playingTrack">&#127911; awaiting load</summary>
+            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="playingTrack">&#127911; awaiting load</span></summary>
             <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload">
             </audio>
         </details>
 
         <details open>
-            <summary id="displayingTrack">&#128083; awaiting load</summary>
-            <p id="trackTextBody" style="white-space: pre-wrap;"></p>
+            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="displayingTrack">&#127911; awaiting load</span></summary>
+            <pre>
+<code id="trackTextBody" class="displayLineNums"></code>
+            </pre>                
         </details>
 
         <dialog id="aboutDialog">
             <article>
                 <header>
                     <a id="aboutDialogClose" href="#" aria-label="Close" class="close"></a>
-                    <div>About</div>
+                    <h3>About</h3>
                 </header>
                 <p id="aboutTextBody" style="white-space: pre-wrap;"></p>
             </article>
@@ -132,26 +169,27 @@
             <article>
                 <header>
                     <a id="offlineDialogClose" href="#" aria-label="Close" class="close"></a>
-                    <div>Offline Album Management</div>
+                    <h3>Offline Album Management</h3>
                 </header>
                 <p><strong id="offlineTitle"></strong></p>
                 <fieldset>
                     <legend>Offline Action</legend>
                     <label for="downloadAlbum">
-                      <input type="radio" id="downloadAlbum" name="offlineAction" value="downloadAlbum">
+                      <input type="checkbox" role="switch" id="downloadAlbum" name="offlineAction" value="downloadAlbum">
                       Download Album for offline use<br>
                     </label>
                     <label for="deleteAlbum">
-                      <input type="radio" id="deleteAlbum" name="offlineAction" value="deleteAlbum">
-                      Delete Album from offline use<br>
+                      <input type="checkbox" role="switch" id="deleteAlbum" name="offlineAction" value="deleteAlbum">
+                      Remove Album to reclaim storage<br>
                     </label>
-                    <label for="stopProcessing">
-                      <input type="radio" id="stopProcessing" name="offlineAction" value="stopProcessing" checked>
-                      Stop Processing
-                    </label>
+                    <button id="removeAudioFromCache" title="Remove current audio track from cache">REPLACE</button>
                 </fieldset>
                 <div id="processingInfo"></div>
                 <progress id="processingProgress" value="0" max="100"></progress>
+                <p>Beware, there are currently 1,344 mp3 files, spanning 113 hours, totalling 3GB of storage!</p>
+                <p>When the download is initiated, the downloads occur in the background. This dialog can be closed and returned to later and the rest of the App will remain fully functional. Tracks are downloaded in the same order as that listed in the navigation Track selector. Each downloaded track is displayed above the progress bar in real-time for monitoring purposes.</p>
+                <p>You may safely interupt the download process by toggling the switch. All previously downloaded tracks in the selected Album will be retained and the next download initiation will continue from the last position.</p>
+                <p>Non-downloaded tracks are streamed and cached on demand. If a track is loaded through search it will likely only get partially downloaded. This may result in subsequent failed loads attempts of that track. Use the 'Remove Track from cache' button to remove the partial cache and then re-stream the track.</p>
                 <audio id="audioCacher" controls style="display: none;"></audio>
             </article>
         </dialog>
@@ -159,8 +197,12 @@
         <dialog id="resetAppDialog">
             <article>
                 <h3>Reset Sutta Player App</h3>
+                <ul>
+                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.2</span></li>
+                    <li>App JS Controller version: <span id="appJsCtrlVer">REPLACE</span></li>
+                </ul>
                 <p>
-                  Resetting the application will delete the downloaded Albums and will install the latest app version from the website.
+                  Resetting the application will delete all downloaded Albums and cached data. The App will then reload from the website.
                 </p>
                 <p>Please confirm your action.</p>
                 <footer>
@@ -169,10 +211,21 @@
                 </footer>
               </article>            
         </dialog>
-
+        <div id="fabSection" dir="rtl">
+            <label for="scrollPlayToggle">
+                <input type="checkbox" role="switch" id="scrollPlayToggle" name="scrollPlayToggle" disabled/>
+                Play
+            </label>
+            <label for="scrollTextWithAudio">
+                <input type="checkbox" role="switch" id="scrollTextWithAudio" name="scrollTextWithAudio" />
+                Auto scroll
+            </label>
+            <hr/>
+            <a href="#" id="gotoTop" title="Go to top" role="button" class="contrast">&#8613;</a>
+        </div>
+        <div id="snackbar"></div>
     </main>
 
     <script src="esm/sutta-player-app.js" type="module"></script>
 </body>
-
 </html>
