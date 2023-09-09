@@ -29,9 +29,12 @@ export class SuttaPlayerApp {
     }
 
     public async start(appRoot: string) {
+        const cacheAvailable = await CacheUtils.initialise(appRoot + 'sutta-player-sw.js')
         this._suttaStorage = await SuttaStorageQueryableFactory.create(appConfig.SuttaStorageQueryableImpl)
         this._audioStorage = await AudioStorageQueryableFactory.create(appConfig.AudioRetrievableImpl)
         this._controller = new SuttaPlayerController(appRoot, this._suttaStorage, this._audioStorage)
+        if (!cacheAvailable)
+            this._controller.showUserMessage('Service-worker/Cache not loaded')
         await this._controller.setup()
     }
 
@@ -47,7 +50,6 @@ export class SuttaPlayerApp {
         }
         CacheUtils.ENABLE_CACHE = enable
         const appRoot = SuttaPlayerApp.queryAppRoot()
-        CacheUtils.initialise(appRoot + 'sutta-player-sw.js')
 
         window.addEventListener('load', async () => {
 			SuttaPlayerApp._SINGLETON = new SuttaPlayerApp()

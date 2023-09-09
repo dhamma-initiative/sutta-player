@@ -10,7 +10,7 @@ import { SearchController } from './search-controller.js'
 type OfflineProcessingCallback = (currTrack: TrackSelection) => Promise<boolean>
 
 export class SuttaPlayerController {
-    public static VERSION = "v1.0.2"
+    public static VERSION = "v1.0.3"
 
     _audioStore: AudioStorageQueryable
     _suttaStore: SuttaStorageQueryable

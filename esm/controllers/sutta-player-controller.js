@@ -4,7 +4,7 @@ import { CacheUtils } from '../runtime/cache-utils.js';
 import { DeferredPromise } from '../runtime/deferred-promise.js';
 import { SearchController } from './search-controller.js';
 export class SuttaPlayerController {
-    static VERSION = "v1.0.2";
+    static VERSION = "v1.0.3";
     _audioStore;
     _suttaStore;
     _appRoot;

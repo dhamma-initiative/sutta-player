@@ -21,7 +21,7 @@ export interface RegisterRoutePayloadJson {
 }
 export declare class CacheUtils {
     static ENABLE_CACHE: boolean;
-    static initialise(jsRelativePath: string, options?: RegistrationOptions): void;
+    static initialise(jsRelativePath: string, options?: RegistrationOptions): Promise<boolean>;
     static isInCache(cacheName: string, urls: string[], chkResp?: (resp: Response) => boolean): Promise<boolean[]>;
     static deleteCachedUrls(cacheName: string, urls: string[], options?: CacheQueryOptions): Promise<boolean[]>;
     static postMessage(msg: WorkboxMessageJson): Promise<void>;
