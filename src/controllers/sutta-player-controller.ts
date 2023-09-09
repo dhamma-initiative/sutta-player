@@ -10,7 +10,7 @@ import { SearchController } from './search-controller.js'
 type OfflineProcessingCallback = (currTrack: TrackSelection) => Promise<boolean>
 
 export class SuttaPlayerController {
-    public static VERSION = "v1.0.4"
+    public static VERSION = "v1.0.5"
 
     _audioStore: AudioStorageQueryable
     _suttaStore: SuttaStorageQueryable
@@ -156,12 +156,11 @@ export class SuttaPlayerController {
 
     private async _onSearchFor(searchResultsSummaryElem: HTMLElement) {
         this._model.startSearch = !this._model.startSearch
-        searchResultsSummaryElem.setAttribute('aria-busy', String(this._model.startSearch))
+        const elem = document.getElementById('offlineMenuBusy')
         if (this._model.startSearch) {
             await this._searchController.onStartSearch()
             this._model.startSearch = false
         }
-        searchResultsSummaryElem.setAttribute('aria-busy', String(this._model.startSearch))
     }
 
     private async _onSearchResultSelected() {
@@ -257,7 +256,6 @@ export class SuttaPlayerController {
         this._view.deleteAlbumElem.onchange = async () => {
             if (this._view.deleteAlbumElem.checked) {
                 this._model.stopDwnlDel = 2
-                this._view.downloadAlbumElem.disabled = true
                 this._prepareOfflineControls([true, false], [null, null])
                 await this._onRemoveAlbum()
                 this._prepareOfflineControls([false, false], [null, false])
@@ -476,7 +474,6 @@ export class SuttaPlayerController {
     }
 
     private async _onOfflineAlbumProcessing(handler: OfflineProcessingCallback, msgType: string): Promise<TrackSelection> {
-        this._view.offlineMenuElem.setAttribute('aria-busy', String(true))
         const processSel = new TrackSelection('cache')
         processSel.dictionary['completed'] = true
         processSel.albumIndex = this._model.navSel.albumIndex
@@ -494,7 +491,6 @@ export class SuttaPlayerController {
                 break
             }
         }
-        this._view.offlineMenuElem.setAttribute('aria-busy', String(false))
         if (this._model.stopDwnlDel !== 0) {
             this._view.updateOfflineInfo('Finished', 0)
             if (!this._view.offlineDialogElem.open)

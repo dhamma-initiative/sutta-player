@@ -304,17 +304,12 @@ export class SuttaPlayerView {
 
     public updateOfflineInfo(processingInfo: string, perc: number) {
         let actn = 'Choose an action above'
-        let disableActivityActions = true
         if (this._modelState.stopDwnlDel === 1)
             actn = 'Downloading'
         else if (this._modelState.stopDwnlDel === 2)
             actn = 'Deleting'
-        else if (this._modelState.stopDwnlDel === 0 && processingInfo === '' && perc === 0)
-            disableActivityActions = false
         this.processingInfoElem.textContent = `${actn} ${processingInfo}`
         this.processingProgressElem.value = perc
-        this.downloadAlbumElem.disabled = disableActivityActions
-        this.deleteAlbumElem.disabled = disableActivityActions
     }
 
     public refreshSkipAudioToLine() {
