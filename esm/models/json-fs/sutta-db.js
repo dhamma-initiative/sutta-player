@@ -1,7 +1,8 @@
 import { TrackSelection } from '../sutta-player-state.js';
 import suttaDb from './sutta-db.json' assert { type: 'json' };
-export function createSuttaStorageQueryable() {
-    return new JsonFsSuttaDB();
+export async function createSuttaStorageQueryable() {
+    const ret = new JsonFsSuttaDB();
+    return ret;
 }
 export class JsonFsSuttaDB {
     queryAlbumNames() {
@@ -24,16 +25,16 @@ export class JsonFsSuttaDB {
         return ret;
     }
     queryTrackSelection(baseRef) {
-        let baseName = baseRef.replace(/^.*[\\\/]/, '');
+        const baseName = baseRef.replace(/^.*[\\\/]/, '');
         let basePath = baseRef.substring(0, baseRef.length - baseName.length);
         if (basePath.startsWith('/'))
             basePath = basePath.substring(1);
         if (basePath.endsWith('/'))
             basePath = basePath.substring(0, basePath.length - 1);
-        let albIdx = suttaDb.albumBaseDirectory.indexOf(basePath);
+        const albIdx = suttaDb.albumBaseDirectory.indexOf(basePath);
         const lov = this._queryTrackReferences(basePath);
-        let trkIdx = lov.indexOf(baseName);
-        let ret = new TrackSelection('url', albIdx, trkIdx, baseRef);
+        const trkIdx = lov.indexOf(baseName);
+        const ret = new TrackSelection('url', albIdx, trkIdx, baseRef);
         return ret;
     }
     async queryTrackText(baseRef) {

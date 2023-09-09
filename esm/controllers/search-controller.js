@@ -1,4 +1,4 @@
-import { TrackSelection } from "../models/sutta-player-state.js";
+import { SuttaPlayerState, TrackSelection } from "../models/sutta-player-state.js";
 import { StringUtils } from '../runtime/string-utils.js';
 export class SearchController {
     static DIACRITICS_CHR = ["ā", "ī", "ū", "ṁ", "ṃ", "ṇ", "ṅ", "ñ", "ṣ", "ṭ", "ḍ", "ḷ", "ḥ"];
@@ -44,47 +44,48 @@ export class SearchController {
     }
     async _searchSelectedAlbums() {
         let tracks = 0;
-        let albumSrcIndexes = this._getAlbumIndexes();
+        const albumSrcIndexes = this._getAlbumIndexes();
         for (let i = 0; i < albumSrcIndexes.length; i++) {
             if (!this._model.startSearch)
                 break;
             this._searchSel.albumIndex = albumSrcIndexes[i];
-            let trackCount = this._getTrackCount();
+            const trackCount = this._getTrackCount();
             for (let j = 0; j < trackCount; j++) {
                 if (!this._model.startSearch)
                     break;
                 this._searchSel.trackIndex = j;
                 this._searchSel.updateBaseRef(this._mainCtrl._suttaStore);
-                let src = await this._getTrackSource();
+                const src = await this._getTrackSource();
                 tracks = this._reportMatches(src, tracks);
             }
         }
-        let occurances = this._view.searchResultsElem.length;
+        const occurances = this._view.searchResultsElem.length;
         this._mainCtrl.showUserMessage(`${occurances} results in ${tracks} tracks`);
     }
     _reportMatches(src, tracks) {
-        let searchFor = this._model.searchFor;
-        let indexPositions = this._model.useRegEx ? StringUtils.allIndexOfUsingRegEx(src, searchFor) : StringUtils.allIndexesOf(src, searchFor);
+        const searchFor = this._model.searchFor;
+        const indexPositions = this._model.useRegEx ? StringUtils.allIndexOfUsingRegEx(src, searchFor) : StringUtils.allIndexesOf(src, searchFor);
         if (indexPositions.length > 0) {
             tracks++;
-            let optGrp = this._createOptionGroupElem();
-            let linePositions = StringUtils.allLinePositions(src, indexPositions);
+            const optGrp = this._createOptionGroupElem();
+            const linePositions = StringUtils.allLinePositions(src, indexPositions);
             for (let i = 0; i < indexPositions.length; i++) {
                 this._appendResultToGroup(src, indexPositions[i], linePositions[i], optGrp);
             }
         }
         return tracks;
     }
-    _appendResultToGroup(src, indexPos, lineNum, elem) {
-        let matchCtx = StringUtils.surroundingTrim(src, indexPos, this._maxSurroundingChars);
-        let opt = document.createElement('option');
+    _appendResultToGroup(src, idxPos, lineNum, elem) {
+        const matchCtx = StringUtils.surroundingTrim(src, idxPos, this._maxSurroundingChars);
+        const opt = document.createElement('option');
         opt.label = matchCtx;
-        let perc = Math.floor((indexPos / src.length) * 100);
-        opt.value = `${lineNum}.${indexPos}.${perc}`;
+        const perc = (idxPos / src.length) * 100;
+        const lineRef = SuttaPlayerState.toLineRef(lineNum, idxPos, perc, 0, 0);
+        opt.value = lineRef;
         elem.append(opt);
     }
     _createOptionGroupElem() {
-        let optGrp = document.createElement('optgroup');
+        const optGrp = document.createElement('optgroup');
         optGrp.label = this._searchSel.baseRef;
         this._view.searchResultsElem.append(optGrp);
         return optGrp;
@@ -101,13 +102,13 @@ export class SearchController {
         return src;
     }
     _getTrackCount() {
-        let trackSrcRefs = this._mainCtrl._suttaStore.queryTrackReferences(this._searchSel.albumIndex);
+        const trackSrcRefs = this._mainCtrl._suttaStore.queryTrackReferences(this._searchSel.albumIndex);
         return trackSrcRefs.length;
     }
     _getAlbumIndexes() {
-        let ret = [this._model.navSel.albumIndex];
+        const ret = [this._model.navSel.albumIndex];
         if (this._model.searchAllAlbums) {
-            let albumSrcRefs = this._mainCtrl._suttaStore.queryAlbumReferences();
+            const albumSrcRefs = this._mainCtrl._suttaStore.queryAlbumReferences();
             for (let i = 0; i < albumSrcRefs.length; i++) {
                 if (ret.indexOf(i) === -1)
                     ret.push(i);

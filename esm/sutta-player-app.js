@@ -10,7 +10,7 @@ export class SuttaPlayerApp {
     _controller;
     static queryAppRoot() {
         const host = location.host;
-        let idxPos = appConfig.hosts.indexOf(host);
+        const idxPos = appConfig.hosts.indexOf(host);
         let ret = '';
         if (idxPos > -1)
             ret = appConfig.appRoots[idxPos];

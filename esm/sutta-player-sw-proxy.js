@@ -2365,8 +2365,8 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     }
     _createStrategy() {
       if (this.registerRouteJson.strategy.class_name === CACHEFIRST) {
-        let args = this.registerRouteJson.strategy;
-        let plugins = this._createPlugins();
+        const args = this.registerRouteJson.strategy;
+        const plugins = this._createPlugins();
         if (plugins.length > 0)
           args.plugins = plugins;
         return new CacheFirst({ cacheName: args.cacheName, plugins: args.plugins });
@@ -2374,7 +2374,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
       throw new Error("Currently only CacheFirst is supported");
     }
     _createPlugins() {
-      let plugins = [];
+      const plugins = [];
       let pluginsList = [];
       if (this.registerRouteJson.strategy.plugins)
         pluginsList = this.registerRouteJson.strategy.plugins;
@@ -2394,7 +2394,7 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
   addEventListener("message", (event) => {
     if (event.data.type === REGISTERROUTE) {
       const regRouteMsg = event.data.payload;
-      let dynRouteCreater = new RouteFactory(regRouteMsg);
+      const dynRouteCreater = new RouteFactory(regRouteMsg);
       dynRouteCreater.register();
     }
   });

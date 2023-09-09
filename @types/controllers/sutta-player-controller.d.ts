@@ -22,9 +22,8 @@ export declare class SuttaPlayerController {
     private _registerSettingsListeners;
     private _registerNavigationListeners;
     private _registerNavSearchListeners;
-    private _onSearchResultSelected;
-    private _managePromisedDuration;
     private _onSearchFor;
+    private _onSearchResultSelected;
     private _getSearchResultSelection;
     private _registerDisplayListeners;
     private _registerOfflineListeners;
@@ -32,6 +31,8 @@ export declare class SuttaPlayerController {
     private _registerResetAppListeners;
     private _registerAboutListeners;
     private _registerMiscListeners;
+    private _onSkipAudioToLine;
+    private _managePromisedDuration;
     private _onAudioEnded;
     private _onAlbumSelected;
     private _onTrackSelected;

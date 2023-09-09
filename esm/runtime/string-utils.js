@@ -1,6 +1,6 @@
 export class StringUtils {
     static allIndexesOf(src, srch, ignoreCase = true) {
-        let ret = [];
+        const ret = [];
         let lastPos = -1;
         let startPos = 0;
         if (ignoreCase) {
@@ -16,7 +16,7 @@ export class StringUtils {
     static allIndexOfUsingRegEx(src, regEx) {
         const regex = new RegExp(regEx, 'gm');
         let m;
-        let ret = [];
+        const ret = [];
         while ((m = regex.exec(src)) !== null) {
             if (m.index === regex.lastIndex)
                 regex.lastIndex++;
@@ -27,7 +27,7 @@ export class StringUtils {
     static allLinePositions(src, allIndicies) {
         let startPos = 0;
         let lastLinePos = 0;
-        let ret = [];
+        const ret = [];
         for (let i = 0; i < allIndicies.length; i++) {
             const segment = src.substring(startPos, allIndicies[i]);
             let matches = segment.match(/\n/gm);
@@ -42,10 +42,10 @@ export class StringUtils {
         return ret;
     }
     static surroundingTrim(src, pos, captureLen) {
-        let srcLen = src.length;
+        const srcLen = src.length;
         if (captureLen >= srcLen)
             return src;
-        let halfCaptLen = Math.floor(captureLen / 2);
+        const halfCaptLen = Math.floor(captureLen / 2);
         let startPos = pos - halfCaptLen;
         let endPos = pos + halfCaptLen;
         if (startPos < 0) {
@@ -56,7 +56,7 @@ export class StringUtils {
             endPos = srcLen;
             startPos = Math.max(0, endPos - captureLen);
         }
-        let ret = src.substring(startPos, endPos).trim();
+        const ret = src.substring(startPos, endPos).trim();
         return ret;
     }
 }

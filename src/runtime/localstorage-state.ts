@@ -1,7 +1,7 @@
 export class LocalStorageState {
     protected _getItemBoolean(key: string, defVal: boolean) {
         let ret = defVal;
-        let val = localStorage.getItem(key);
+        const val = localStorage.getItem(key);
         if (val)
             ret = val === '1' ? true : false;
         return ret;
@@ -9,7 +9,7 @@ export class LocalStorageState {
 
     protected _getItemNumber(key: string, defVal: number) {
         let ret = defVal;
-        let val = localStorage.getItem(key);
+        const val = localStorage.getItem(key);
         if (val)
             ret = Number(val);
         return ret;
@@ -17,7 +17,7 @@ export class LocalStorageState {
 
     protected _getItemString(key: string, defVal: string) {
         let ret = defVal;
-        let val = localStorage.getItem(key);
+        const val = localStorage.getItem(key);
         if (val)
             ret = val;
         return ret;

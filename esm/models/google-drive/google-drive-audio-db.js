@@ -1,13 +1,15 @@
 import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, CacheUtils, REGISTERROUTE } from '../../runtime/cache-utils.js';
 import googleDriveAudioDB from './google-drive-audio-db.json' assert { type: 'json' };
-export function createAudioQueryable() {
-    return new GoogleDriveAudioDB();
+export async function createAudioQueryable() {
+    const ret = new GoogleDriveAudioDB();
+    await ret.setup();
+    return ret;
 }
 export class GoogleDriveAudioDB {
     static CACHE_NAME = 'docs.google.com';
     static ORIGIN = `https://${GoogleDriveAudioDB.CACHE_NAME}`;
     static REST_API = '/uc?export=open&id=';
-    constructor() {
+    async setup() {
         if (!CacheUtils.ENABLE_CACHE)
             return;
         const payload = {
@@ -25,7 +27,7 @@ export class GoogleDriveAudioDB {
                 ]
             }
         };
-        CacheUtils.postMessage({
+        await CacheUtils.postMessage({
             type: REGISTERROUTE,
             payload: payload
         });
@@ -33,12 +35,12 @@ export class GoogleDriveAudioDB {
     async isInCache(trackRef) {
         const cacheKey = this.queryHtmlAudioSrcRef(trackRef);
         const ret = await CacheUtils.isInCache(GoogleDriveAudioDB.CACHE_NAME, [cacheKey], (resp) => {
-            let ret = resp?.ok ? true : false;
-            if (!ret) {
+            let acceptRes = resp?.ok ? true : false;
+            if (!acceptRes) {
                 if (resp?.status === 0 && resp?.type === 'opaque')
-                    ret = true;
+                    acceptRes = true;
             }
-            return ret;
+            return acceptRes;
         });
         return ret[0];
     }

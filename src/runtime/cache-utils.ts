@@ -44,7 +44,7 @@ export class CacheUtils {
     }
 
     public static async isInCache(cacheName: string, urls: string[], chkResp?: (resp: Response) => boolean): Promise<boolean[]> {
-        let ret: boolean[] = []
+        const ret: boolean[] = []
         const cache = await caches.open(cacheName)
         for (let i = 0; i < urls.length; i++) {
             const cachedResponse = await cache.match(urls[i])
@@ -58,7 +58,7 @@ export class CacheUtils {
 
     public static async deleteCachedUrls(cacheName: string, urls: string[], options?: CacheQueryOptions): Promise<boolean[]> {
         const cache = await caches.open(cacheName)
-        let ret: boolean[] = []
+        const ret: boolean[] = []
         for (let i = 0; i < urls.length; i++) {
             const wasDeleted = await cache.delete(urls[i], options)
             ret.push(wasDeleted)

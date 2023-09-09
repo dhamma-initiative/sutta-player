@@ -1,6 +1,6 @@
 import { TrackSelection } from '../sutta-player-state.js';
 import { SuttaStorageQueryable } from '../sutta-storage-queryable.js';
-export declare function createSuttaStorageQueryable(): SuttaStorageQueryable;
+export declare function createSuttaStorageQueryable(): Promise<SuttaStorageQueryable>;
 export declare class JsonFsSuttaDB implements SuttaStorageQueryable {
     queryAlbumNames(): string[];
     queryAlbumReferences(): string[];

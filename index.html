@@ -143,13 +143,13 @@
         </details>
 
         <details open>
-            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="playingTrack">&#127911; awaiting load</span></summary>
+            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="playingTrack">&#9835; awaiting load</span></summary>
             <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload">
             </audio>
         </details>
 
         <details open>
-            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="displayingTrack">&#127911; awaiting load</span></summary>
+            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="displayingTrack">&#128064; awaiting load</span></summary>
             <pre>
 <code id="trackTextBody" class="displayLineNums"></code>
             </pre>                
@@ -216,12 +216,13 @@
                 <input type="checkbox" role="switch" id="scrollPlayToggle" name="scrollPlayToggle" disabled/>
                 Play
             </label>
+            <a href="#" id="skipAudioToLine">REPLACE</a>
             <label for="scrollTextWithAudio">
                 <input type="checkbox" role="switch" id="scrollTextWithAudio" name="scrollTextWithAudio" />
                 Auto scroll
             </label>
             <hr/>
-            <a href="#" id="gotoTop" title="Go to top" role="button" class="contrast">&#8613;</a>
+            <a href="#" id="gotoTop" title="Go to top" class="contrast">Top</a>
         </div>
         <div id="snackbar"></div>
     </main>

@@ -5,15 +5,14 @@ export class LongPressManager {
 
     public setListener(elem: HTMLElement, cb: LongPressListener, dur = 1500) {
         elem.addEventListener('mousedown', (e: Event) => {
-            // e.stopImmediatePropagation()
             e.preventDefault()
-            let handle = setTimeout((e: Event) => {
+            const handle = setTimeout((e: Event) => {
                 cb(e)
             }, dur)
             this._delayMap.set(elem, handle)
         }, true)
 
-        let mouseOther = (e: Event) => {
+        const mouseOther = (e: Event) => {
             this._clearTimeout(elem)
         }
 
@@ -27,7 +26,7 @@ export class LongPressManager {
     }
 
     private _clearTimeout(elem: HTMLElement) {
-        let handle = this._delayMap.get(elem)
+        const handle = this._delayMap.get(elem)
         if (handle)
             clearTimeout(handle)
     }

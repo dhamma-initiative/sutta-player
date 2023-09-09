@@ -18,8 +18,8 @@ class RouteFactory {
 
   private _createStrategy() {
     if (this.registerRouteJson.strategy.class_name === CACHEFIRST) {
-      let args = this.registerRouteJson.strategy
-      let plugins = this._createPlugins()
+      const args = this.registerRouteJson.strategy
+      const plugins = this._createPlugins()
       if (plugins.length > 0)
         args.plugins = plugins
       return new CacheFirst({cacheName: args.cacheName, plugins: <any>args.plugins})
@@ -28,7 +28,7 @@ class RouteFactory {
   }
 
   private _createPlugins() {
-    let plugins: any[] = []
+    const plugins: any[] = []
     let pluginsList: PluginJson[] = []
     if (this.registerRouteJson.strategy.plugins)
       pluginsList = this.registerRouteJson.strategy.plugins
@@ -53,7 +53,7 @@ class RouteFactory {
 addEventListener("message", (event) => {
   if (event.data.type === REGISTERROUTE) {
     const regRouteMsg = <RegisterRoutePayloadJson> event.data.payload
-    let dynRouteCreater = new RouteFactory(regRouteMsg)
+    const dynRouteCreater = new RouteFactory(regRouteMsg)
     dynRouteCreater.register()
   }
 })

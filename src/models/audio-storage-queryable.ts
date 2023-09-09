@@ -7,6 +7,6 @@ export interface AudioStorageQueryable {
 export class AudioStorageQueryableFactory {
     public static async create(ctx: string): Promise<AudioStorageQueryable> {
         const { createAudioQueryable } = await import(ctx)
-        return createAudioQueryable()
+        return await createAudioQueryable()
     }
 }

@@ -1,7 +1,7 @@
 export class SuttaStorageQueryableFactory {
     static async create(ctx) {
         const { createSuttaStorageQueryable } = await import(ctx);
-        return createSuttaStorageQueryable();
+        return await createSuttaStorageQueryable();
     }
 }
 //# sourceMappingURL=sutta-storage-queryable.js.map

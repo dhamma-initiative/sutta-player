@@ -25,7 +25,7 @@ export class SuttaPlayerController {
     private _audDurPromise: DeferredPromise<number>
 
     private _lastScrollTime = 0
-    private _lineSelectionCb = (event: Event) => {
+    private _lineSelectionCb = (event: MouseEvent) => {
         this._onLineSelected(event)
     }
 
@@ -40,17 +40,17 @@ export class SuttaPlayerController {
 
     public async setup() {
         this._injectVersionInfo()
-        this._model.load()
+        this._model.restore()
         this._loadShareLinkIfSpecified()
         if (this._model.navSel.baseRef === null)
             this._model.navSel.updateBaseRef(this._suttaStore)
         await this._view.initialise(this._lineSelectionCb)
 		this._registerListeners()
-        this._searchController.setup()
+        await this._searchController.setup()
     }
 
     public async tearDown() {
-        this._searchController.tearDown()
+        await this._searchController.tearDown()
         if (!this._resetApp)
             this._model.save()
         this._view = null
@@ -62,7 +62,7 @@ export class SuttaPlayerController {
     }
 
     private _injectVersionInfo() {
-        let htmlVerTxt = document.getElementById('appHtmlViewVer').textContent
+        const htmlVerTxt = document.getElementById('appHtmlViewVer').textContent
         document.getElementById('appJsCtrlVer').textContent = SuttaPlayerController.VERSION
         console.log(`App HTML View version: ${htmlVerTxt}`)
         console.log(`App JS Controller version: ${SuttaPlayerController.VERSION}`)
@@ -99,7 +99,7 @@ export class SuttaPlayerController {
         this._view.linkTextToAudioElem.onchange = async () => {
             this._model.linkTextToAudio = this._view.linkTextToAudioElem.checked
             if (this._model.linkTextToAudio)
-                this._onLoadText(this._model.audioSel)
+                await this._onLoadText(this._model.audioSel)
         }
         this._view.showLineNumsElem.onchange = async () => {
             this._model.showLineNums = this._view.showLineNumsElem.checked
@@ -132,7 +132,7 @@ export class SuttaPlayerController {
             await this._onLoadAudio(this._model.navSel)
         }
         this._view.loadTextElem.onclick = async () => {
-            this._onLoadText(this._model.navSel)
+            await this._onLoadText(this._model.navSel)
         }
         this._view.loadRandomElem.onclick = async () => {
             await this._onLoadRandom()
@@ -146,43 +146,12 @@ export class SuttaPlayerController {
         this._view.searchResultsElem.onclick = async (e: Event) => {
             await this._onSearchResultSelected()
         }
-        let searchResultsSummaryElem = document.getElementById('searchResultSummary')
-        let searchFormElem = <HTMLFormElement> this._view.searchForElem.parentElement
+        const searchResultsSummaryElem = document.getElementById('searchResultSummary')
+        const searchFormElem = <HTMLFormElement> this._view.searchForElem.parentElement
         searchFormElem.onsubmit = async (e: Event) => {
             e.preventDefault()
             await this._onSearchFor(searchResultsSummaryElem)
         }
-    }
-
-    private async _onSearchResultSelected() {
-        let rsltSel = this._getSearchResultSelection()
-        this._onLoadIntoNavSelector(rsltSel)
-        this._audDurPromise = new DeferredPromise<number>()
-        await this._onLoadAudio(rsltSel)
-        if (!this._model.linkTextToAudio)
-            await this._onLoadText(rsltSel)
-        let lineChars = rsltSel.context.split('.')
-        let lineNum = Number(lineChars[0])
-        this._view.scrollToLineNumber(lineNum)
-        this._model.bookmarkLineNum = lineNum
-        this.showUserMessage(`Loading match on line ${lineChars[0]} of ${rsltSel.baseRef}`)
-        await this._managePromisedDuration(lineChars)
-    }
-
-    private async _managePromisedDuration(lineChars: string[]) {
-        let timeOut = new Promise<number>((res, rej) => {
-            setTimeout(() => {
-                res(-1)
-            }, 10000)   // 10 sec
-        })
-        let audDur = await Promise.race([this._audDurPromise, timeOut])
-        this._audDurPromise = null
-        if (audDur === -1) {
-            let deleted = await this._audioStore.removeFromCache(this._model.audioSel.baseRef)
-            if (deleted)
-                this.showUserMessage(`Partial cache removed. Please try reloading...`)
-        } else
-            this._view.seekToTimePosition(Number(lineChars[1]), Number(lineChars[2]), audDur)
     }
 
     private async _onSearchFor(searchResultsSummaryElem: HTMLElement) {
@@ -195,10 +164,24 @@ export class SuttaPlayerController {
         searchResultsSummaryElem.setAttribute('aria-busy', String(this._model.startSearch))
     }
 
+    private async _onSearchResultSelected() {
+        const rsltSel = this._getSearchResultSelection()
+        this._onLoadIntoNavSelector(rsltSel)
+        await this._onLoadAudio(rsltSel)
+        this._view.audioPlayerElem.pause()
+        if (!this._model.linkTextToAudio)
+            await this._onLoadText(rsltSel)
+        const lineChars = SuttaPlayerState.fromLineRef(rsltSel.context)
+        this._view.scrollToTextLineNumber(lineChars[0], lineChars[1])
+        this._model.bookmarkLineRef = rsltSel.context
+        this._view.refreshSkipAudioToLine()
+        this.showUserMessage(`Loading match on line ${lineChars[0]} of ${rsltSel.baseRef}`)
+    }
+
     private _getSearchResultSelection(): TrackSelection {
-        let opt = <HTMLOptionElement> this._view.searchResultsElem.selectedOptions[0]
-        let baseRef = (<HTMLOptGroupElement> opt.parentElement).label
-        let ret = this._suttaStore.queryTrackSelection(baseRef)
+        const opt = <HTMLOptionElement> this._view.searchResultsElem.selectedOptions[0]
+        const baseRef = (<HTMLOptGroupElement> opt.parentElement).label
+        const ret = this._suttaStore.queryTrackSelection(baseRef)
         ret.context = this._view.searchResultsElem.value
         return ret
     }
@@ -234,8 +217,8 @@ export class SuttaPlayerController {
             await this._onAudioEnded()
         }
         this._view.audioPlayerElem.ontimeupdate = async () => {
-            let diff = this._view.audioPlayerElem.currentTime - this._lastScrollTime  
-            if (Math.abs(diff) > 2) { // at least 2 sec 
+            const diff = this._view.audioPlayerElem.currentTime - this._lastScrollTime  
+            if (Math.abs(diff) > 5) {  
                 this._lastScrollTime = this._view.audioPlayerElem.currentTime
                 this._view.syncTextPositionWithAudio()
             }
@@ -288,7 +271,7 @@ export class SuttaPlayerController {
         }
         this._view.removeAudioFromCacheElem.onclick = async () => {
             if (this._model.audioState === 1) { // stuck in assigned state
-                let deleted = await this._audioStore.removeFromCache(this._model.audioSel.baseRef)
+                const deleted = await this._audioStore.removeFromCache(this._model.audioSel.baseRef)
                 if (deleted)
                     this._view.removeAudioFromCacheElem.style.display = "none"
             }
@@ -329,13 +312,17 @@ export class SuttaPlayerController {
             else
                 this._view.audioPlayerElem.pause()
         }
+        this._view.skipAudioToLineElem.onclick = async (event: Event) => {
+            event.preventDefault()
+            await this._onSkipAudioToLine()
+        }
         this._view.scrollTextWithAudioElem.onchange = async () => {
             this._model.scrollTextWithAudio = this._view.scrollTextWithAudioElem.checked
         }
         this._view.gotoTopElem.onclick = async () => {
             window.scroll(0, 0)
         }
-        let fabSection = document.getElementById('fabSection')
+        const fabSection = document.getElementById('fabSection')
         window.onscroll = () => {
             if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
                 fabSection.style.display = "block"
@@ -343,6 +330,39 @@ export class SuttaPlayerController {
                 fabSection.style.display = "none"
             }
         }
+    }
+
+    private async _onSkipAudioToLine() {
+        if (this._model.bookmarkLineRef === "")
+            return
+        const currBookmarkLineRef = this._model.bookmarkLineRef
+        const lineRefVals = SuttaPlayerState.fromLineRef(this._model.bookmarkLineRef)
+        this._onLoadIntoNavSelector(this._model.textSel)
+        this._audDurPromise = new DeferredPromise<number>()
+        const alreadyLoaded = await this._onLoadAudio(this._model.textSel)
+        if (alreadyLoaded)
+            this._audDurPromise.resolve(this._view.audioPlayerElem.duration)
+        this._model.bookmarkLineRef = currBookmarkLineRef
+        this._view.refreshSkipAudioToLine()
+        await this._managePromisedDuration(lineRefVals)
+        await this._view.audioPlayerElem.play()
+    }
+
+    private async _managePromisedDuration(lineRefVals: number[]) {
+        const timeOut = new Promise<number>((res, rej) => {
+            setTimeout(() => {
+                if (this._audDurPromise !== null)
+                    res(-1)
+            }, 10000)   // 10 sec
+        })
+        const audDur = await Promise.race([this._audDurPromise, timeOut])
+        this._audDurPromise = null
+        if (audDur === -1) {
+            const deleted = await this._audioStore.removeFromCache(this._model.audioSel.baseRef)
+            if (deleted)
+                this.showUserMessage(`Partial cache removed. Please try reloading...`)
+        } else
+            this._view.seekToTimePosition(lineRefVals[1], lineRefVals[2], audDur)
     }
 
     private async _onAudioEnded() {
@@ -371,26 +391,46 @@ export class SuttaPlayerController {
         this._model.navSel.updateBaseRef(this._suttaStore)
     }
 
-    private async _onLoadAudio(srcSel: TrackSelection) {
+    private async _onLoadAudio(srcSel: TrackSelection): Promise<boolean> {
+        if (this._model.audioSel.isSimilar(srcSel) && this._model.audioSel.isLoaded)
+            return true
         this._model.currentTime = 0
         this._model.audioState = -1
         this._model.audioSel.read(srcSel)
         this._view.loadTrackAudio()
         if (this._model.linkTextToAudio) 
             await this._onLoadText(this._model.audioSel)
+        return false
     }
 
-    private async _onLoadText(srcSel: TrackSelection) {
-        this._model.bookmarkLineNum = 0  // clear bookmark
+    private async _onLoadText(srcSel: TrackSelection): Promise<boolean> {
+        if (this._model.textSel.isSimilar(srcSel) && this._model.textSel.isLoaded)
+            return true
+        this._model.bookmarkLineRef = ''  // clear bookmark
+        this._view.refreshSkipAudioToLine()
         this._model.textSel.read(srcSel)
         await this._view.loadTrackText(this._lineSelectionCb)
+        return false
     }
 
-    private _onLineSelected(event: Event) {
-        let refId = (<any> event.target).id
-        let num = this._view.parseLineNumber(refId)
-        this._model.bookmarkLineNum = num
-        this.showUserMessage(`Bookmarked line ${num} for share link`)
+    private _onLineSelected(event: MouseEvent) {
+        const elem = <HTMLElement> event.target
+        const lineNum = this._view.parseLineNumber(elem.id)
+        if (!lineNum)
+            return
+        const lineRef = this._view.createLineRefValues(lineNum)
+        const lineRefVals = SuttaPlayerState.fromLineRef(lineRef)
+        const textLen = elem.textContent.length
+        const rect = elem.getBoundingClientRect()
+        const percDiff = lineRefVals[4] - lineRefVals[2]
+        const adjPx = event.clientY - rect.top
+        const adjChars = Math.floor((adjPx / rect.height) * textLen)
+        const adjPercDiff = Math.floor((adjPx / rect.height) * percDiff)
+        lineRefVals[1] = lineRefVals[1] + adjChars
+        lineRefVals[2] = lineRefVals[2] + adjPercDiff
+        this._model.bookmarkLineRef = SuttaPlayerState.toLineRefUsingArr(lineRefVals)
+        this._view.refreshSkipAudioToLine()
+        this.showUserMessage(`Bookmarked line ${lineNum}`)
     }
 
     private async _onLoadRandom() {
@@ -404,6 +444,7 @@ export class SuttaPlayerController {
         }
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
         await this._onLoadAudio(this._model.navSel)
+        await this._onLoadText(this._model.navSel)
     }
 
     private async _onDownloadAlbum() {
@@ -426,12 +467,12 @@ export class SuttaPlayerController {
 
     private async _onOfflineAlbumProcessing(handler: OfflineProcessingCallback, msgType: string) {
         this._view.offlineMenuElem.setAttribute('aria-busy', String(true))
-        let processSel = new TrackSelection('cache')
+        const processSel = new TrackSelection('cache')
         processSel.albumIndex = this._model.navSel.albumIndex
         const fileList = this._suttaStore.queryTrackReferences(this._model.navSel.albumIndex)
-        let urls: string[] = []
+        const urls: string[] = []
         for (let i = 0; i < fileList.length; i++) {
-            let progVal = Math.round(((i+1)/fileList.length) * 100)
+            const progVal = Math.round(((i+1)/fileList.length) * 100)
             processSel.trackIndex = i
             processSel.updateBaseRef(this._suttaStore)
             this._view.updateOfflineInfo(processSel.baseRef, progVal)
@@ -456,7 +497,7 @@ export class SuttaPlayerController {
     private async _onResetAppConfirm() {
         this._resetApp = true
         localStorage.clear()
-        let keys = await caches.keys()
+        const keys = await caches.keys()
         for (let i = 0; i < keys.length; i++) 
             await caches.delete(keys[i])      
         if (CacheUtils.ENABLE_CACHE) {
@@ -469,8 +510,8 @@ export class SuttaPlayerController {
     private _onShareLink(srcSel: TrackSelection) {
         let baseRefHref = location.protocol + '//' + location.host + this._appRoot
         baseRefHref += '#' + srcSel.baseRef + `?startTime=${this._model.currentTime}`
-        if (this._model.bookmarkLineNum > 0)
-            baseRefHref += `&line=${this._model.bookmarkLineNum}`
+        if (this._model.bookmarkLineRef !== '')
+            baseRefHref += `&line=${this._model.bookmarkLineRef}`
         navigator.clipboard.writeText(baseRefHref)
         this.showUserMessage('Share Link copied to clipboard')
     }
@@ -491,16 +532,17 @@ export class SuttaPlayerController {
         if (url.hash) {
             href = href.replace('#','')
             url = new URL(href)
-            let baseRef = url.pathname.substring(this._appRoot.length)
+           let baseRef = url.pathname.substring(this._appRoot.length)
             if (baseRef.startsWith('/'))
                 baseRef = baseRef.substring(1)
-            let urlSel = this._suttaStore.queryTrackSelection(baseRef)
+            const urlSel = this._suttaStore.queryTrackSelection(baseRef)
             if (urlSel.albumIndex > -1 && urlSel.trackIndex > -1) {
                 this._model.navSel.read(urlSel)
                 this._model.audioSel.read(urlSel)
                 this._model.textSel.read(urlSel)
                 this._model.currentTime = Number(url.searchParams.get('startTime'))
-                this._model.bookmarkLineNum = Number(url.searchParams.get('line'))
+                this._model.bookmarkLineRef = url.searchParams.get('line')
+                this._view.refreshSkipAudioToLine()
                 this._view.albumTrackSelectionElem.open = false
             }
         }

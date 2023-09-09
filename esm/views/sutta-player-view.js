@@ -1,3 +1,4 @@
+import { SuttaPlayerState } from '../models/sutta-player-state.js';
 export class SuttaPlayerView {
     static LINEID_PREFIX = '_ln_';
     // settings
@@ -51,6 +52,7 @@ export class SuttaPlayerView {
     resetAppConfirmElem;
     snackbarElem;
     scrollPlayToggleElem;
+    skipAudioToLineElem;
     scrollTextWithAudioElem;
     gotoTopElem;
     _modelState;
@@ -69,8 +71,10 @@ export class SuttaPlayerView {
         await this.loadTrackText(cb);
         this.refreshAudioControls();
         this.loadTrackAudio();
-        if (this._modelState.bookmarkLineNum > 0)
-            this.scrollToLineNumber(this._modelState.bookmarkLineNum);
+        if (this._modelState.bookmarkLineRef !== '') {
+            const lineRefVals = SuttaPlayerState.fromLineRef(this._modelState.bookmarkLineRef);
+            this.scrollToTextLineNumber(lineRefVals[0], lineRefVals[1]);
+        }
         else
             window.scroll(0, this._modelState.currentScrollY);
     }
@@ -91,54 +95,79 @@ export class SuttaPlayerView {
         this.processingProgressElem.value = 0;
         this.setColorTheme();
         this.toggleLineNums();
+        this.refreshSkipAudioToLine();
     }
     loadTracksList() {
         const trackLov = this._suttaStore.queryTrackReferences(this._modelState.navSel.albumIndex);
         this.trackElem.innerHTML = '';
         for (let i = 0; i < trackLov.length; i++) {
-            let option = document.createElement('option');
+            const option = document.createElement('option');
             option.value = `${i}`;
             option.innerText = trackLov[i];
             this.trackElem.append(option);
         }
         this.trackElem.selectedIndex = this._modelState.navSel.trackIndex;
     }
-    async loadTrackText(cb) {
+    async loadTrackText(lineSelCb) {
         if (this._modelState.textSel.baseRef === null)
             return;
-        let textBody = await this._suttaStore.queryTrackText(this._modelState.textSel.baseRef);
+        const textBody = await this._suttaStore.queryTrackText(this._modelState.textSel.baseRef);
         this.trackTextBodyElem.innerHTML = '';
-        // this.trackTextBodyElem.innerHTML = textBody.replace(/^(.*)$/mg, "<span class=\"line\">$1</span>")
-        let lines = textBody.split('\n');
+        const lines = textBody.split('\n');
         let totalCharLen = 0;
         let html = '';
         this._charPosLineIndex = [0];
         for (let i = 0; i < lines.length; i++) {
             html += `<span class=\"line\">${lines[i]}</span>\n`;
-            totalCharLen += lines[i].length;
+            totalCharLen += lines[i].length + ((i === lines.length - 1) ? 0 : 1);
             this._charPosLineIndex.push(totalCharLen);
         }
         this.trackTextBodyElem.innerHTML = html;
         for (let i = 0; i < this.trackTextBodyElem.children.length; i++) {
-            let elem = this.trackTextBodyElem.children[i];
-            elem.id = SuttaPlayerView.createLineRefId(i + 1);
-            elem.onclick = cb;
+            const elem = this.trackTextBodyElem.children[i];
+            elem.id = SuttaPlayerView.createLineElementId(i + 1);
+            elem.onclick = lineSelCb;
         }
         this.displayingTrackElem.innerHTML = `&#128064; ${this._modelState.textSel.baseRef}`;
+        this._modelState.textSel.isLoaded = true;
+    }
+    createLineRefValues(lineNum) {
+        const totalCharLen = this._charPosLineIndex[this._charPosLineIndex.length - 1];
+        const begIdxPos = this._charPosLineIndex[lineNum - 1];
+        const begPerc = ((begIdxPos / totalCharLen) * 100);
+        const endIdxPos = this._charPosLineIndex[lineNum];
+        const endPerc = ((endIdxPos / totalCharLen) * 100);
+        const ret = SuttaPlayerState.toLineRef(lineNum, begIdxPos, begPerc, endIdxPos, endPerc);
+        return ret;
     }
     setColorTheme() {
-        let theme = this._modelState.darkTheme ? 'dark' : 'light';
+        const theme = this._modelState.darkTheme ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', theme);
     }
-    scrollToLineNumber(lineNum) {
-        let idRef = SuttaPlayerView.createLineRefId(lineNum);
+    scrollToTextLineNumber(lineNum, idxPos) {
+        const idRef = SuttaPlayerView.createLineElementId(lineNum);
+        let offset = -window.innerHeight / 2;
         const elem = document.getElementById(idRef);
+        if (idxPos > -1) {
+            const lnPerc = this._charPosToLineNumPercOffset(idxPos);
+            if (lnPerc[0] === lineNum) {
+                const spanRect = elem.getBoundingClientRect();
+                const scrollY = window.scrollY || window.pageYOffset;
+                const top = spanRect.top + scrollY;
+                offset += top + Math.round(spanRect.height * lnPerc[1]);
+            }
+        }
         if (elem)
-            elem.scrollIntoView(true);
+            window.scroll({ top: offset, behavior: "smooth" });
+    }
+    scrollToTextPercCentred(perc) {
+        const totalLen = this._charPosLineIndex[this._charPosLineIndex.length - 1];
+        const idxPos = (totalLen * perc / 100);
+        const lnPerc = this._charPosToLineNumPercOffset(idxPos);
+        this.scrollToTextLineNumber(lnPerc[0], idxPos);
     }
     seekToTimePosition(charPos, charPerc, audDur) {
-        let cont = Math.min(0.1 * audDur, 15);
-        let seekTo = audDur * (charPerc / 100);
+        const seekTo = audDur * (charPerc / 100);
         this._modelState.currentTime = seekTo;
         this.audioPlayerElem.currentTime = this._modelState.currentTime;
     }
@@ -147,24 +176,16 @@ export class SuttaPlayerView {
             return;
         if (this._modelState.audioSel.baseRef !== this._modelState.textSel.baseRef)
             return;
-        if (this._charPosLineIndex.length < 1)
-            return;
-        let lineNum = this._estimateLineNumberFromAudio();
-        let lineId = SuttaPlayerView.createLineRefId(lineNum);
-        let elem = document.getElementById(lineId);
-        if (elem) {
-            // elem.scrollIntoView({block: 'center', behavior:'smooth'})
-            const y = elem.offsetTop - (window.innerHeight / 2);
-            window.scrollTo({ top: y, left: 0, behavior: 'smooth' });
-        }
+        const posPerc = this._getAudioPositionAsPerc();
+        this.scrollToTextPercCentred(posPerc);
     }
     parseLineNumber(idRef) {
-        let lnAsStr = idRef.replace(SuttaPlayerView.LINEID_PREFIX, '');
-        let ret = parseInt(lnAsStr);
+        const lnAsStr = idRef.replace(SuttaPlayerView.LINEID_PREFIX, '');
+        const ret = parseInt(lnAsStr);
         return ret;
     }
-    static createLineRefId(lineNum) {
-        let idRef = `${SuttaPlayerView.LINEID_PREFIX}${lineNum}`;
+    static createLineElementId(lineNum) {
+        const idRef = `${SuttaPlayerView.LINEID_PREFIX}${lineNum}`;
         return idRef;
     }
     loadTrackAudio() {
@@ -172,20 +193,19 @@ export class SuttaPlayerView {
         if (success)
             this.audioPlayerElem.currentTime = this._modelState.currentTime;
     }
-    loadSuttaAudioWith(trackSel, viewAudio) {
+    loadSuttaAudioWith(trackSel, audioElem) {
         if (trackSel.baseRef === null)
             return false;
         this._modelState.audioState = 0;
         const srcRef = this._audioStore.queryHtmlAudioSrcRef(trackSel.baseRef);
-        viewAudio.src = srcRef;
+        audioElem.src = srcRef;
         this._modelState.audioState = 1;
+        trackSel.isLoaded = true;
         return true;
     }
     updatePlayingTrackInfo(baseRef, status) {
-        let info = status ? ` [${status}]` : '';
+        const info = status ? ` [${status}]` : '';
         this.playingTrackElem.innerHTML = `&#9835; ${baseRef}${info}`;
-        // this.scrollTextWithAudioElem.style.display = (status === 'playing') ? 'block' : 'none'
-        // this.scrollTextWithAudioElem.parentElement.style.display = (status === 'playing') ? 'block' : 'none'
     }
     showMessage(msg, dur = 3000) {
         this.snackbarElem.textContent = msg;
@@ -220,7 +240,7 @@ export class SuttaPlayerView {
         if (!this.offlineDialogElem.open)
             return;
         if (this._modelState.stopDwnlDel === 0) {
-            let albumName = this.albumElem.children[this.albumElem.selectedIndex].textContent;
+            const albumName = this.albumElem.children[this.albumElem.selectedIndex].textContent;
             this.offlineTitleElem.textContent = albumName;
         }
         if (this._modelState.audioState === 1) { // stuck in assigned state
@@ -249,10 +269,19 @@ export class SuttaPlayerView {
         this.downloadAlbumElem.disabled = disableActivityActions;
         this.deleteAlbumElem.disabled = disableActivityActions;
     }
+    refreshSkipAudioToLine() {
+        if (this._modelState.bookmarkLineRef !== '') {
+            const vals = SuttaPlayerState.fromLineRef(this._modelState.bookmarkLineRef);
+            this.skipAudioToLineElem.innerHTML = `Line ${vals[0]} &#9193; &#9835;`;
+            this.skipAudioToLineElem.style.display = 'block';
+        }
+        else
+            this.skipAudioToLineElem.style.display = 'none';
+    }
     _loadAlbumsList() {
         const colLov = this._suttaStore.queryAlbumNames();
         for (let i = 0; i < colLov.length; i++) {
-            let option = document.createElement('option');
+            const option = document.createElement('option');
             option.value = `${i}`;
             option.innerText = colLov[i];
             this.albumElem.append(option);
@@ -326,23 +355,24 @@ export class SuttaPlayerView {
     _bindMiscElements() {
         this.scrollPlayToggleElem = document.getElementById('scrollPlayToggle');
         this.scrollTextWithAudioElem = document.getElementById('scrollTextWithAudio');
+        this.skipAudioToLineElem = document.getElementById('skipAudioToLine');
         this.gotoTopElem = document.getElementById('gotoTop');
         this.snackbarElem = document.getElementById('snackbar');
     }
-    _estimateLineNumberFromAudio() {
-        let audioCurr = this.audioPlayerElem.currentTime;
-        let audioTotal = this.audioPlayerElem.duration;
-        let audioPerc = audioCurr / audioTotal;
-        let totalCharLen = this._charPosLineIndex[this._charPosLineIndex.length - 1];
-        let charPos = Math.max(Math.floor(audioPerc * totalCharLen), 1);
-        let ret = this._charPosToLineNumber(charPos);
-        return ret;
+    _getAudioPositionAsPerc() {
+        const audioCurr = this.audioPlayerElem.currentTime;
+        const audioTotal = this.audioPlayerElem.duration;
+        const audioPerc = audioCurr / audioTotal;
+        return 100 * audioPerc;
     }
-    _charPosToLineNumber(charPos) {
-        let ret = 1;
+    _charPosToLineNumPercOffset(idxPos) {
+        const ret = [1, 0];
         for (let i = 1; i < this._charPosLineIndex.length; i++) {
-            if (charPos >= this._charPosLineIndex[i - 1] && charPos < this._charPosLineIndex[i]) {
-                ret = i;
+            if (idxPos >= this._charPosLineIndex[i - 1] && idxPos < this._charPosLineIndex[i]) {
+                ret[0] = i;
+                const diff = idxPos - this._charPosLineIndex[i - 1];
+                const total = this._charPosLineIndex[i] - this._charPosLineIndex[i - 1];
+                ret[1] = diff / total;
                 break;
             }
         }

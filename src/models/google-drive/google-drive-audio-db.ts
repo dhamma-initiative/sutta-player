@@ -3,8 +3,10 @@ import { AudioStorageQueryable } from '../audio-storage-queryable.js'
 
 import googleDriveAudioDB from './google-drive-audio-db.json' assert { type: 'json' }
 
-export function createAudioQueryable():AudioStorageQueryable {
-    return new GoogleDriveAudioDB()
+export async function createAudioQueryable(): Promise<AudioStorageQueryable> {
+    const ret = new GoogleDriveAudioDB()
+    await ret.setup() 
+    return ret
 }
 
 export class GoogleDriveAudioDB implements AudioStorageQueryable {
@@ -12,7 +14,7 @@ export class GoogleDriveAudioDB implements AudioStorageQueryable {
     public static ORIGIN = `https://${GoogleDriveAudioDB.CACHE_NAME}`
     public static REST_API = '/uc?export=open&id='
 
-    public constructor() {
+    public async setup() {
         if (!CacheUtils.ENABLE_CACHE)
             return
         const payload: RegisterRoutePayloadJson = {
@@ -30,7 +32,7 @@ export class GoogleDriveAudioDB implements AudioStorageQueryable {
                 ]
             }
         }        
-        CacheUtils.postMessage({
+        await CacheUtils.postMessage({
             type: REGISTERROUTE,
             payload: payload
         })        
@@ -40,12 +42,12 @@ export class GoogleDriveAudioDB implements AudioStorageQueryable {
         const cacheKey = this.queryHtmlAudioSrcRef(trackRef)
         const ret = await CacheUtils.isInCache(GoogleDriveAudioDB.CACHE_NAME, [cacheKey],
             (resp: Response) => {
-                let ret = resp?.ok ? true : false 
-                if (!ret) {
+                let acceptRes = resp?.ok ? true : false 
+                if (!acceptRes) {
                     if (resp?.status === 0 && resp?.type === 'opaque')
-                        ret = true
+                        acceptRes = true
                 }
-                return ret
+                return acceptRes
             }
         )
         return ret[0]

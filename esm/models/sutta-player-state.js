@@ -4,6 +4,7 @@ export class TrackSelection extends LocalStorageState {
     albumIndex;
     trackIndex;
     baseRef;
+    isLoaded = false;
     constructor(ctx, albIdx = 0, trkIdx = 0, bRef = null) {
         super();
         this.context = ctx;
@@ -19,12 +20,21 @@ export class TrackSelection extends LocalStorageState {
     updateBaseRef(qry) {
         this.baseRef = qry.queryTrackBaseRef(this.albumIndex, this.trackIndex);
     }
+    isSimilar(toChk) {
+        if (toChk.albumIndex !== this.albumIndex)
+            return false;
+        if (toChk.trackIndex !== this.trackIndex)
+            return false;
+        if (toChk.baseRef !== this.baseRef)
+            return false;
+        return true;
+    }
     save() {
         this._setItemNumber(`${this.context}.albumIndex`, this.albumIndex);
         this._setItemNumber(`${this.context}.trackIndex`, this.trackIndex);
         this._setItemString(`${this.context}.baseRef`, this.baseRef);
     }
-    load() {
+    restore() {
         this.albumIndex = this._getItemNumber(`${this.context}.albumIndex`, this.albumIndex);
         this.trackIndex = this._getItemNumber(`${this.context}.trackIndex`, this.trackIndex);
         this.baseRef = this._getItemString(`${this.context}.baseRef`, this.baseRef);
@@ -48,7 +58,7 @@ export class SuttaPlayerState extends LocalStorageState {
     ignoreDiacritics = true;
     audioState = -1; // transient [unspecified: -1, specified: 0, assigned: 1, loadedMetadata: 2, loaded: 3, playing: 4, paused: 5, ended: 6]
     stopDwnlDel = 0; // transient
-    bookmarkLineNum = 0; // trainsient
+    bookmarkLineRef = ''; // transient
     startSearch = false; // transient
     scrollTextWithAudio = false; // transient
     save() {
@@ -68,10 +78,10 @@ export class SuttaPlayerState extends LocalStorageState {
         this._setItemBoolean('useRegEx', this.useRegEx);
         this._setItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
     }
-    load() {
-        this.navSel.load();
-        this.textSel.load();
-        this.audioSel.load();
+    restore() {
+        this.navSel.restore();
+        this.textSel.restore();
+        this.audioSel.restore();
         this.autoPlay = this._getItemBoolean('autoPlay', this.autoPlay);
         this.playNext = this._getItemBoolean('playNext', this.playNext);
         this.repeat = this._getItemBoolean('repeat', this.repeat);
@@ -84,6 +94,17 @@ export class SuttaPlayerState extends LocalStorageState {
         this.searchAllAlbums = this._getItemBoolean('searchAllAlbums', this.searchAllAlbums);
         this.useRegEx = this._getItemBoolean('useRegEx', this.useRegEx);
         this.ignoreDiacritics = this._getItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
+    }
+    static toLineRef(lineNum, begIdxPos, begPerc, endIdxPos, endPerc) {
+        return `${lineNum}:${begIdxPos}:${begPerc.toFixed(3)}:${endIdxPos}:${endPerc.toFixed(3)}`;
+    }
+    static toLineRefUsingArr(refArr) {
+        const ret = SuttaPlayerState.toLineRef(refArr[0], refArr[1], refArr[2], refArr[3], refArr[4]);
+        return ret;
+    }
+    static fromLineRef(lineRef) {
+        const vals = lineRef.split(':');
+        return [Number(vals[0]), Number(vals[1]), Number(vals[2]), Number(vals[3]), Number(vals[4])];
     }
 }
 //# sourceMappingURL=sutta-player-state.js.map

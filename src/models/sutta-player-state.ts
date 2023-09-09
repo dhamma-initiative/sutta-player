@@ -6,6 +6,7 @@ export class TrackSelection extends LocalStorageState {
     albumIndex: number
     trackIndex: number
     baseRef: string
+    isLoaded: boolean = false
 
     constructor(ctx: string, albIdx = 0, trkIdx = 0, bRef: string = null) {
         super()
@@ -25,13 +26,23 @@ export class TrackSelection extends LocalStorageState {
         this.baseRef = qry.queryTrackBaseRef(this.albumIndex, this.trackIndex)
     }
 
+    public isSimilar(toChk: TrackSelection) {
+        if (toChk.albumIndex !== this.albumIndex)
+            return false
+        if (toChk.trackIndex !== this.trackIndex)
+            return false
+        if (toChk.baseRef !== this.baseRef)
+            return false
+        return true
+    }
+
     public save() {
         this._setItemNumber(`${this.context}.albumIndex`, this.albumIndex)
         this._setItemNumber(`${this.context}.trackIndex`, this.trackIndex)
         this._setItemString(`${this.context}.baseRef`, this.baseRef)
     }
 
-    public load() {
+    public restore() {
         this.albumIndex = this._getItemNumber(`${this.context}.albumIndex`, this.albumIndex)
         this.trackIndex = this._getItemNumber(`${this.context}.trackIndex`, this.trackIndex)
         this.baseRef = this._getItemString(`${this.context}.baseRef`, this.baseRef)
@@ -58,7 +69,8 @@ export class SuttaPlayerState extends LocalStorageState {
 
     audioState: number = -1 // transient [unspecified: -1, specified: 0, assigned: 1, loadedMetadata: 2, loaded: 3, playing: 4, paused: 5, ended: 6]
     stopDwnlDel: number = 0 // transient
-    bookmarkLineNum: number = 0 // trainsient
+    bookmarkLineRef: string = '' // transient
+
     startSearch: boolean = false // transient
     scrollTextWithAudio: boolean = false // transient
 
@@ -81,10 +93,10 @@ export class SuttaPlayerState extends LocalStorageState {
         this._setItemBoolean('ignoreDiacritics', this.ignoreDiacritics)
     }
 
-    public load() {
-        this.navSel.load()
-        this.textSel.load()
-        this.audioSel.load()
+    public restore() {
+        this.navSel.restore()
+        this.textSel.restore()
+        this.audioSel.restore()
         this.autoPlay = this._getItemBoolean('autoPlay', this.autoPlay)
         this.playNext = this._getItemBoolean('playNext', this.playNext)
         this.repeat = this._getItemBoolean('repeat', this.repeat)
@@ -98,5 +110,19 @@ export class SuttaPlayerState extends LocalStorageState {
         this.searchAllAlbums = this._getItemBoolean('searchAllAlbums', this.searchAllAlbums)
         this.useRegEx = this._getItemBoolean('useRegEx', this.useRegEx)
         this.ignoreDiacritics = this._getItemBoolean('ignoreDiacritics', this.ignoreDiacritics)
+    }
+
+    public static toLineRef(lineNum: number, begIdxPos: number, begPerc: number, endIdxPos: number, endPerc: number): string {
+        return `${lineNum}:${begIdxPos}:${begPerc.toFixed(3)}:${endIdxPos}:${endPerc.toFixed(3)}`
+    }
+
+    public static toLineRefUsingArr(refArr: number[]) {
+        const ret = SuttaPlayerState.toLineRef(refArr[0], refArr[1], refArr[2], refArr[3], refArr[4])
+        return ret
+    }
+
+    public static fromLineRef(lineRef: string): number[] {
+        const vals = lineRef.split(':')
+        return [Number(vals[0]), Number(vals[1]), Number(vals[2]), Number(vals[3]), Number(vals[4])]
     }
 }

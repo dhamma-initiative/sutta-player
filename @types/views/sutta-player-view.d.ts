@@ -48,6 +48,7 @@ export declare class SuttaPlayerView {
     resetAppConfirmElem: HTMLAnchorElement;
     snackbarElem: HTMLDivElement;
     scrollPlayToggleElem: HTMLInputElement;
+    skipAudioToLineElem: HTMLAnchorElement;
     scrollTextWithAudioElem: HTMLInputElement;
     gotoTopElem: HTMLAnchorElement;
     private _modelState;
@@ -55,18 +56,20 @@ export declare class SuttaPlayerView {
     private _audioStore;
     private _charPosLineIndex;
     constructor(mdl: SuttaPlayerState, store: SuttaStorageQueryable, audResolver: AudioStorageQueryable);
-    initialise(cb: (event: Event) => void): Promise<void>;
+    initialise(cb: (event: MouseEvent) => void): Promise<void>;
     refreshAudioControls(): void;
     loadTracksList(): void;
-    loadTrackText(cb: (event: Event) => void): Promise<void>;
+    loadTrackText(lineSelCb: (event: MouseEvent) => void): Promise<void>;
+    createLineRefValues(lineNum: number): string;
     setColorTheme(): void;
-    scrollToLineNumber(lineNum: number): void;
+    scrollToTextLineNumber(lineNum: number, idxPos: number): void;
+    scrollToTextPercCentred(perc: number): void;
     seekToTimePosition(charPos: number, charPerc: number, audDur: number): void;
     syncTextPositionWithAudio(): void;
     parseLineNumber(idRef: string): number;
-    static createLineRefId(lineNum: number): string;
+    static createLineElementId(lineNum: number): string;
     loadTrackAudio(): void;
-    loadSuttaAudioWith(trackSel: TrackSelection, viewAudio: HTMLAudioElement): boolean;
+    loadSuttaAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): boolean;
     updatePlayingTrackInfo(baseRef: string, status: string): void;
     showMessage(msg: string, dur?: number): void;
     toggleLineNums(): void;
@@ -74,6 +77,7 @@ export declare class SuttaPlayerView {
     toggleOfflineDialog(event: any): void;
     toggleResetAppDialog(event: any): void;
     updateOfflineInfo(processingInfo: string, perc: number): void;
+    refreshSkipAudioToLine(): void;
     private _loadAlbumsList;
     private _bindHtmlElements;
     private _bindSettingElements;
@@ -83,6 +87,6 @@ export declare class SuttaPlayerView {
     private _bindResetAppElements;
     private _bindAboutElements;
     private _bindMiscElements;
-    private _estimateLineNumberFromAudio;
-    private _charPosToLineNumber;
+    private _getAudioPositionAsPerc;
+    private _charPosToLineNumPercOffset;
 }

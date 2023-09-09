@@ -5,11 +5,13 @@ export declare class TrackSelection extends LocalStorageState {
     albumIndex: number;
     trackIndex: number;
     baseRef: string;
+    isLoaded: boolean;
     constructor(ctx: string, albIdx?: number, trkIdx?: number, bRef?: string);
     read(src: TrackSelection): void;
     updateBaseRef(qry: SuttaStorageQueryable): void;
+    isSimilar(toChk: TrackSelection): boolean;
     save(): void;
-    load(): void;
+    restore(): void;
 }
 export declare class SuttaPlayerState extends LocalStorageState {
     navSel: TrackSelection;
@@ -29,9 +31,12 @@ export declare class SuttaPlayerState extends LocalStorageState {
     ignoreDiacritics: boolean;
     audioState: number;
     stopDwnlDel: number;
-    bookmarkLineNum: number;
+    bookmarkLineRef: string;
     startSearch: boolean;
     scrollTextWithAudio: boolean;
     save(): void;
-    load(): void;
+    restore(): void;
+    static toLineRef(lineNum: number, begIdxPos: number, begPerc: number, endIdxPos: number, endPerc: number): string;
+    static toLineRefUsingArr(refArr: number[]): string;
+    static fromLineRef(lineRef: string): number[];
 }

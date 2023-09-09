@@ -14,6 +14,6 @@ export interface SuttaStorageQueryable {
 export class SuttaStorageQueryableFactory {
     public static async create(ctx: string): Promise<SuttaStorageQueryable> {
         const { createSuttaStorageQueryable } = await import(ctx)
-        return createSuttaStorageQueryable()
+        return await createSuttaStorageQueryable()
     }
 }

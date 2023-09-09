@@ -17,7 +17,7 @@ export class CacheUtils {
         });
     }
     static async isInCache(cacheName, urls, chkResp) {
-        let ret = [];
+        const ret = [];
         const cache = await caches.open(cacheName);
         for (let i = 0; i < urls.length; i++) {
             const cachedResponse = await cache.match(urls[i]);
@@ -30,7 +30,7 @@ export class CacheUtils {
     }
     static async deleteCachedUrls(cacheName, urls, options) {
         const cache = await caches.open(cacheName);
-        let ret = [];
+        const ret = [];
         for (let i = 0; i < urls.length; i++) {
             const wasDeleted = await cache.delete(urls[i], options);
             ret.push(wasDeleted);
