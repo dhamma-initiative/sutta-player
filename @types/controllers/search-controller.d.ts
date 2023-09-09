@@ -14,7 +14,7 @@ export declare class SearchController {
     tearDown(): Promise<void>;
     onStartSearch(): Promise<boolean>;
     private _initialiseSearch;
-    private _searchSelectedAlbums;
+    private _searchPreferencedAlbums;
     private _reportMatches;
     private _appendResultToGroup;
     private _createOptionGroupElem;

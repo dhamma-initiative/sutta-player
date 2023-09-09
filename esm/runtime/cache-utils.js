@@ -18,6 +18,7 @@ export class CacheUtils {
             refreshing = true;
             window.location.reload();
         });
+        return true;
     }
     static async isInCache(cacheName, urls, chkResp) {
         const ret = [];

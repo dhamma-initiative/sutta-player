@@ -9,7 +9,7 @@ export declare class SuttaPlayerView {
     linkTextToAudioElem: HTMLInputElement;
     showLineNumsElem: HTMLInputElement;
     darkThemeElem: HTMLInputElement;
-    searchAllAlbumsElem: HTMLInputElement;
+    searchAlbumsElem: HTMLSelectElement;
     useRegExElem: HTMLInputElement;
     ignoreDiacriticsElem: HTMLInputElement;
     offlineMenuElem: HTMLAnchorElement;
@@ -59,7 +59,8 @@ export declare class SuttaPlayerView {
     initialise(cb: (event: MouseEvent) => void): Promise<void>;
     refreshAudioControls(): void;
     loadTracksList(): void;
-    loadTrackText(lineSelCb: (event: MouseEvent) => void): Promise<void>;
+    loadTrackWith(trackSel: TrackSelection): Promise<string>;
+    loadTrackTextForUi(lineSelCb: (event: MouseEvent) => void): Promise<void>;
     createLineRefValues(lineNum: number): string;
     setColorTheme(): void;
     scrollToTextLineNumber(lineNum: number, idxPos: number): void;
@@ -78,7 +79,7 @@ export declare class SuttaPlayerView {
     toggleResetAppDialog(event: any): void;
     updateOfflineInfo(processingInfo: string, perc: number): void;
     refreshSkipAudioToLine(): void;
-    private _loadAlbumsList;
+    loadAlbumsList(): void;
     private _bindHtmlElements;
     private _bindSettingElements;
     private _bindNavigationElements;

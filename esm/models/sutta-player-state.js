@@ -4,7 +4,8 @@ export class TrackSelection extends LocalStorageState {
     albumIndex;
     trackIndex;
     baseRef;
-    isLoaded = false;
+    dictionary = {};
+    isLoaded = false; // transient
     constructor(ctx, albIdx = 0, trkIdx = 0, bRef = null) {
         super();
         this.context = ctx;
@@ -16,6 +17,7 @@ export class TrackSelection extends LocalStorageState {
         this.albumIndex = src.albumIndex;
         this.trackIndex = src.trackIndex;
         this.baseRef = src.baseRef;
+        this.isLoaded = false;
     }
     updateBaseRef(qry) {
         this.baseRef = qry.queryTrackBaseRef(this.albumIndex, this.trackIndex);
@@ -44,6 +46,7 @@ export class SuttaPlayerState extends LocalStorageState {
     navSel = new TrackSelection('navSel');
     textSel = new TrackSelection('textSel');
     audioSel = new TrackSelection('audioSel');
+    downloadedAlbums = [];
     autoPlay = true;
     playNext = true;
     repeat = false;
@@ -53,7 +56,7 @@ export class SuttaPlayerState extends LocalStorageState {
     currentTime = 0;
     darkTheme = false;
     searchFor = '';
-    searchAllAlbums = false;
+    searchAlbums = 0;
     useRegEx = false;
     ignoreDiacritics = true;
     audioState = -1; // transient [unspecified: -1, specified: 0, assigned: 1, loadedMetadata: 2, loaded: 3, playing: 4, paused: 5, ended: 6]
@@ -73,8 +76,10 @@ export class SuttaPlayerState extends LocalStorageState {
         this._setItemNumber('currentScrollY', window.scrollY);
         this._setItemNumber('currentTime', this.currentTime);
         this._setItemBoolean('darkTheme', this.darkTheme);
+        const downloads = JSON.stringify(this.downloadedAlbums);
+        this._setItemString('downloadedAlbums', downloads);
         this._setItemString('searchFor', this.searchFor);
-        this._setItemBoolean('searchAllAlbums', this.searchAllAlbums);
+        this._setItemNumber('searchAlbums', this.searchAlbums);
         this._setItemBoolean('useRegEx', this.useRegEx);
         this._setItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
     }
@@ -90,10 +95,16 @@ export class SuttaPlayerState extends LocalStorageState {
         this.currentTime = this._getItemNumber('currentTime', this.currentTime);
         this.currentScrollY = this._getItemNumber('currentScrollY', this.currentScrollY);
         this.darkTheme = this._getItemBoolean('darkTheme', this.darkTheme);
+        const downloads = this._getItemString('downloadedAlbums', JSON.stringify(this.downloadedAlbums));
+        this.downloadedAlbums = JSON.parse(downloads);
         this.searchFor = this._getItemString('searchFor', this.searchFor);
-        this.searchAllAlbums = this._getItemBoolean('searchAllAlbums', this.searchAllAlbums);
+        this.searchAlbums = this._getItemNumber('searchAlbums', this.searchAlbums);
         this.useRegEx = this._getItemBoolean('useRegEx', this.useRegEx);
         this.ignoreDiacritics = this._getItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
+    }
+    isAlbumDownloaded(albumIndex) {
+        const ret = (this.downloadedAlbums.indexOf(albumIndex) > -1);
+        return ret;
     }
     static toLineRef(lineNum, begIdxPos, begPerc, endIdxPos, endPerc) {
         return `${lineNum}:${begIdxPos}:${begPerc.toFixed(3)}:${endIdxPos}:${endPerc.toFixed(3)}`;

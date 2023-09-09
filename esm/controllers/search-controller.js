@@ -32,7 +32,7 @@ export class SearchController {
             this._mainCtrl.showUserMessage('Search criteria must have at least two characters');
             return false;
         }
-        await this._searchSelectedAlbums();
+        await this._searchPreferencedAlbums();
         this._model.startSearch = false;
         return true;
     }
@@ -42,7 +42,7 @@ export class SearchController {
         this._maxSurroundingChars = this._estimateNumberOfCharactersForSelect();
         this._model.searchFor = this._view.searchForElem.value;
     }
-    async _searchSelectedAlbums() {
+    async _searchPreferencedAlbums() {
         let tracks = 0;
         const albumSrcIndexes = this._getAlbumIndexes();
         for (let i = 0; i < albumSrcIndexes.length; i++) {
@@ -107,11 +107,18 @@ export class SearchController {
     }
     _getAlbumIndexes() {
         const ret = [this._model.navSel.albumIndex];
-        if (this._model.searchAllAlbums) {
+        if (this._model.searchAlbums > 0) {
+            if (this._model.searchAlbums === 1 && !this._model.isAlbumDownloaded(this._model.navSel.albumIndex))
+                ret.pop(); // remove the default this._model.navSel.albumIndex entry
             const albumSrcRefs = this._mainCtrl._suttaStore.queryAlbumReferences();
             for (let i = 0; i < albumSrcRefs.length; i++) {
-                if (ret.indexOf(i) === -1)
-                    ret.push(i);
+                if (ret.indexOf(i) === -1) {
+                    let addToCriteria = true;
+                    if (this._model.searchAlbums === 1 && !this._model.isAlbumDownloaded(i))
+                        addToCriteria = false;
+                    if (addToCriteria)
+                        ret.push(i);
+                }
             }
         }
         return ret;

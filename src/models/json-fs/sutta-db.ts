@@ -1,13 +1,41 @@
+import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, CacheUtils, REGISTERROUTE, RegisterRoutePayloadJson } from '../../runtime/cache-utils.js'
 import { TrackSelection } from '../sutta-player-state.js'
 import { SuttaStorageQueryable } from '../sutta-storage-queryable.js'
 import suttaDb from './sutta-db.json' assert { type: 'json' }
 
 export async function createSuttaStorageQueryable(): Promise<SuttaStorageQueryable> {
     const ret = new JsonFsSuttaDB()
+    await ret.setup() 
     return ret
 }
 
 export class JsonFsSuttaDB implements SuttaStorageQueryable {
+    public static CACHE_NAME = 'txt-suttaplayer.self.com.au'
+
+    public async setup() {
+        if (!CacheUtils.ENABLE_CACHE)
+            return
+        const payload: RegisterRoutePayloadJson = {
+            url_href_endsWith: '.txt',
+            strategy: {
+                class_name: CACHEFIRST,
+                cacheName: JsonFsSuttaDB.CACHE_NAME,
+                plugins: [
+                    {
+                        class_name: CACHEABLERESPONSEPLUGIN,
+                        options: {
+                            statuses: [0, 200]
+                        }
+                    }
+                ]
+            }
+        }        
+        await CacheUtils.postMessage({
+            type: REGISTERROUTE,
+            payload: payload
+        })        
+    }
+
     public queryAlbumNames(): string[] {
         return suttaDb.albumName
     }
@@ -60,6 +88,20 @@ export class JsonFsSuttaDB implements SuttaStorageQueryable {
         const resp = await fetch(relPath)
         const text = await resp.text()
         return text
+    }
+
+    public async isInCache(trackTxtUri: string): Promise<boolean> {
+        const ret = await CacheUtils.isInCache(JsonFsSuttaDB.CACHE_NAME, [trackTxtUri],
+            (resp: Response) => {
+                return resp?.ok ? true : false 
+            }
+        )
+        return ret[0]
+    }
+
+    public async removeFromCache(trackTxtUri: string): Promise<boolean> {
+        const ret = await CacheUtils.deleteCachedUrls(JsonFsSuttaDB.CACHE_NAME, [trackTxtUri])
+        return ret[0]
     }
 
     protected _queryTrackReferences(colRef: string): string[] {

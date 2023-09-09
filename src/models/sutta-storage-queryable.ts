@@ -9,6 +9,9 @@ export interface SuttaStorageQueryable {
     queryTrackText(baseRef: string): Promise<string>
     queryTrackTextUri(baseRef: string): string
     readTextFile(relPath: string): Promise<string>
+
+    isInCache(trackTxtUri: string): Promise<boolean>
+    removeFromCache(trackTxtUri: string): Promise<boolean>
 }
 
 export class SuttaStorageQueryableFactory {

@@ -12,7 +12,7 @@ export class SuttaPlayerView {
     linkTextToAudioElem: HTMLInputElement
     showLineNumsElem: HTMLInputElement
     darkThemeElem: HTMLInputElement
-    searchAllAlbumsElem: HTMLInputElement
+    searchAlbumsElem: HTMLSelectElement
     useRegExElem: HTMLInputElement
     ignoreDiacriticsElem: HTMLInputElement
     offlineMenuElem: HTMLAnchorElement
@@ -81,9 +81,9 @@ export class SuttaPlayerView {
     }
 
     public async initialise(cb: (event: MouseEvent) => void) {
-        this._loadAlbumsList()
+        this.loadAlbumsList()
         this.loadTracksList()
-        await this.loadTrackText(cb)
+        await this.loadTrackTextForUi(cb)
         this.refreshAudioControls()
         this.loadTrackAudio()
         if (this._modelState.bookmarkLineRef !== '') {
@@ -107,7 +107,7 @@ export class SuttaPlayerView {
         this.darkThemeElem.checked = this._modelState.darkTheme
 
         this.searchForElem.value = this._modelState.searchFor
-        this.searchAllAlbumsElem.checked = this._modelState.searchAllAlbums
+        this.searchAlbumsElem.selectedIndex = this._modelState.searchAlbums
         this.useRegExElem.checked = this._modelState.useRegEx
         this.ignoreDiacriticsElem.checked = this._modelState.ignoreDiacritics
         
@@ -130,10 +130,20 @@ export class SuttaPlayerView {
         this.trackElem.selectedIndex = this._modelState.navSel.trackIndex
     }
 
-    public async loadTrackText(lineSelCb: (event: MouseEvent) => void) {
+    public async loadTrackWith(trackSel: TrackSelection): Promise<string> {
+        if (trackSel.baseRef === null) 
+            return null
+
+        const ret = await this._suttaStore.queryTrackText(trackSel.baseRef)
+        trackSel.isLoaded = true
+        return ret
+    }
+
+    public async loadTrackTextForUi(lineSelCb: (event: MouseEvent) => void) {
         if (this._modelState.textSel.baseRef === null) 
             return
-        const textBody = await this._suttaStore.queryTrackText(this._modelState.textSel.baseRef)
+
+        const textBody = await this.loadTrackWith(this._modelState.textSel)
         this.trackTextBodyElem.innerHTML = ''
         const lines = textBody.split('\n')
         let totalCharLen = 0
@@ -151,7 +161,6 @@ export class SuttaPlayerView {
             elem.onclick = lineSelCb
         }
         this.displayingTrackElem.innerHTML = `&#128064; ${this._modelState.textSel.baseRef}`
-        this._modelState.textSel.isLoaded = true
     }
 
     public createLineRefValues(lineNum: number) {
@@ -317,12 +326,14 @@ export class SuttaPlayerView {
             this.skipAudioToLineElem.style.display = 'none'
     }
 
-    private _loadAlbumsList() {
+    public loadAlbumsList() {
+        this.albumElem.innerHTML = ''
         const colLov = this._suttaStore.queryAlbumNames() 
         for (let i = 0; i < colLov.length; i++) {
             const option = document.createElement('option')
             option.value = `${i}`
-            option.innerText = colLov[i]
+            const downChar = this._modelState.isAlbumDownloaded(i) ? '&#9745;' : '&#9744;'
+            option.innerHTML = `${downChar} ${colLov[i]}`
             this.albumElem.append(option)
         }
         this.albumElem.selectedIndex = this._modelState.navSel.albumIndex
@@ -345,7 +356,7 @@ export class SuttaPlayerView {
         this.linkTextToAudioElem = <HTMLInputElement>document.getElementById('linkTextToAudio')
         this.showLineNumsElem = <HTMLInputElement>document.getElementById('showLineNums')
         this.darkThemeElem = <HTMLInputElement>document.getElementById('darkTheme')
-        this.searchAllAlbumsElem = <HTMLInputElement>document.getElementById('searchAllAlbums')
+        this.searchAlbumsElem = <HTMLSelectElement>document.getElementById('searchAlbums')
         this.useRegExElem = <HTMLInputElement>document.getElementById('useRegEx')
         this.ignoreDiacriticsElem = <HTMLInputElement>document.getElementById('ignoreDiacritics')
 

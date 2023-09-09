@@ -16,7 +16,8 @@ export type StrategyJson = {
     plugins?: PluginJson[];
 };
 export interface RegisterRoutePayloadJson {
-    url_origin: string;
+    url_origin?: string;
+    url_href_endsWith?: string;
     strategy: StrategyJson;
 }
 export declare class CacheUtils {

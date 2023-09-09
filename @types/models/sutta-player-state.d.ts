@@ -5,6 +5,7 @@ export declare class TrackSelection extends LocalStorageState {
     albumIndex: number;
     trackIndex: number;
     baseRef: string;
+    dictionary: any;
     isLoaded: boolean;
     constructor(ctx: string, albIdx?: number, trkIdx?: number, bRef?: string);
     read(src: TrackSelection): void;
@@ -17,6 +18,7 @@ export declare class SuttaPlayerState extends LocalStorageState {
     navSel: TrackSelection;
     textSel: TrackSelection;
     audioSel: TrackSelection;
+    downloadedAlbums: number[];
     autoPlay: boolean;
     playNext: boolean;
     repeat: boolean;
@@ -26,7 +28,7 @@ export declare class SuttaPlayerState extends LocalStorageState {
     currentTime: number;
     darkTheme: boolean;
     searchFor: string;
-    searchAllAlbums: boolean;
+    searchAlbums: number;
     useRegEx: boolean;
     ignoreDiacritics: boolean;
     audioState: number;
@@ -36,6 +38,7 @@ export declare class SuttaPlayerState extends LocalStorageState {
     scrollTextWithAudio: boolean;
     save(): void;
     restore(): void;
+    isAlbumDownloaded(albumIndex: number): boolean;
     static toLineRef(lineNum: number, begIdxPos: number, begPerc: number, endIdxPos: number, endPerc: number): string;
     static toLineRefUsingArr(refArr: number[]): string;
     static fromLineRef(lineRef: string): number[];

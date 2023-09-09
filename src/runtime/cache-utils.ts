@@ -21,7 +21,8 @@ export type StrategyJson = {
 }
 
 export interface RegisterRoutePayloadJson {
-    url_origin: string
+    url_origin?: string
+    url_href_endsWith?: string
     strategy: StrategyJson
 }
 
@@ -43,7 +44,8 @@ export class CacheUtils {
             refreshing = true
             window.location.reload()
           }
-        );
+        )
+        return true
     }
 
     public static async isInCache(cacheName: string, urls: string[], chkResp?: (resp: Response) => boolean): Promise<boolean[]> {

@@ -34,7 +34,10 @@ class RouteFactory {
     }
     register() {
         const strategy = this._createStrategy();
-        registerRoute(({ url }) => url.origin === this.registerRouteJson.url_origin, strategy);
+        if (this.registerRouteJson.url_origin)
+            registerRoute(({ url }) => url.origin === this.registerRouteJson.url_origin, strategy);
+        else if (this.registerRouteJson.url_href_endsWith)
+            registerRoute(({ url }) => url.href.endsWith('.txt'), strategy);
     }
 }
 addEventListener("message", (event) => {

@@ -6,7 +6,8 @@ export class TrackSelection extends LocalStorageState {
     albumIndex: number
     trackIndex: number
     baseRef: string
-    isLoaded: boolean = false
+    dictionary: any = {}
+    isLoaded: boolean = false   // transient
 
     constructor(ctx: string, albIdx = 0, trkIdx = 0, bRef: string = null) {
         super()
@@ -20,6 +21,7 @@ export class TrackSelection extends LocalStorageState {
         this.albumIndex = src.albumIndex
         this.trackIndex = src.trackIndex
         this.baseRef = src.baseRef
+        this.isLoaded = false
     }
 
     public updateBaseRef(qry: SuttaStorageQueryable) {
@@ -53,6 +55,7 @@ export class SuttaPlayerState extends LocalStorageState {
     navSel: TrackSelection = new TrackSelection('navSel')
     textSel: TrackSelection = new TrackSelection('textSel')
     audioSel: TrackSelection = new TrackSelection('audioSel')
+    downloadedAlbums: number[] = []
     autoPlay: boolean = true
     playNext: boolean = true
     repeat: boolean = false
@@ -63,7 +66,7 @@ export class SuttaPlayerState extends LocalStorageState {
     darkTheme: boolean = false
 
     searchFor: string = ''
-    searchAllAlbums: boolean = false
+    searchAlbums: number = 0
     useRegEx: boolean = false
     ignoreDiacritics: boolean = true
 
@@ -86,9 +89,11 @@ export class SuttaPlayerState extends LocalStorageState {
         this._setItemNumber('currentScrollY', window.scrollY)
         this._setItemNumber('currentTime', this.currentTime)
         this._setItemBoolean('darkTheme', this.darkTheme)
+        const downloads = JSON.stringify(this.downloadedAlbums)
+        this._setItemString('downloadedAlbums', downloads)
 
         this._setItemString('searchFor', this.searchFor)
-        this._setItemBoolean('searchAllAlbums', this.searchAllAlbums)
+        this._setItemNumber('searchAlbums', this.searchAlbums)
         this._setItemBoolean('useRegEx', this.useRegEx)
         this._setItemBoolean('ignoreDiacritics', this.ignoreDiacritics)
     }
@@ -105,11 +110,18 @@ export class SuttaPlayerState extends LocalStorageState {
         this.currentTime = this._getItemNumber('currentTime', this.currentTime)
         this.currentScrollY = this._getItemNumber('currentScrollY', this.currentScrollY)
         this.darkTheme = this._getItemBoolean('darkTheme', this.darkTheme)
+        const downloads = this._getItemString('downloadedAlbums', JSON.stringify(this.downloadedAlbums))
+        this.downloadedAlbums = JSON.parse(downloads)
 
         this.searchFor = this._getItemString('searchFor', this.searchFor)
-        this.searchAllAlbums = this._getItemBoolean('searchAllAlbums', this.searchAllAlbums)
+        this.searchAlbums = this._getItemNumber('searchAlbums', this.searchAlbums)
         this.useRegEx = this._getItemBoolean('useRegEx', this.useRegEx)
         this.ignoreDiacritics = this._getItemBoolean('ignoreDiacritics', this.ignoreDiacritics)
+    }
+
+    public isAlbumDownloaded(albumIndex: number): boolean {
+        const ret = (this.downloadedAlbums.indexOf(albumIndex) > -1)
+        return ret
     }
 
     public static toLineRef(lineNum: number, begIdxPos: number, begPerc: number, endIdxPos: number, endPerc: number): string {

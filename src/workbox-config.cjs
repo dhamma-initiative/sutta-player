@@ -1,7 +1,7 @@
 module.exports = {
 	globDirectory: '.',
 	globPatterns: [
-		'**/*.{json,js,ico,png,css,html,txt,md}',
+		'**/*.{json,js,ico,png,css,html,md}',
 	],
 	globIgnores: [
 		'**/package.json',

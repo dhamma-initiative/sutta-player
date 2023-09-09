@@ -10,7 +10,7 @@ import { SearchController } from './search-controller.js'
 type OfflineProcessingCallback = (currTrack: TrackSelection) => Promise<boolean>
 
 export class SuttaPlayerController {
-    public static VERSION = "v1.0.3"
+    public static VERSION = "v1.0.4"
 
     _audioStore: AudioStorageQueryable
     _suttaStore: SuttaStorageQueryable
@@ -105,8 +105,8 @@ export class SuttaPlayerController {
             this._model.showLineNums = this._view.showLineNumsElem.checked
             this._view.toggleLineNums()
         }
-        this._view.searchAllAlbumsElem.onchange = async () => {
-            this._model.searchAllAlbums = this._view.searchAllAlbumsElem.checked
+        this._view.searchAlbumsElem.onchange = async () => {
+            this._model.searchAlbums = this._view.searchAlbumsElem.selectedIndex
         }
         this._view.useRegExElem.onchange = async () => {
             this._model.useRegEx = this._view.useRegExElem.checked
@@ -409,7 +409,7 @@ export class SuttaPlayerController {
         this._model.bookmarkLineRef = ''  // clear bookmark
         this._view.refreshSkipAudioToLine()
         this._model.textSel.read(srcSel)
-        await this._view.loadTrackText(this._lineSelectionCb)
+        await this._view.loadTrackTextForUi(this._lineSelectionCb)
         return false
     }
 
@@ -449,12 +449,17 @@ export class SuttaPlayerController {
 
     private async _onDownloadAlbum() {
         const downloadHandler: OfflineProcessingCallback = async (currTrack: TrackSelection) =>  {
+            this._view.loadTrackWith(currTrack)
             this._downloadedPromise = new DeferredPromise<boolean>()
             this._view.loadSuttaAudioWith(currTrack, this._view.audioCacherElem)
             const wasDownloaded = await this._downloadedPromise
             return wasDownloaded
         }
-        await this._onOfflineAlbumProcessing(downloadHandler, 'Downloaded')
+        const procSel = await this._onOfflineAlbumProcessing(downloadHandler, 'Downloaded')
+        if (procSel.dictionary['completed']) {
+            this._model.downloadedAlbums.push(procSel.albumIndex)
+            this._view.loadAlbumsList()
+        }
     }
 
     private async _onRemoveAlbum() {
@@ -462,12 +467,18 @@ export class SuttaPlayerController {
             const wasDeleted = await this._audioStore.removeFromCache(currTrack.baseRef)
             return wasDeleted
         }
-        await this._onOfflineAlbumProcessing(removeHandler, 'Removed')
+        const procSel = await this._onOfflineAlbumProcessing(removeHandler, 'Removed')
+        if (procSel.dictionary['completed']) {
+            const idxPos = this._model.downloadedAlbums.indexOf(procSel.albumIndex)  
+            this._model.downloadedAlbums.splice(idxPos, 1)
+            this._view.loadAlbumsList()
+        }
     }
 
-    private async _onOfflineAlbumProcessing(handler: OfflineProcessingCallback, msgType: string) {
+    private async _onOfflineAlbumProcessing(handler: OfflineProcessingCallback, msgType: string): Promise<TrackSelection> {
         this._view.offlineMenuElem.setAttribute('aria-busy', String(true))
         const processSel = new TrackSelection('cache')
+        processSel.dictionary['completed'] = true
         processSel.albumIndex = this._model.navSel.albumIndex
         const fileList = this._suttaStore.queryTrackReferences(this._model.navSel.albumIndex)
         const urls: string[] = []
@@ -478,8 +489,10 @@ export class SuttaPlayerController {
             this._view.updateOfflineInfo(processSel.baseRef, progVal)
             const wasProcessed = await handler(processSel)
             console.log(`Processed: ${processSel.baseRef}: ${wasProcessed}`)
-            if (this._model.stopDwnlDel === 0)
+            if (this._model.stopDwnlDel === 0) {
+                processSel.dictionary['completed'] = false
                 break
+            }
         }
         this._view.offlineMenuElem.setAttribute('aria-busy', String(false))
         if (this._model.stopDwnlDel !== 0) {
@@ -492,6 +505,7 @@ export class SuttaPlayerController {
                 this.showUserMessage('Cancelled Album Processing')
         }
         this._model.stopDwnlDel = 0
+        return processSel
     }
 
     private async _onResetAppConfirm() {

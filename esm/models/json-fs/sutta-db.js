@@ -1,10 +1,36 @@
+import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, CacheUtils, REGISTERROUTE } from '../../runtime/cache-utils.js';
 import { TrackSelection } from '../sutta-player-state.js';
 import suttaDb from './sutta-db.json' assert { type: 'json' };
 export async function createSuttaStorageQueryable() {
     const ret = new JsonFsSuttaDB();
+    await ret.setup();
     return ret;
 }
 export class JsonFsSuttaDB {
+    static CACHE_NAME = 'txt-suttaplayer.self.com.au';
+    async setup() {
+        if (!CacheUtils.ENABLE_CACHE)
+            return;
+        const payload = {
+            url_href_endsWith: '.txt',
+            strategy: {
+                class_name: CACHEFIRST,
+                cacheName: JsonFsSuttaDB.CACHE_NAME,
+                plugins: [
+                    {
+                        class_name: CACHEABLERESPONSEPLUGIN,
+                        options: {
+                            statuses: [0, 200]
+                        }
+                    }
+                ]
+            }
+        };
+        await CacheUtils.postMessage({
+            type: REGISTERROUTE,
+            payload: payload
+        });
+    }
     queryAlbumNames() {
         return suttaDb.albumName;
     }
@@ -50,6 +76,16 @@ export class JsonFsSuttaDB {
         const resp = await fetch(relPath);
         const text = await resp.text();
         return text;
+    }
+    async isInCache(trackTxtUri) {
+        const ret = await CacheUtils.isInCache(JsonFsSuttaDB.CACHE_NAME, [trackTxtUri], (resp) => {
+            return resp?.ok ? true : false;
+        });
+        return ret[0];
+    }
+    async removeFromCache(trackTxtUri) {
+        const ret = await CacheUtils.deleteCachedUrls(JsonFsSuttaDB.CACHE_NAME, [trackTxtUri]);
+        return ret[0];
     }
     _queryTrackReferences(colRef) {
         const trackRefs = suttaDb[colRef];

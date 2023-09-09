@@ -8,7 +8,7 @@ export class SuttaPlayerView {
     linkTextToAudioElem;
     showLineNumsElem;
     darkThemeElem;
-    searchAllAlbumsElem;
+    searchAlbumsElem;
     useRegExElem;
     ignoreDiacriticsElem;
     offlineMenuElem;
@@ -66,9 +66,9 @@ export class SuttaPlayerView {
         this._bindHtmlElements();
     }
     async initialise(cb) {
-        this._loadAlbumsList();
+        this.loadAlbumsList();
         this.loadTracksList();
-        await this.loadTrackText(cb);
+        await this.loadTrackTextForUi(cb);
         this.refreshAudioControls();
         this.loadTrackAudio();
         if (this._modelState.bookmarkLineRef !== '') {
@@ -89,7 +89,7 @@ export class SuttaPlayerView {
         this.showLineNumsElem.checked = this._modelState.showLineNums;
         this.darkThemeElem.checked = this._modelState.darkTheme;
         this.searchForElem.value = this._modelState.searchFor;
-        this.searchAllAlbumsElem.checked = this._modelState.searchAllAlbums;
+        this.searchAlbumsElem.selectedIndex = this._modelState.searchAlbums;
         this.useRegExElem.checked = this._modelState.useRegEx;
         this.ignoreDiacriticsElem.checked = this._modelState.ignoreDiacritics;
         this.processingProgressElem.value = 0;
@@ -108,10 +108,17 @@ export class SuttaPlayerView {
         }
         this.trackElem.selectedIndex = this._modelState.navSel.trackIndex;
     }
-    async loadTrackText(lineSelCb) {
+    async loadTrackWith(trackSel) {
+        if (trackSel.baseRef === null)
+            return null;
+        const ret = await this._suttaStore.queryTrackText(trackSel.baseRef);
+        trackSel.isLoaded = true;
+        return ret;
+    }
+    async loadTrackTextForUi(lineSelCb) {
         if (this._modelState.textSel.baseRef === null)
             return;
-        const textBody = await this._suttaStore.queryTrackText(this._modelState.textSel.baseRef);
+        const textBody = await this.loadTrackWith(this._modelState.textSel);
         this.trackTextBodyElem.innerHTML = '';
         const lines = textBody.split('\n');
         let totalCharLen = 0;
@@ -129,7 +136,6 @@ export class SuttaPlayerView {
             elem.onclick = lineSelCb;
         }
         this.displayingTrackElem.innerHTML = `&#128064; ${this._modelState.textSel.baseRef}`;
-        this._modelState.textSel.isLoaded = true;
     }
     createLineRefValues(lineNum) {
         const totalCharLen = this._charPosLineIndex[this._charPosLineIndex.length - 1];
@@ -278,12 +284,14 @@ export class SuttaPlayerView {
         else
             this.skipAudioToLineElem.style.display = 'none';
     }
-    _loadAlbumsList() {
+    loadAlbumsList() {
+        this.albumElem.innerHTML = '';
         const colLov = this._suttaStore.queryAlbumNames();
         for (let i = 0; i < colLov.length; i++) {
             const option = document.createElement('option');
             option.value = `${i}`;
-            option.innerText = colLov[i];
+            const downChar = this._modelState.isAlbumDownloaded(i) ? '&#9745;' : '&#9744;';
+            option.innerHTML = `${downChar} ${colLov[i]}`;
             this.albumElem.append(option);
         }
         this.albumElem.selectedIndex = this._modelState.navSel.albumIndex;
@@ -304,7 +312,7 @@ export class SuttaPlayerView {
         this.linkTextToAudioElem = document.getElementById('linkTextToAudio');
         this.showLineNumsElem = document.getElementById('showLineNums');
         this.darkThemeElem = document.getElementById('darkTheme');
-        this.searchAllAlbumsElem = document.getElementById('searchAllAlbums');
+        this.searchAlbumsElem = document.getElementById('searchAlbums');
         this.useRegExElem = document.getElementById('useRegEx');
         this.ignoreDiacriticsElem = document.getElementById('ignoreDiacritics');
         this.offlineMenuElem = document.getElementById('offlineMenu');
