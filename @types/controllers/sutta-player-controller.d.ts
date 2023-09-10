@@ -1,4 +1,5 @@
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js';
+import { TrackSelection } from '../models/sutta-player-state.js';
 import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js";
 export declare class SuttaPlayerController {
     static VERSION: string;
@@ -7,10 +8,12 @@ export declare class SuttaPlayerController {
     private _appRoot;
     private _model;
     private _view;
+    private _settingsController;
     private _searchController;
-    private _resetApp;
-    private _downloadedPromise;
-    private _audDurPromise;
+    private _fabController;
+    private _offlineController;
+    private _resetAppController;
+    private _aboutController;
     private _lastScrollTime;
     private _lineSelectionCb;
     constructor(appRoot: string, suttaStorage: SuttaStorageQueryable, audioStorage: AudioStorageQueryable);
@@ -19,32 +22,16 @@ export declare class SuttaPlayerController {
     showUserMessage(msg: string, dur?: number): void;
     private _injectVersionInfo;
     private _registerListeners;
-    private _registerSettingsListeners;
     private _registerNavigationListeners;
-    private _registerNavSearchListeners;
-    private _onSearchFor;
-    private _onSearchResultSelected;
-    private _getSearchResultSelection;
     private _registerDisplayListeners;
-    private _registerOfflineListeners;
-    private _prepareOfflineControls;
-    private _registerResetAppListeners;
-    private _registerAboutListeners;
-    private _registerMiscListeners;
-    private _onSkipAudioToLine;
-    private _managePromisedDuration;
     private _onAudioEnded;
     private _onAlbumSelected;
     private _onTrackSelected;
-    private _onLoadAudio;
-    private _onLoadText;
+    _onLoadAudio(srcSel: TrackSelection): Promise<boolean>;
+    _onLoadText(srcSel: TrackSelection): Promise<boolean>;
     private _onLineSelected;
     private _onLoadRandom;
-    private _onDownloadAlbum;
-    private _onRemoveAlbum;
-    private _onOfflineAlbumProcessing;
-    private _onResetAppConfirm;
     private _onShareLink;
-    private _onLoadIntoNavSelector;
+    _onLoadIntoNavSelector(srcSel: TrackSelection): void;
     private _loadShareLinkIfSpecified;
 }

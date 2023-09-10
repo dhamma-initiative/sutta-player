@@ -3,14 +3,16 @@ import { SuttaPlayerView } from '../views/sutta-player-view.js'
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js'
 import { SuttaPlayerState, TrackSelection } from '../models/sutta-player-state.js'
 import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js"
-import { CacheUtils } from '../runtime/cache-utils.js'
 import { DeferredPromise } from '../runtime/deferred-promise.js'
+import { OfflineController } from './offline-controller.js'
+import { ResetAppController } from './resetapp-controller.js'
 import { SearchController } from './search-controller.js'
-
-type OfflineProcessingCallback = (currTrack: TrackSelection) => Promise<boolean>
+import { SettingsController } from './settings-controller.js'
+import { AboutController } from './about-controller.js'
+import { FabController } from './fab-controller.js'
 
 export class SuttaPlayerController {
-    public static VERSION = "v1.0.5"
+    public static VERSION = "v1.0.6"
 
     _audioStore: AudioStorageQueryable
     _suttaStore: SuttaStorageQueryable
@@ -18,11 +20,14 @@ export class SuttaPlayerController {
     private _appRoot: string
     private _model: SuttaPlayerState
     private _view: SuttaPlayerView
-    private _searchController: SearchController
 
-    private _resetApp = false 
-    private _downloadedPromise: DeferredPromise<boolean>
-    private _audDurPromise: DeferredPromise<number>
+    private _settingsController: SettingsController
+    private _searchController: SearchController
+    private _fabController: FabController
+
+    private _offlineController: OfflineController
+    private _resetAppController: ResetAppController
+    private _aboutController: AboutController
 
     private _lastScrollTime = 0
     private _lineSelectionCb = (event: MouseEvent) => {
@@ -35,7 +40,13 @@ export class SuttaPlayerController {
         this._audioStore = audioStorage
         this._model = new SuttaPlayerState()
         this._view = new SuttaPlayerView(this._model, this._suttaStore, this._audioStore)
+
+        this._settingsController = new SettingsController(this._model, this._view, this)
         this._searchController = new SearchController(this._model, this._view, this)
+        this._fabController = new FabController(this._model, this._view, this)
+        this._offlineController = new OfflineController(this._model, this._view, this)
+        this._resetAppController = new ResetAppController(this._model, this._view, this)
+        this._aboutController = new AboutController(this._model, this._view, this)
     }
 
     public async setup() {
@@ -46,12 +57,22 @@ export class SuttaPlayerController {
             this._model.navSel.updateBaseRef(this._suttaStore)
         await this._view.initialise(this._lineSelectionCb)
 		this._registerListeners()
+        await this._settingsController.setup()
         await this._searchController.setup()
+        await this._fabController.setup()
+        await this._offlineController.setup()
+        await this._resetAppController.setup()
+        await this._aboutController.setup()
     }
 
     public async tearDown() {
-        await this._searchController.tearDown()
-        if (!this._resetApp)
+        let settingsSaveModel = await this._settingsController.tearDown()
+        let srchSaveModel = await this._searchController.tearDown()
+        let fabSaveModel = await this._fabController.tearDown()
+        let offlineSaveModel = await this._offlineController.tearDown()
+        let resetAppSaveModel = await this._resetAppController.tearDown()
+        let aboutSaveModel = await this._aboutController.tearDown()
+        if (settingsSaveModel && srchSaveModel && fabSaveModel && offlineSaveModel && resetAppSaveModel && aboutSaveModel)
             this._model.save()
         this._view = null
         this._model = null
@@ -69,55 +90,8 @@ export class SuttaPlayerController {
     }
 
     private _registerListeners() {
-        this._registerSettingsListeners()
         this._registerNavigationListeners()
-        this._registerNavSearchListeners()
-        this._registerAboutListeners()
         this._registerDisplayListeners()
-        this._registerOfflineListeners()
-        this._registerResetAppListeners()
-        this._registerMiscListeners()
-    }
-
-    private _registerSettingsListeners() {
-        this._view.autoPlayElem.onchange = async () => {
-            this._model.autoPlay = this._view.autoPlayElem.checked
-            this._view.refreshAudioControls()
-        }
-        this._view.playNextElem.onchange = async () => {
-            this._model.playNext = this._view.playNextElem.checked
-            if (this._model.playNext)
-                this._model.repeat = false
-            this._view.refreshAudioControls()
-        }
-        this._view.repeatElem.onchange = async () => {
-            this._model.repeat = this._view.repeatElem.checked
-            if (this._model.repeat)
-                this._model.playNext = false
-            this._view.refreshAudioControls()
-        }
-        this._view.linkTextToAudioElem.onchange = async () => {
-            this._model.linkTextToAudio = this._view.linkTextToAudioElem.checked
-            if (this._model.linkTextToAudio)
-                await this._onLoadText(this._model.audioSel)
-        }
-        this._view.showLineNumsElem.onchange = async () => {
-            this._model.showLineNums = this._view.showLineNumsElem.checked
-            this._view.toggleLineNums()
-        }
-        this._view.searchAlbumsElem.onchange = async () => {
-            this._model.searchAlbums = this._view.searchAlbumsElem.selectedIndex
-        }
-        this._view.useRegExElem.onchange = async () => {
-            this._model.useRegEx = this._view.useRegExElem.checked
-        }
-        this._view.ignoreDiacriticsElem.onchange = async () => {
-            this._model.ignoreDiacritics = this._view.ignoreDiacriticsElem.checked
-        }
-        this._view.darkThemeElem.onchange = async () => {
-            this._model.darkTheme = this._view.darkThemeElem.checked
-            this._view.setColorTheme()
-        }
     }
 
     private _registerNavigationListeners() {
@@ -142,56 +116,11 @@ export class SuttaPlayerController {
         }
     }
 
-    private _registerNavSearchListeners() {
-        this._view.searchResultsElem.onclick = async (e: Event) => {
-            await this._onSearchResultSelected()
-        }
-        const searchResultsSummaryElem = document.getElementById('searchResultSummary')
-        const searchFormElem = <HTMLFormElement> this._view.searchForElem.parentElement
-        searchFormElem.onsubmit = async (e: Event) => {
-            e.preventDefault()
-            await this._onSearchFor(searchResultsSummaryElem)
-        }
-    }
-
-    private async _onSearchFor(searchResultsSummaryElem: HTMLElement) {
-        this._model.startSearch = !this._model.startSearch
-        const elem = document.getElementById('offlineMenuBusy')
-        if (this._model.startSearch) {
-            await this._searchController.onStartSearch()
-            this._model.startSearch = false
-        }
-    }
-
-    private async _onSearchResultSelected() {
-        const rsltSel = this._getSearchResultSelection()
-        this._onLoadIntoNavSelector(rsltSel)
-        await this._onLoadAudio(rsltSel)
-        this._view.audioPlayerElem.pause()
-        if (!this._model.linkTextToAudio)
-            await this._onLoadText(rsltSel)
-        const lineChars = SuttaPlayerState.fromLineRef(rsltSel.context)
-        this._view.scrollToTextLineNumber(lineChars[0], lineChars[1])
-        this._model.bookmarkLineRef = rsltSel.context
-        this._view.refreshSkipAudioToLine()
-        this.showUserMessage(`Loading match on line ${lineChars[0]} of ${rsltSel.baseRef}`)
-    }
-
-    private _getSearchResultSelection(): TrackSelection {
-        const opt = <HTMLOptionElement> this._view.searchResultsElem.selectedOptions[0]
-        const baseRef = (<HTMLOptGroupElement> opt.parentElement).label
-        const ret = this._suttaStore.queryTrackSelection(baseRef)
-        ret.context = this._view.searchResultsElem.value
-        return ret
-    }
-
     private _registerDisplayListeners() {
         this._view.audioPlayerElem.onloadedmetadata = async () => {
             this._model.audioState = 2
-            if (!isNaN(this._view.audioPlayerElem.duration)) {
-                if (this._audDurPromise)
-                    this._audDurPromise.resolve(this._view.audioPlayerElem.duration)
-            }
+            if (!isNaN(this._view.audioPlayerElem.duration)) 
+                this._fabController.notifyDuration(this._view.audioPlayerElem.duration)
             this._view.scrollPlayToggleElem.disabled = true
         }
         this._view.audioPlayerElem.onloadeddata = async () => {
@@ -235,134 +164,6 @@ export class SuttaPlayerController {
         }
     }
 
-    private _registerOfflineListeners() {
-        this._view.offlineMenuElem.onclick = async (event) => {
-            this._view.toggleOfflineDialog(event)
-        }
-        this._view.offlineDialogCloseElem.onclick = this._view.offlineMenuElem.onclick
-        this._view.downloadAlbumElem.onchange = async () => {
-            if (this._view.downloadAlbumElem.checked) {
-                this._model.stopDwnlDel = 1
-                this._prepareOfflineControls([false, true], [null, null])
-                await this._onDownloadAlbum()
-                this._prepareOfflineControls([false, false], [false, null])
-            } else {
-                this._model.stopDwnlDel = 0
-                if (this._downloadedPromise !== null)
-                    this._downloadedPromise.resolve(false)
-                this._prepareOfflineControls([false, false], [null, null])
-            }
-        }
-        this._view.deleteAlbumElem.onchange = async () => {
-            if (this._view.deleteAlbumElem.checked) {
-                this._model.stopDwnlDel = 2
-                this._prepareOfflineControls([true, false], [null, null])
-                await this._onRemoveAlbum()
-                this._prepareOfflineControls([false, false], [null, false])
-            } else {
-                this._model.stopDwnlDel = 0
-                this._prepareOfflineControls([false, false], [null, null])
-            }
-        }
-        this._view.audioCacherElem.oncanplaythrough = async () => {
-            this._downloadedPromise.resolve(true)
-        }
-        this._view.removeAudioFromCacheElem.onclick = async () => {
-            if (this._model.audioState === 1) { // stuck in assigned state
-                const deleted = await this._audioStore.removeFromCache(this._model.audioSel.baseRef)
-                if (deleted)
-                    this._view.removeAudioFromCacheElem.style.display = "none"
-            }
-        }
-    }
-
-    private _prepareOfflineControls(dwnDelDisable: boolean[], dwnDelChecked: boolean[]) {
-        this._view.downloadAlbumElem.disabled = dwnDelDisable[0]
-        this._view.deleteAlbumElem.disabled = dwnDelDisable[1]
-        if (dwnDelChecked[0] !== null)
-            this._view.downloadAlbumElem.checked = dwnDelChecked[0]
-        if (dwnDelChecked[1] !== null)
-            this._view.deleteAlbumElem.checked = dwnDelChecked[1]
-    }
-
-    private _registerResetAppListeners() {
-        this._view.resetAppMenuElem.onclick = async (event) => {
-            this._view.toggleResetAppDialog(event)
-        }
-        this._view.resetAppCloseElem.onclick = this._view.resetAppMenuElem.onclick
-        this._view.resetAppConfirmElem.onclick = async (event) => {
-            await this._onResetAppConfirm()
-            this._view.toggleResetAppDialog(event)
-        }
-    }
-
-    private _registerAboutListeners() {
-        this._view.aboutMenuElem.onclick = async (event) => {
-            await this._view.toggleAboutInfo(event)
-        }
-        this._view.aboutDialogCloseElem.onclick = this._view.aboutMenuElem.onclick
-    }
-
-    private _registerMiscListeners() {
-        this._view.scrollPlayToggleElem.onchange = async () => {
-            if (this._view.scrollPlayToggleElem.checked)
-                await this._view.audioPlayerElem.play()
-            else
-                this._view.audioPlayerElem.pause()
-        }
-        this._view.skipAudioToLineElem.onclick = async (event: Event) => {
-            event.preventDefault()
-            await this._onSkipAudioToLine()
-        }
-        this._view.scrollTextWithAudioElem.onchange = async () => {
-            this._model.scrollTextWithAudio = this._view.scrollTextWithAudioElem.checked
-        }
-        this._view.gotoTopElem.onclick = async () => {
-            window.scroll(0, 0)
-        }
-        const fabSection = document.getElementById('fabSection')
-        window.onscroll = () => {
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                fabSection.style.display = "block"
-            } else {
-                fabSection.style.display = "none"
-            }
-        }
-    }
-
-    private async _onSkipAudioToLine() {
-        if (this._model.bookmarkLineRef === "")
-            return
-        const currBookmarkLineRef = this._model.bookmarkLineRef
-        const lineRefVals = SuttaPlayerState.fromLineRef(this._model.bookmarkLineRef)
-        this._onLoadIntoNavSelector(this._model.textSel)
-        this._audDurPromise = new DeferredPromise<number>()
-        const alreadyLoaded = await this._onLoadAudio(this._model.textSel)
-        if (alreadyLoaded)
-            this._audDurPromise.resolve(this._view.audioPlayerElem.duration)
-        this._model.bookmarkLineRef = currBookmarkLineRef
-        this._view.refreshSkipAudioToLine()
-        await this._managePromisedDuration(lineRefVals)
-        await this._view.audioPlayerElem.play()
-    }
-
-    private async _managePromisedDuration(lineRefVals: number[]) {
-        const timeOut = new Promise<number>((res, rej) => {
-            setTimeout(() => {
-                if (this._audDurPromise !== null)
-                    res(-1)
-            }, 10000)   // 10 sec
-        })
-        const audDur = await Promise.race([this._audDurPromise, timeOut])
-        this._audDurPromise = null
-        if (audDur === -1) {
-            const deleted = await this._audioStore.removeFromCache(this._model.audioSel.baseRef)
-            if (deleted)
-                this.showUserMessage(`Partial cache removed. Please try reloading...`)
-        } else
-            this._view.seekToTimePosition(lineRefVals[1], lineRefVals[2], audDur)
-    }
-
     private async _onAudioEnded() {
         this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'played')
         if (this._model.playNext) {
@@ -370,6 +171,7 @@ export class SuttaPlayerController {
             const fileList = this._suttaStore.queryTrackReferences(this._model.audioSel.albumIndex)
             if (this._model.audioSel.trackIndex < fileList.length-1) {
                 this._model.audioSel.trackIndex++
+                this._model.audioSel.isLoaded = false
                 this._model.audioSel.updateBaseRef(this._suttaStore)
                 await this._onLoadAudio(this._model.audioSel)
             }
@@ -389,7 +191,7 @@ export class SuttaPlayerController {
         this._model.navSel.updateBaseRef(this._suttaStore)
     }
 
-    private async _onLoadAudio(srcSel: TrackSelection): Promise<boolean> {
+    async _onLoadAudio(srcSel: TrackSelection): Promise<boolean> {
         if (this._model.audioSel.isSimilar(srcSel) && this._model.audioSel.isLoaded)
             return true
         this._model.currentTime = 0
@@ -401,7 +203,7 @@ export class SuttaPlayerController {
         return false
     }
 
-    private async _onLoadText(srcSel: TrackSelection): Promise<boolean> {
+    async _onLoadText(srcSel: TrackSelection): Promise<boolean> {
         if (this._model.textSel.isSimilar(srcSel) && this._model.textSel.isLoaded)
             return true
         this._model.bookmarkLineRef = ''  // clear bookmark
@@ -445,78 +247,6 @@ export class SuttaPlayerController {
         await this._onLoadText(this._model.navSel)
     }
 
-    private async _onDownloadAlbum() {
-        const downloadHandler: OfflineProcessingCallback = async (currTrack: TrackSelection) =>  {
-            this._view.loadTrackWith(currTrack)
-            this._downloadedPromise = new DeferredPromise<boolean>()
-            this._view.loadSuttaAudioWith(currTrack, this._view.audioCacherElem)
-            const wasDownloaded = await this._downloadedPromise
-            return wasDownloaded
-        }
-        const procSel = await this._onOfflineAlbumProcessing(downloadHandler, 'Downloaded')
-        if (procSel.dictionary['completed']) {
-            this._model.downloadedAlbums.push(procSel.albumIndex)
-            this._view.loadAlbumsList()
-        }
-    }
-
-    private async _onRemoveAlbum() {
-        const removeHandler: OfflineProcessingCallback = async (currTrack: TrackSelection) =>  {
-            const wasDeleted = await this._audioStore.removeFromCache(currTrack.baseRef)
-            return wasDeleted
-        }
-        const procSel = await this._onOfflineAlbumProcessing(removeHandler, 'Removed')
-        if (procSel.dictionary['completed']) {
-            const idxPos = this._model.downloadedAlbums.indexOf(procSel.albumIndex)  
-            this._model.downloadedAlbums.splice(idxPos, 1)
-            this._view.loadAlbumsList()
-        }
-    }
-
-    private async _onOfflineAlbumProcessing(handler: OfflineProcessingCallback, msgType: string): Promise<TrackSelection> {
-        const processSel = new TrackSelection('cache')
-        processSel.dictionary['completed'] = true
-        processSel.albumIndex = this._model.navSel.albumIndex
-        const fileList = this._suttaStore.queryTrackReferences(this._model.navSel.albumIndex)
-        const urls: string[] = []
-        for (let i = 0; i < fileList.length; i++) {
-            const progVal = Math.round(((i+1)/fileList.length) * 100)
-            processSel.trackIndex = i
-            processSel.updateBaseRef(this._suttaStore)
-            this._view.updateOfflineInfo(processSel.baseRef, progVal)
-            const wasProcessed = await handler(processSel)
-            console.log(`Processed: ${processSel.baseRef}: ${wasProcessed}`)
-            if (this._model.stopDwnlDel === 0) {
-                processSel.dictionary['completed'] = false
-                break
-            }
-        }
-        if (this._model.stopDwnlDel !== 0) {
-            this._view.updateOfflineInfo('Finished', 0)
-            if (!this._view.offlineDialogElem.open)
-                this.showUserMessage(msgType + ' Album')
-        } else {
-            this._view.updateOfflineInfo('Cancelled', 0)
-            if (!this._view.offlineDialogElem.open)
-                this.showUserMessage('Cancelled Album Processing')
-        }
-        this._model.stopDwnlDel = 0
-        return processSel
-    }
-
-    private async _onResetAppConfirm() {
-        this._resetApp = true
-        localStorage.clear()
-        const keys = await caches.keys()
-        for (let i = 0; i < keys.length; i++) 
-            await caches.delete(keys[i])      
-        if (CacheUtils.ENABLE_CACHE) {
-            const swReg = await navigator.serviceWorker.getRegistration()
-            await swReg.unregister()
-        }
-        window.location.reload()
-    }
-
     private _onShareLink(srcSel: TrackSelection) {
         let baseRefHref = location.protocol + '//' + location.host + this._appRoot
         baseRefHref += '#' + srcSel.baseRef + `?startTime=${this._model.currentTime}`
@@ -526,7 +256,7 @@ export class SuttaPlayerController {
         this.showUserMessage('Share Link copied to clipboard')
     }
 
-    private _onLoadIntoNavSelector(srcSel: TrackSelection) {
+    _onLoadIntoNavSelector(srcSel: TrackSelection) {
         this._model.navSel.read(srcSel)
         if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
             this._view.albumElem.selectedIndex = this._model.navSel.albumIndex

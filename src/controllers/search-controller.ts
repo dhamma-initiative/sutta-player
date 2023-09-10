@@ -21,11 +21,56 @@ export class SearchController {
     }
 
     public async setup() {
+        this._registerListeners()
     }
 
-    public async tearDown() {
+    public async tearDown(): Promise<boolean> {
         this._view = null
         this._model = null
+        return true
+    }
+
+    private _registerListeners() {
+        this._view.searchResultsElem.onclick = async (e: Event) => {
+            await this._onSearchResultSelected()
+        }
+        const searchResultsSummaryElem = document.getElementById('searchResultSummary')
+        const searchFormElem = <HTMLFormElement> this._view.searchForElem.parentElement
+        searchFormElem.onsubmit = async (e: Event) => {
+            e.preventDefault()
+            await this._onSearchFor(searchResultsSummaryElem)
+        }
+    }
+
+    private async _onSearchFor(searchResultsSummaryElem: HTMLElement) {
+        this._model.startSearch = !this._model.startSearch
+        const elem = document.getElementById('offlineMenuBusy')
+        if (this._model.startSearch) {
+            await this.onStartSearch()
+            this._model.startSearch = false
+        }
+    }
+
+    private async _onSearchResultSelected() {
+        const rsltSel = this._getSearchResultSelection()
+        this._mainCtrl._onLoadIntoNavSelector(rsltSel)
+        await this._mainCtrl._onLoadAudio(rsltSel)
+        this._view.audioPlayerElem.pause()
+        if (!this._model.linkTextToAudio)
+            await this._mainCtrl._onLoadText(rsltSel)
+        const lineChars = SuttaPlayerState.fromLineRef(rsltSel.context)
+        this._view.scrollToTextLineNumber(lineChars[0], lineChars[1])
+        this._model.bookmarkLineRef = rsltSel.context
+        this._view.refreshSkipAudioToLine()
+        this._mainCtrl.showUserMessage(`Loading match on line ${lineChars[0]} of ${rsltSel.baseRef}`)
+    }
+
+    private _getSearchResultSelection(): TrackSelection {
+        const opt = <HTMLOptionElement> this._view.searchResultsElem.selectedOptions[0]
+        const baseRef = (<HTMLOptGroupElement> opt.parentElement).label
+        const ret = this._mainCtrl._suttaStore.queryTrackSelection(baseRef)
+        ret.context = this._view.searchResultsElem.value
+        return ret
     }
 
     public async onStartSearch(): Promise<boolean> {

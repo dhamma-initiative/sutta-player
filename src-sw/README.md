@@ -24,6 +24,14 @@ https://stackoverflow.com/questions/41903097/how-to-force-service-worker-to-upda
   If any of the files you want to precache change -- and you re-run your build -- the updated hashes in your service worker are updated which pretty much guarantees the service worker will be "at least one byte different".
 
 
+
+openssl req -x509 -newkey rsa:4096 -keyout server.key -out server.crt -days 365 -subj "/CN=ash" -addext "subjectAltName = IP:192.168.1.91,IP:192.168.1.92,DNS:localhost,DNS:ash"
+
+sudo cp /path/to/your/server.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates -v
+
+
+
 workbox-utils.ts:
 export class WorkboxUtils {
     public static WORKBOX: Workbox

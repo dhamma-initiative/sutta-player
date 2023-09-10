@@ -1,5 +1,7 @@
 audio/
 text/metadata/google-drive-audio/secret
+server.crt
+server.key
 
 # Logs
 logs

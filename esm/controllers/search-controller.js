@@ -14,10 +14,51 @@ export class SearchController {
         this._mainCtrl = ctrl;
     }
     async setup() {
+        this._registerListeners();
     }
     async tearDown() {
         this._view = null;
         this._model = null;
+        return true;
+    }
+    _registerListeners() {
+        this._view.searchResultsElem.onclick = async (e) => {
+            await this._onSearchResultSelected();
+        };
+        const searchResultsSummaryElem = document.getElementById('searchResultSummary');
+        const searchFormElem = this._view.searchForElem.parentElement;
+        searchFormElem.onsubmit = async (e) => {
+            e.preventDefault();
+            await this._onSearchFor(searchResultsSummaryElem);
+        };
+    }
+    async _onSearchFor(searchResultsSummaryElem) {
+        this._model.startSearch = !this._model.startSearch;
+        const elem = document.getElementById('offlineMenuBusy');
+        if (this._model.startSearch) {
+            await this.onStartSearch();
+            this._model.startSearch = false;
+        }
+    }
+    async _onSearchResultSelected() {
+        const rsltSel = this._getSearchResultSelection();
+        this._mainCtrl._onLoadIntoNavSelector(rsltSel);
+        await this._mainCtrl._onLoadAudio(rsltSel);
+        this._view.audioPlayerElem.pause();
+        if (!this._model.linkTextToAudio)
+            await this._mainCtrl._onLoadText(rsltSel);
+        const lineChars = SuttaPlayerState.fromLineRef(rsltSel.context);
+        this._view.scrollToTextLineNumber(lineChars[0], lineChars[1]);
+        this._model.bookmarkLineRef = rsltSel.context;
+        this._view.refreshSkipAudioToLine();
+        this._mainCtrl.showUserMessage(`Loading match on line ${lineChars[0]} of ${rsltSel.baseRef}`);
+    }
+    _getSearchResultSelection() {
+        const opt = this._view.searchResultsElem.selectedOptions[0];
+        const baseRef = opt.parentElement.label;
+        const ret = this._mainCtrl._suttaStore.queryTrackSelection(baseRef);
+        ret.context = this._view.searchResultsElem.value;
+        return ret;
     }
     async onStartSearch() {
         if (!this._model.startSearch)

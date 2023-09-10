@@ -11,7 +11,11 @@ export declare class SearchController {
     private _maxSurroundingChars;
     constructor(mdl: SuttaPlayerState, vw: SuttaPlayerView, ctrl: SuttaPlayerController);
     setup(): Promise<void>;
-    tearDown(): Promise<void>;
+    tearDown(): Promise<boolean>;
+    private _registerListeners;
+    private _onSearchFor;
+    private _onSearchResultSelected;
+    private _getSearchResultSelection;
     onStartSearch(): Promise<boolean>;
     private _initialiseSearch;
     private _searchPreferencedAlbums;
