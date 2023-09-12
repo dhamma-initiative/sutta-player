@@ -1,6 +1,6 @@
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js';
-import { SuttaPlayerState, TrackSelection } from '../models/sutta-player-state.js';
-import { SuttaStorageQueryable } from "../models/sutta-storage-queryable.js";
+import { AlbumPlayerState, TrackSelection } from '../models/album-player-state.js';
+import { AlbumStorageQueryable } from "../models/album-storage-queryable.js";
 export declare class SuttaPlayerView {
     static LINEID_PREFIX: string;
     autoPlayElem: HTMLInputElement;
@@ -42,7 +42,6 @@ export declare class SuttaPlayerView {
     removeAudioFromCacheElem: HTMLButtonElement;
     processingInfoElem: HTMLDivElement;
     processingProgressElem: HTMLProgressElement;
-    audioCacherElem: HTMLAudioElement;
     resetAppDialogElem: HTMLDialogElement;
     resetAppCloseElem: HTMLAnchorElement;
     resetAppConfirmElem: HTMLAnchorElement;
@@ -51,11 +50,12 @@ export declare class SuttaPlayerView {
     skipAudioToLineElem: HTMLAnchorElement;
     scrollTextWithAudioElem: HTMLInputElement;
     gotoTopElem: HTMLAnchorElement;
-    private _modelState;
-    private _suttaStore;
+    private _model;
+    private _albumStore;
     private _audioStore;
     private _charPosLineIndex;
-    constructor(mdl: SuttaPlayerState, store: SuttaStorageQueryable, audResolver: AudioStorageQueryable);
+    removeFromCacheBaseRef: string;
+    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable, audioStore: AudioStorageQueryable);
     initialise(cb: (event: MouseEvent) => void): Promise<void>;
     refreshAudioControls(): void;
     loadTracksList(): void;
@@ -70,12 +70,12 @@ export declare class SuttaPlayerView {
     parseLineNumber(idRef: string): number;
     static createLineElementId(lineNum: number): string;
     loadTrackAudio(): void;
-    loadSuttaAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): boolean;
+    loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): boolean;
     updatePlayingTrackInfo(baseRef: string, status: string): void;
     showMessage(msg: string, dur?: number): void;
     toggleLineNums(): void;
     toggleAboutInfo(event: any): Promise<void>;
-    toggleOfflineDialog(event: any): void;
+    toggleOfflineDialog(event: any): Promise<void>;
     toggleResetAppDialog(event: any): void;
     updateOfflineInfo(processingInfo: string, perc: number): void;
     refreshSkipAudioToLine(): void;

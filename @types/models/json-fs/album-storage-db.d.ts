@@ -1,7 +1,7 @@
-import { TrackSelection } from '../sutta-player-state.js';
-import { SuttaStorageQueryable } from '../sutta-storage-queryable.js';
-export declare function createSuttaStorageQueryable(): Promise<SuttaStorageQueryable>;
-export declare class JsonFsSuttaDB implements SuttaStorageQueryable {
+import { TrackSelection } from '../album-player-state.js';
+import { AlbumStorageQueryable } from '../album-storage-queryable.js';
+export declare function createAlbumStorageQueryable(): Promise<AlbumStorageQueryable>;
+export declare class JsonFsAlbumStorageDB implements AlbumStorageQueryable {
     static CACHE_NAME: string;
     setup(): Promise<void>;
     queryAlbumNames(): string[];
@@ -12,7 +12,8 @@ export declare class JsonFsSuttaDB implements SuttaStorageQueryable {
     queryTrackText(baseRef: string): Promise<string>;
     queryTrackTextUri(baseRef: string): string;
     readTextFile(relPath: string): Promise<string>;
-    isInCache(trackTxtUri: string): Promise<boolean>;
-    removeFromCache(trackTxtUri: string): Promise<boolean>;
+    isInCache(baseRef: string): Promise<boolean>;
+    addToCache(baseRef: string): Promise<boolean>;
+    removeFromCache(baseRef: string): Promise<boolean>;
     protected _queryTrackReferences(colRef: string): string[];
 }

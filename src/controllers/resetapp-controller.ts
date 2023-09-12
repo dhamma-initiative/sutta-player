@@ -1,15 +1,15 @@
-import { SuttaPlayerState } from "../models/sutta-player-state.js"
+import { AlbumPlayerState } from "../models/album-player-state.js"
 import { CacheUtils } from "../runtime/cache-utils.js"
 import { SuttaPlayerView } from "../views/sutta-player-view.js"
 import { SuttaPlayerController } from "./sutta-player-controller.js"
 
 export class ResetAppController {
-    private _model: SuttaPlayerState
+    private _model: AlbumPlayerState
     private _view: SuttaPlayerView
     private _mainCtrl: SuttaPlayerController
     private _resetApp = false 
 
-    public constructor(mdl: SuttaPlayerState, vw: SuttaPlayerView, ctrl: SuttaPlayerController) {
+    public constructor(mdl: AlbumPlayerState, vw: SuttaPlayerView, ctrl: SuttaPlayerController) {
         this._model = mdl
         this._view = vw
         this._mainCtrl = ctrl

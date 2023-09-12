@@ -63,6 +63,22 @@ export class CacheUtils {
         return ret
     }
 
+    public static async addCachedUrls(cacheName: string, urls: string[]): Promise<boolean[]> {
+        const ret: boolean[] = []
+        if (!caches)
+            return ret
+        const cache = await caches.open(cacheName)
+        for (let i = 0; i < urls.length; i++) {
+            try {
+                await cache.add(urls[i])
+                ret.push(true)
+            } catch (e) {
+                ret.push(false)
+            }
+        }
+        return ret
+    }
+
     public static async deleteCachedUrls(cacheName: string, urls: string[], options?: CacheQueryOptions): Promise<boolean[]> {
         const ret: boolean[] = []
         if (!caches)

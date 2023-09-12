@@ -8,6 +8,7 @@
     "build": "tsc",
     "sw-build": "esbuild --outfile=esm/sutta-player-sw-proxy.js --bundle esm/sutta-player-sw-stub.js",
     "sw-injest": "workbox injectManifest src/workbox-config.cjs",
+    "all": "npm run build && npm run sw-build && npm run sw-injest",
     "clean": "rm -rf esm/ @types/"
   },
   "author": "",

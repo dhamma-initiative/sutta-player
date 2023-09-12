@@ -1,5 +1,5 @@
-import { TrackSelection } from "./sutta-player-state";
-export interface SuttaStorageQueryable {
+import { TrackSelection } from "./album-player-state";
+export interface AlbumStorageQueryable {
     queryAlbumNames(): string[];
     queryAlbumReferences(): string[];
     queryTrackReferences(albIdx: number): string[];
@@ -8,9 +8,10 @@ export interface SuttaStorageQueryable {
     queryTrackText(baseRef: string): Promise<string>;
     queryTrackTextUri(baseRef: string): string;
     readTextFile(relPath: string): Promise<string>;
-    isInCache(trackTxtUri: string): Promise<boolean>;
-    removeFromCache(trackTxtUri: string): Promise<boolean>;
+    isInCache(baseRef: string): Promise<boolean>;
+    addToCache(baseRef: string): Promise<boolean>;
+    removeFromCache(baseRef: string): Promise<boolean>;
 }
-export declare class SuttaStorageQueryableFactory {
-    static create(ctx: string): Promise<SuttaStorageQueryable>;
+export declare class AlbumStorageQueryableFactory {
+    static create(ctx: string): Promise<AlbumStorageQueryable>;
 }

@@ -1,4 +1,4 @@
-import { SuttaPlayerState } from "../models/sutta-player-state.js";
+import { AlbumPlayerState } from "../models/album-player-state.js";
 import { DeferredPromise } from "../runtime/deferred-promise.js";
 export class FabController {
     _model;
@@ -53,7 +53,7 @@ export class FabController {
         if (this._model.bookmarkLineRef === "")
             return;
         const currBookmarkLineRef = this._model.bookmarkLineRef;
-        const lineRefVals = SuttaPlayerState.fromLineRef(this._model.bookmarkLineRef);
+        const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkLineRef);
         this._mainCtrl._onLoadIntoNavSelector(this._model.textSel);
         this._audDurPromise = new DeferredPromise();
         const alreadyLoaded = await this._mainCtrl._onLoadAudio(this._model.textSel);

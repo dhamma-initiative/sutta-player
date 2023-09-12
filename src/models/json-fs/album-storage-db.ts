@@ -1,15 +1,15 @@
 import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, CacheUtils, REGISTERROUTE, RegisterRoutePayloadJson } from '../../runtime/cache-utils.js'
-import { TrackSelection } from '../sutta-player-state.js'
-import { SuttaStorageQueryable } from '../sutta-storage-queryable.js'
-import suttaDb from './sutta-db.json' assert { type: 'json' }
+import { TrackSelection } from '../album-player-state.js'
+import { AlbumStorageQueryable } from '../album-storage-queryable.js'
+import albumDb from './album-storage-db.json' assert { type: 'json' }
 
-export async function createSuttaStorageQueryable(): Promise<SuttaStorageQueryable> {
-    const ret = new JsonFsSuttaDB()
+export async function createAlbumStorageQueryable(): Promise<AlbumStorageQueryable> {
+    const ret = new JsonFsAlbumStorageDB()
     await ret.setup() 
     return ret
 }
 
-export class JsonFsSuttaDB implements SuttaStorageQueryable {
+export class JsonFsAlbumStorageDB implements AlbumStorageQueryable {
     public static CACHE_NAME = 'txt-suttaplayer.self.com.au'
 
     public async setup() {
@@ -19,7 +19,7 @@ export class JsonFsSuttaDB implements SuttaStorageQueryable {
             url_href_endsWith: '.txt',
             strategy: {
                 class_name: CACHEFIRST,
-                cacheName: JsonFsSuttaDB.CACHE_NAME,
+                cacheName: JsonFsAlbumStorageDB.CACHE_NAME,
                 plugins: [
                     {
                         class_name: CACHEABLERESPONSEPLUGIN,
@@ -37,16 +37,16 @@ export class JsonFsSuttaDB implements SuttaStorageQueryable {
     }
 
     public queryAlbumNames(): string[] {
-        return suttaDb.albumName
+        return albumDb.albumName
     }
 
     public queryAlbumReferences(): string[] {
-        return suttaDb.albumBaseDirectory
+        return albumDb.albumBaseDirectory
     }
 
     public queryTrackReferences(albIdx: number): string[] {
         albIdx = albIdx === -1 ? 0 : albIdx
-        const key = suttaDb.albumBaseDirectory[albIdx]
+        const key = albumDb.albumBaseDirectory[albIdx]
         return this._queryTrackReferences(key)
     }
 
@@ -66,7 +66,7 @@ export class JsonFsSuttaDB implements SuttaStorageQueryable {
             basePath = basePath.substring(1)
         if (basePath.endsWith('/'))
             basePath = basePath.substring(0, basePath.length-1)
-        const albIdx = suttaDb.albumBaseDirectory.indexOf(basePath)
+        const albIdx = albumDb.albumBaseDirectory.indexOf(basePath)
         const lov = this._queryTrackReferences(basePath)
         const trkIdx = lov.indexOf(baseName)
         const ret = new TrackSelection('url', albIdx, trkIdx, baseRef)
@@ -90,8 +90,9 @@ export class JsonFsSuttaDB implements SuttaStorageQueryable {
         return text
     }
 
-    public async isInCache(trackTxtUri: string): Promise<boolean> {
-        const ret = await CacheUtils.isInCache(JsonFsSuttaDB.CACHE_NAME, [trackTxtUri],
+    public async isInCache(baseRef: string): Promise<boolean> {
+        const trackTxtUri = this.queryTrackTextUri(baseRef)
+        const ret = await CacheUtils.isInCache(JsonFsAlbumStorageDB.CACHE_NAME, [trackTxtUri],
             (resp: Response) => {
                 return resp?.ok ? true : false 
             }
@@ -99,13 +100,20 @@ export class JsonFsSuttaDB implements SuttaStorageQueryable {
         return ret[0]
     }
 
-    public async removeFromCache(trackTxtUri: string): Promise<boolean> {
-        const ret = await CacheUtils.deleteCachedUrls(JsonFsSuttaDB.CACHE_NAME, [trackTxtUri])
+    public async addToCache(baseRef: string): Promise<boolean> {
+        const trackTxtUri = this.queryTrackTextUri(baseRef)
+        const ret = await CacheUtils.addCachedUrls(JsonFsAlbumStorageDB.CACHE_NAME, [trackTxtUri])
+        return ret[0]
+    }
+
+    public async removeFromCache(baseRef: string): Promise<boolean> {
+        const trackTxtUri = this.queryTrackTextUri(baseRef)
+        const ret = await CacheUtils.deleteCachedUrls(JsonFsAlbumStorageDB.CACHE_NAME, [trackTxtUri])
         return ret[0]
     }
 
     protected _queryTrackReferences(colRef: string): string[] {
-        const trackRefs = suttaDb[colRef as keyof typeof suttaDb]
+        const trackRefs = albumDb[colRef as keyof typeof albumDb]
         return trackRefs
     }
 }

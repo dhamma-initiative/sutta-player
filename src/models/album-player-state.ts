@@ -1,5 +1,5 @@
 import { LocalStorageState } from '../runtime/localstorage-state.js'
-import { SuttaStorageQueryable } from './sutta-storage-queryable.js'
+import { AlbumStorageQueryable } from './album-storage-queryable.js'
 
 export class TrackSelection extends LocalStorageState {
     context: string
@@ -24,7 +24,7 @@ export class TrackSelection extends LocalStorageState {
         this.isLoaded = false
     }
 
-    public updateBaseRef(qry: SuttaStorageQueryable) {
+    public updateBaseRef(qry: AlbumStorageQueryable) {
         this.baseRef = qry.queryTrackBaseRef(this.albumIndex, this.trackIndex)
     }
 
@@ -51,7 +51,7 @@ export class TrackSelection extends LocalStorageState {
     }
 }
 
-export class SuttaPlayerState extends LocalStorageState {
+export class AlbumPlayerState extends LocalStorageState {
     navSel: TrackSelection = new TrackSelection('navSel')
     textSel: TrackSelection = new TrackSelection('textSel')
     audioSel: TrackSelection = new TrackSelection('audioSel')
@@ -129,7 +129,7 @@ export class SuttaPlayerState extends LocalStorageState {
     }
 
     public static toLineRefUsingArr(refArr: number[]) {
-        const ret = SuttaPlayerState.toLineRef(refArr[0], refArr[1], refArr[2], refArr[3], refArr[4])
+        const ret = AlbumPlayerState.toLineRef(refArr[0], refArr[1], refArr[2], refArr[3], refArr[4])
         return ret
     }
 

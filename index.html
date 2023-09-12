@@ -147,13 +147,13 @@
         </details>
 
         <details open>
-            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;A&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="playingTrack">&#9835; awaiting load</span></summary>
+            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;A&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="playingTrack">awaiting load</span></summary>
             <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload">
             </audio>
         </details>
 
         <details open>
-            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;T&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="displayingTrack">&#128064; awaiting load</span></summary>
+            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;T&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="displayingTrack">awaiting load</span></summary>
             <pre>
 <code id="trackTextBody" class="displayLineNums"></code>
             </pre>                
@@ -191,10 +191,9 @@
                 <div id="processingInfo"></div>
                 <progress id="processingProgress" value="0" max="100"></progress>
                 <p>Beware, there are currently 1,344 mp3 files, spanning 113 hours, totalling 3GB of storage!</p>
-                <p>When the download is initiated, the downloads occur in the background. This dialog can be closed and returned to later and the rest of the App will remain fully functional. Tracks are downloaded in the same order as that listed in the navigation Track selector. Each downloaded track is displayed above the progress bar in real-time for monitoring purposes.</p>
+                <p>When the download is initiated, this dialog can be closed and returned to later and the rest of the App will remain fully functional. Tracks are downloaded in the same order as that listed in the navigation Track selector. Each downloaded track is displayed above the progress bar in real-time for monitoring purposes.</p>
                 <p>You may safely interupt the download process by toggling the switch. All previously downloaded tracks in the selected Album will be retained and the next download initiation will continue from the last position.</p>
                 <p>Non-downloaded tracks are streamed and cached on demand. If a track is loaded through search it will likely only get partially downloaded. This may result in subsequent failed loads attempts of that track. Use the 'Remove Track from cache' button to remove the partial cache and then re-stream the track.</p>
-                <audio id="audioCacher" controls style="display: none;"></audio>
             </article>
         </dialog>
 

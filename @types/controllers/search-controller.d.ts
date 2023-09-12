@@ -1,4 +1,4 @@
-import { SuttaPlayerState } from "../models/sutta-player-state.js";
+import { AlbumPlayerState } from "../models/album-player-state.js";
 import { SuttaPlayerView } from "../views/sutta-player-view.js";
 import { SuttaPlayerController } from "./sutta-player-controller.js";
 export declare class SearchController {
@@ -9,7 +9,7 @@ export declare class SearchController {
     private _mainCtrl;
     private _searchSel;
     private _maxSurroundingChars;
-    constructor(mdl: SuttaPlayerState, vw: SuttaPlayerView, ctrl: SuttaPlayerController);
+    constructor(mdl: AlbumPlayerState, vw: SuttaPlayerView, ctrl: SuttaPlayerController);
     setup(): Promise<void>;
     tearDown(): Promise<boolean>;
     private _registerListeners;

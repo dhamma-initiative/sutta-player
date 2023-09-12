@@ -42,7 +42,7 @@ export class TrackSelection extends LocalStorageState {
         this.baseRef = this._getItemString(`${this.context}.baseRef`, this.baseRef);
     }
 }
-export class SuttaPlayerState extends LocalStorageState {
+export class AlbumPlayerState extends LocalStorageState {
     navSel = new TrackSelection('navSel');
     textSel = new TrackSelection('textSel');
     audioSel = new TrackSelection('audioSel');
@@ -110,7 +110,7 @@ export class SuttaPlayerState extends LocalStorageState {
         return `${lineNum}:${begIdxPos}:${begPerc.toFixed(3)}:${endIdxPos}:${endPerc.toFixed(3)}`;
     }
     static toLineRefUsingArr(refArr) {
-        const ret = SuttaPlayerState.toLineRef(refArr[0], refArr[1], refArr[2], refArr[3], refArr[4]);
+        const ret = AlbumPlayerState.toLineRef(refArr[0], refArr[1], refArr[2], refArr[3], refArr[4]);
         return ret;
     }
     static fromLineRef(lineRef) {
@@ -118,4 +118,4 @@ export class SuttaPlayerState extends LocalStorageState {
         return [Number(vals[0]), Number(vals[1]), Number(vals[2]), Number(vals[3]), Number(vals[4])];
     }
 }
-//# sourceMappingURL=sutta-player-state.js.map
+//# sourceMappingURL=album-player-state.js.map

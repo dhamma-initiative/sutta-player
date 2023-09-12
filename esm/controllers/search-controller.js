@@ -1,4 +1,4 @@
-import { SuttaPlayerState, TrackSelection } from "../models/sutta-player-state.js";
+import { AlbumPlayerState, TrackSelection } from "../models/album-player-state.js";
 import { StringUtils } from '../runtime/string-utils.js';
 export class SearchController {
     static DIACRITICS_CHR = ["ā", "ī", "ū", "ṁ", "ṃ", "ṇ", "ṅ", "ñ", "ṣ", "ṭ", "ḍ", "ḷ", "ḥ"];
@@ -47,7 +47,7 @@ export class SearchController {
         this._view.audioPlayerElem.pause();
         if (!this._model.linkTextToAudio)
             await this._mainCtrl._onLoadText(rsltSel);
-        const lineChars = SuttaPlayerState.fromLineRef(rsltSel.context);
+        const lineChars = AlbumPlayerState.fromLineRef(rsltSel.context);
         this._view.scrollToTextLineNumber(lineChars[0], lineChars[1]);
         this._model.bookmarkLineRef = rsltSel.context;
         this._view.refreshSkipAudioToLine();
@@ -56,7 +56,7 @@ export class SearchController {
     _getSearchResultSelection() {
         const opt = this._view.searchResultsElem.selectedOptions[0];
         const baseRef = opt.parentElement.label;
-        const ret = this._mainCtrl._suttaStore.queryTrackSelection(baseRef);
+        const ret = this._mainCtrl._albumStore.queryTrackSelection(baseRef);
         ret.context = this._view.searchResultsElem.value;
         return ret;
     }
@@ -95,7 +95,7 @@ export class SearchController {
                 if (!this._model.startSearch)
                     break;
                 this._searchSel.trackIndex = j;
-                this._searchSel.updateBaseRef(this._mainCtrl._suttaStore);
+                this._searchSel.updateBaseRef(this._mainCtrl._albumStore);
                 const src = await this._getTrackSource();
                 tracks = this._reportMatches(src, tracks);
             }
@@ -121,7 +121,7 @@ export class SearchController {
         const opt = document.createElement('option');
         opt.label = matchCtx;
         const perc = (idxPos / src.length) * 100;
-        const lineRef = SuttaPlayerState.toLineRef(lineNum, idxPos, perc, 0, 0);
+        const lineRef = AlbumPlayerState.toLineRef(lineNum, idxPos, perc, 0, 0);
         opt.value = lineRef;
         elem.append(opt);
     }
@@ -132,7 +132,7 @@ export class SearchController {
         return optGrp;
     }
     async _getTrackSource() {
-        let src = await this._mainCtrl._suttaStore.queryTrackText(this._searchSel.baseRef);
+        let src = await this._mainCtrl._albumStore.queryTrackText(this._searchSel.baseRef);
         if (this._model.ignoreDiacritics)
             src = this.removeDiacritics(src);
         return src;
@@ -143,7 +143,7 @@ export class SearchController {
         return src;
     }
     _getTrackCount() {
-        const trackSrcRefs = this._mainCtrl._suttaStore.queryTrackReferences(this._searchSel.albumIndex);
+        const trackSrcRefs = this._mainCtrl._albumStore.queryTrackReferences(this._searchSel.albumIndex);
         return trackSrcRefs.length;
     }
     _getAlbumIndexes() {
@@ -151,7 +151,7 @@ export class SearchController {
         if (this._model.searchAlbums > 0) {
             if (this._model.searchAlbums === 1 && !this._model.isAlbumDownloaded(this._model.navSel.albumIndex))
                 ret.pop(); // remove the default this._model.navSel.albumIndex entry
-            const albumSrcRefs = this._mainCtrl._suttaStore.queryAlbumReferences();
+            const albumSrcRefs = this._mainCtrl._albumStore.queryAlbumReferences();
             for (let i = 0; i < albumSrcRefs.length; i++) {
                 if (ret.indexOf(i) === -1) {
                     let addToCriteria = true;

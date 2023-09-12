@@ -34,6 +34,22 @@ export class CacheUtils {
         }
         return ret;
     }
+    static async addCachedUrls(cacheName, urls) {
+        const ret = [];
+        if (!caches)
+            return ret;
+        const cache = await caches.open(cacheName);
+        for (let i = 0; i < urls.length; i++) {
+            try {
+                await cache.add(urls[i]);
+                ret.push(true);
+            }
+            catch (e) {
+                ret.push(false);
+            }
+        }
+        return ret;
+    }
     static async deleteCachedUrls(cacheName, urls, options) {
         const ret = [];
         if (!caches)

@@ -1,4 +1,4 @@
-import { SuttaPlayerState } from '../models/sutta-player-state.js';
+import { AlbumPlayerState } from '../models/album-player-state.js';
 export class SuttaPlayerView {
     static LINEID_PREFIX = '_ln_';
     // settings
@@ -45,7 +45,6 @@ export class SuttaPlayerView {
     removeAudioFromCacheElem;
     processingInfoElem;
     processingProgressElem;
-    audioCacherElem;
     // reset app
     resetAppDialogElem;
     resetAppCloseElem;
@@ -55,14 +54,15 @@ export class SuttaPlayerView {
     skipAudioToLineElem;
     scrollTextWithAudioElem;
     gotoTopElem;
-    _modelState;
-    _suttaStore;
+    _model;
+    _albumStore;
     _audioStore;
     _charPosLineIndex = [];
-    constructor(mdl, store, audResolver) {
-        this._modelState = mdl;
-        this._suttaStore = store;
-        this._audioStore = audResolver;
+    removeFromCacheBaseRef = null;
+    constructor(mdl, albumStore, audioStore) {
+        this._model = mdl;
+        this._albumStore = albumStore;
+        this._audioStore = audioStore;
         this._bindHtmlElements();
     }
     async initialise(cb) {
@@ -71,34 +71,34 @@ export class SuttaPlayerView {
         await this.loadTrackTextForUi(cb);
         this.refreshAudioControls();
         this.loadTrackAudio();
-        if (this._modelState.bookmarkLineRef !== '') {
-            const lineRefVals = SuttaPlayerState.fromLineRef(this._modelState.bookmarkLineRef);
+        if (this._model.bookmarkLineRef !== '') {
+            const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkLineRef);
             this.scrollToTextLineNumber(lineRefVals[0], lineRefVals[1]);
         }
         else
-            window.scroll(0, this._modelState.currentScrollY);
+            window.scroll(0, this._model.currentScrollY);
     }
     refreshAudioControls() {
-        this.autoPlayElem.checked = this._modelState.autoPlay;
-        this.audioPlayerElem.autoplay = this._modelState.autoPlay;
-        this.playNextElem.checked = this._modelState.playNext;
-        this.repeatElem.checked = this._modelState.repeat;
-        this.audioPlayerElem.loop = this._modelState.repeat;
-        this.linkTextToAudioElem.checked = this._modelState.linkTextToAudio;
-        this.scrollTextWithAudioElem.checked = this._modelState.scrollTextWithAudio;
-        this.showLineNumsElem.checked = this._modelState.showLineNums;
-        this.darkThemeElem.checked = this._modelState.darkTheme;
-        this.searchForElem.value = this._modelState.searchFor;
-        this.searchAlbumsElem.selectedIndex = this._modelState.searchAlbums;
-        this.useRegExElem.checked = this._modelState.useRegEx;
-        this.ignoreDiacriticsElem.checked = this._modelState.ignoreDiacritics;
+        this.autoPlayElem.checked = this._model.autoPlay;
+        this.audioPlayerElem.autoplay = this._model.autoPlay;
+        this.playNextElem.checked = this._model.playNext;
+        this.repeatElem.checked = this._model.repeat;
+        this.audioPlayerElem.loop = this._model.repeat;
+        this.linkTextToAudioElem.checked = this._model.linkTextToAudio;
+        this.scrollTextWithAudioElem.checked = this._model.scrollTextWithAudio;
+        this.showLineNumsElem.checked = this._model.showLineNums;
+        this.darkThemeElem.checked = this._model.darkTheme;
+        this.searchForElem.value = this._model.searchFor;
+        this.searchAlbumsElem.selectedIndex = this._model.searchAlbums;
+        this.useRegExElem.checked = this._model.useRegEx;
+        this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics;
         this.processingProgressElem.value = 0;
         this.setColorTheme();
         this.toggleLineNums();
         this.refreshSkipAudioToLine();
     }
     loadTracksList() {
-        const trackLov = this._suttaStore.queryTrackReferences(this._modelState.navSel.albumIndex);
+        const trackLov = this._albumStore.queryTrackReferences(this._model.navSel.albumIndex);
         this.trackElem.innerHTML = '';
         for (let i = 0; i < trackLov.length; i++) {
             const option = document.createElement('option');
@@ -106,19 +106,19 @@ export class SuttaPlayerView {
             option.innerText = trackLov[i];
             this.trackElem.append(option);
         }
-        this.trackElem.selectedIndex = this._modelState.navSel.trackIndex;
+        this.trackElem.selectedIndex = this._model.navSel.trackIndex;
     }
     async loadTrackWith(trackSel) {
         if (trackSel.baseRef === null)
             return null;
-        const ret = await this._suttaStore.queryTrackText(trackSel.baseRef);
+        const ret = await this._albumStore.queryTrackText(trackSel.baseRef);
         trackSel.isLoaded = true;
         return ret;
     }
     async loadTrackTextForUi(lineSelCb) {
-        if (this._modelState.textSel.baseRef === null)
+        if (this._model.textSel.baseRef === null)
             return;
-        const textBody = await this.loadTrackWith(this._modelState.textSel);
+        const textBody = await this.loadTrackWith(this._model.textSel);
         this.trackTextBodyElem.innerHTML = '';
         const lines = textBody.split('\n');
         let totalCharLen = 0;
@@ -135,7 +135,7 @@ export class SuttaPlayerView {
             elem.id = SuttaPlayerView.createLineElementId(i + 1);
             elem.onclick = lineSelCb;
         }
-        this.displayingTrackElem.innerHTML = `&#128064; ${this._modelState.textSel.baseRef}`;
+        this.displayingTrackElem.innerHTML = `${this._model.textSel.baseRef}`;
     }
     createLineRefValues(lineNum) {
         const totalCharLen = this._charPosLineIndex[this._charPosLineIndex.length - 1];
@@ -143,11 +143,11 @@ export class SuttaPlayerView {
         const begPerc = ((begIdxPos / totalCharLen) * 100);
         const endIdxPos = this._charPosLineIndex[lineNum];
         const endPerc = ((endIdxPos / totalCharLen) * 100);
-        const ret = SuttaPlayerState.toLineRef(lineNum, begIdxPos, begPerc, endIdxPos, endPerc);
+        const ret = AlbumPlayerState.toLineRef(lineNum, begIdxPos, begPerc, endIdxPos, endPerc);
         return ret;
     }
     setColorTheme() {
-        const theme = this._modelState.darkTheme ? 'dark' : 'light';
+        const theme = this._model.darkTheme ? 'dark' : 'light';
         document.documentElement.setAttribute('data-theme', theme);
     }
     scrollToTextLineNumber(lineNum, idxPos) {
@@ -174,13 +174,13 @@ export class SuttaPlayerView {
     }
     seekToTimePosition(charPos, charPerc, audDur) {
         const seekTo = audDur * (charPerc / 100);
-        this._modelState.currentTime = seekTo;
-        this.audioPlayerElem.currentTime = this._modelState.currentTime;
+        this._model.currentTime = seekTo;
+        this.audioPlayerElem.currentTime = this._model.currentTime;
     }
     syncTextPositionWithAudio() {
-        if (!this._modelState.scrollTextWithAudio)
+        if (!this._model.scrollTextWithAudio)
             return;
-        if (this._modelState.audioSel.baseRef !== this._modelState.textSel.baseRef)
+        if (this._model.audioSel.baseRef !== this._model.textSel.baseRef)
             return;
         const posPerc = this._getAudioPositionAsPerc();
         this.scrollToTextPercCentred(posPerc);
@@ -195,23 +195,23 @@ export class SuttaPlayerView {
         return idRef;
     }
     loadTrackAudio() {
-        const success = this.loadSuttaAudioWith(this._modelState.audioSel, this.audioPlayerElem);
+        const success = this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem);
         if (success)
-            this.audioPlayerElem.currentTime = this._modelState.currentTime;
+            this.audioPlayerElem.currentTime = this._model.currentTime;
     }
-    loadSuttaAudioWith(trackSel, audioElem) {
+    loadTrackAudioWith(trackSel, audioElem) {
         if (trackSel.baseRef === null)
             return false;
-        this._modelState.audioState = 0;
+        this._model.audioState = 0;
         const srcRef = this._audioStore.queryHtmlAudioSrcRef(trackSel.baseRef);
         audioElem.src = srcRef;
-        this._modelState.audioState = 1;
+        this._model.audioState = 1;
         trackSel.isLoaded = true;
         return true;
     }
     updatePlayingTrackInfo(baseRef, status) {
         const info = status ? ` [${status}]` : '';
-        this.playingTrackElem.innerHTML = `&#9835; ${baseRef}${info}`;
+        this.playingTrackElem.innerHTML = `${baseRef}${info}`;
     }
     showMessage(msg, dur = 3000) {
         this.snackbarElem.textContent = msg;
@@ -230,7 +230,7 @@ export class SuttaPlayerView {
         if (event)
             event.preventDefault();
         if (this.aboutTextBodyElem.textContent.trim() === '') {
-            let textBody = await this._suttaStore.readTextFile('./README.md');
+            let textBody = await this._albumStore.readTextFile('./README.md');
             textBody = textBody.replaceAll('###', '-');
             textBody = textBody.replaceAll('#', '');
             this.aboutTextBodyElem.textContent = textBody + 'suttaplayer@gmail.com';
@@ -239,19 +239,21 @@ export class SuttaPlayerView {
             this.aboutTextBodyElem.textContent = '';
         this.aboutDialogElem.open = !this.aboutDialogElem.open;
     }
-    toggleOfflineDialog(event) {
+    async toggleOfflineDialog(event) {
         if (event)
             event.preventDefault();
         this.offlineDialogElem.open = !this.offlineDialogElem.open;
         if (!this.offlineDialogElem.open)
             return;
-        if (this._modelState.stopDwnlDel === 0) {
+        if (this._model.stopDwnlDel === 0) {
             const albumName = this.albumElem.children[this.albumElem.selectedIndex].textContent;
             this.offlineTitleElem.textContent = albumName;
         }
-        if (this._modelState.audioState === 1) { // stuck in assigned state
+        const isCached = await this._audioStore.isInCache(this._model.navSel.baseRef);
+        if (isCached) {
+            this.removeFromCacheBaseRef = this._model.navSel.baseRef;
             this.removeAudioFromCacheElem.style.display = "block";
-            this.removeAudioFromCacheElem.innerHTML = `Remove ${this._modelState.audioSel.baseRef} from cache`;
+            this.removeAudioFromCacheElem.innerHTML = `Remove ${this.removeFromCacheBaseRef} from cache`;
         }
         else
             this.removeAudioFromCacheElem.style.display = "none";
@@ -263,17 +265,17 @@ export class SuttaPlayerView {
     }
     updateOfflineInfo(processingInfo, perc) {
         let actn = 'Choose an action above';
-        if (this._modelState.stopDwnlDel === 1)
+        if (this._model.stopDwnlDel === 1)
             actn = 'Downloading';
-        else if (this._modelState.stopDwnlDel === 2)
+        else if (this._model.stopDwnlDel === 2)
             actn = 'Deleting';
         this.processingInfoElem.textContent = `${actn} ${processingInfo}`;
         this.processingProgressElem.value = perc;
     }
     refreshSkipAudioToLine() {
-        if (this._modelState.bookmarkLineRef !== '') {
-            const vals = SuttaPlayerState.fromLineRef(this._modelState.bookmarkLineRef);
-            this.skipAudioToLineElem.innerHTML = `Line ${vals[0]} &#9193; &#9835;`;
+        if (this._model.bookmarkLineRef !== '') {
+            const vals = AlbumPlayerState.fromLineRef(this._model.bookmarkLineRef);
+            this.skipAudioToLineElem.innerHTML = `Line ${vals[0]} &#9193;`;
             this.skipAudioToLineElem.style.display = 'block';
         }
         else
@@ -281,15 +283,15 @@ export class SuttaPlayerView {
     }
     loadAlbumsList() {
         this.albumElem.innerHTML = '';
-        const colLov = this._suttaStore.queryAlbumNames();
+        const colLov = this._albumStore.queryAlbumNames();
         for (let i = 0; i < colLov.length; i++) {
             const option = document.createElement('option');
             option.value = `${i}`;
-            const downChar = this._modelState.isAlbumDownloaded(i) ? '&#9745;' : '&#9744;';
+            const downChar = this._model.isAlbumDownloaded(i) ? '&#9745;' : '&#9744;';
             option.innerHTML = `${downChar} ${colLov[i]}`;
             this.albumElem.append(option);
         }
-        this.albumElem.selectedIndex = this._modelState.navSel.albumIndex;
+        this.albumElem.selectedIndex = this._model.navSel.albumIndex;
     }
     _bindHtmlElements() {
         this._bindSettingElements();
@@ -342,7 +344,6 @@ export class SuttaPlayerView {
         this.removeAudioFromCacheElem = document.getElementById('removeAudioFromCache');
         this.processingInfoElem = document.getElementById('processingInfo');
         this.processingProgressElem = document.getElementById('processingProgress');
-        this.audioCacherElem = document.getElementById('audioCacher');
     }
     _bindResetAppElements() {
         this.resetAppDialogElem = document.getElementById('resetAppDialog');

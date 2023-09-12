@@ -1,10 +1,8 @@
-import { TrackSelection } from "../models/sutta-player-state.js";
-import { DeferredPromise } from "../runtime/deferred-promise.js";
+import { TrackSelection } from "../models/album-player-state.js";
 export class OfflineController {
     _model;
     _view;
     _mainCtrl;
-    _downloadedPromise;
     constructor(mdl, vw, ctrl) {
         this._model = mdl;
         this._view = vw;
@@ -21,7 +19,7 @@ export class OfflineController {
     async onToggleDownload() {
         return false;
     }
-    async onToggleDetele() {
+    async onToggleDelete() {
         return false;
     }
     _registerListeners() {
@@ -38,8 +36,6 @@ export class OfflineController {
             }
             else {
                 this._model.stopDwnlDel = 0;
-                if (this._downloadedPromise !== null)
-                    this._downloadedPromise.resolve(false);
                 this._prepareOfflineControls([false, false], [null, null]);
             }
         };
@@ -55,14 +51,11 @@ export class OfflineController {
                 this._prepareOfflineControls([false, false], [null, null]);
             }
         };
-        this._view.audioCacherElem.oncanplaythrough = async () => {
-            this._downloadedPromise.resolve(true);
-        };
         this._view.removeAudioFromCacheElem.onclick = async () => {
-            if (this._model.audioState === 1) { // stuck in assigned state
-                const deleted = await this._mainCtrl._audioStore.removeFromCache(this._model.audioSel.baseRef);
-                if (deleted)
-                    this._view.removeAudioFromCacheElem.style.display = "none";
+            const deleted = await this._mainCtrl._audioStore.removeFromCache(this._view.removeFromCacheBaseRef);
+            if (deleted) {
+                await this._mainCtrl._albumStore.removeFromCache(this._view.removeFromCacheBaseRef);
+                this._view.removeAudioFromCacheElem.style.display = "none";
             }
         };
     }
@@ -76,11 +69,9 @@ export class OfflineController {
     }
     async _onDownloadAlbum() {
         const downloadHandler = async (currTrack) => {
-            this._view.loadTrackWith(currTrack);
-            this._downloadedPromise = new DeferredPromise();
-            this._view.loadSuttaAudioWith(currTrack, this._view.audioCacherElem);
-            const wasDownloaded = await this._downloadedPromise;
-            return wasDownloaded;
+            const wasTextDownloaded = await this._mainCtrl._albumStore.addToCache(currTrack.baseRef);
+            const wasAudioDownloaded = await this._mainCtrl._audioStore.addToCache(currTrack.baseRef);
+            return wasTextDownloaded && wasAudioDownloaded;
         };
         const procSel = await this._onOfflineAlbumProcessing(downloadHandler, 'Downloaded');
         if (procSel.dictionary['completed']) {
@@ -90,8 +81,9 @@ export class OfflineController {
     }
     async _onRemoveAlbum() {
         const removeHandler = async (currTrack) => {
-            const wasDeleted = await this._mainCtrl._audioStore.removeFromCache(currTrack.baseRef);
-            return wasDeleted;
+            const wasTextDeleted = await this._mainCtrl._albumStore.removeFromCache(currTrack.baseRef);
+            const wasAudioDeleted = await this._mainCtrl._audioStore.removeFromCache(currTrack.baseRef);
+            return wasTextDeleted && wasAudioDeleted;
         };
         const procSel = await this._onOfflineAlbumProcessing(removeHandler, 'Removed');
         if (procSel.dictionary['completed']) {
@@ -104,12 +96,12 @@ export class OfflineController {
         const processSel = new TrackSelection('cache');
         processSel.dictionary['completed'] = true;
         processSel.albumIndex = this._model.navSel.albumIndex;
-        const fileList = this._mainCtrl._suttaStore.queryTrackReferences(this._model.navSel.albumIndex);
+        const fileList = this._mainCtrl._albumStore.queryTrackReferences(this._model.navSel.albumIndex);
         const urls = [];
         for (let i = 0; i < fileList.length; i++) {
             const progVal = Math.round(((i + 1) / fileList.length) * 100);
             processSel.trackIndex = i;
-            processSel.updateBaseRef(this._mainCtrl._suttaStore);
+            processSel.updateBaseRef(this._mainCtrl._albumStore);
             this._view.updateOfflineInfo(processSel.baseRef, progVal);
             const wasProcessed = await handler(processSel);
             console.log(`Processed: ${processSel.baseRef}: ${wasProcessed}`);

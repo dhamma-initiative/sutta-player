@@ -1,12 +1,12 @@
 import { CACHEABLERESPONSEPLUGIN, CACHEFIRST, CacheUtils, REGISTERROUTE } from '../../runtime/cache-utils.js';
-import { TrackSelection } from '../sutta-player-state.js';
-import suttaDb from './sutta-db.json' assert { type: 'json' };
-export async function createSuttaStorageQueryable() {
-    const ret = new JsonFsSuttaDB();
+import { TrackSelection } from '../album-player-state.js';
+import albumDb from './album-storage-db.json' assert { type: 'json' };
+export async function createAlbumStorageQueryable() {
+    const ret = new JsonFsAlbumStorageDB();
     await ret.setup();
     return ret;
 }
-export class JsonFsSuttaDB {
+export class JsonFsAlbumStorageDB {
     static CACHE_NAME = 'txt-suttaplayer.self.com.au';
     async setup() {
         if (!CacheUtils.ENABLE_CACHE)
@@ -15,7 +15,7 @@ export class JsonFsSuttaDB {
             url_href_endsWith: '.txt',
             strategy: {
                 class_name: CACHEFIRST,
-                cacheName: JsonFsSuttaDB.CACHE_NAME,
+                cacheName: JsonFsAlbumStorageDB.CACHE_NAME,
                 plugins: [
                     {
                         class_name: CACHEABLERESPONSEPLUGIN,
@@ -32,14 +32,14 @@ export class JsonFsSuttaDB {
         });
     }
     queryAlbumNames() {
-        return suttaDb.albumName;
+        return albumDb.albumName;
     }
     queryAlbumReferences() {
-        return suttaDb.albumBaseDirectory;
+        return albumDb.albumBaseDirectory;
     }
     queryTrackReferences(albIdx) {
         albIdx = albIdx === -1 ? 0 : albIdx;
-        const key = suttaDb.albumBaseDirectory[albIdx];
+        const key = albumDb.albumBaseDirectory[albIdx];
         return this._queryTrackReferences(key);
     }
     queryTrackBaseRef(albIdx, trackIdx) {
@@ -57,7 +57,7 @@ export class JsonFsSuttaDB {
             basePath = basePath.substring(1);
         if (basePath.endsWith('/'))
             basePath = basePath.substring(0, basePath.length - 1);
-        const albIdx = suttaDb.albumBaseDirectory.indexOf(basePath);
+        const albIdx = albumDb.albumBaseDirectory.indexOf(basePath);
         const lov = this._queryTrackReferences(basePath);
         const trkIdx = lov.indexOf(baseName);
         const ret = new TrackSelection('url', albIdx, trkIdx, baseRef);
@@ -77,19 +77,26 @@ export class JsonFsSuttaDB {
         const text = await resp.text();
         return text;
     }
-    async isInCache(trackTxtUri) {
-        const ret = await CacheUtils.isInCache(JsonFsSuttaDB.CACHE_NAME, [trackTxtUri], (resp) => {
+    async isInCache(baseRef) {
+        const trackTxtUri = this.queryTrackTextUri(baseRef);
+        const ret = await CacheUtils.isInCache(JsonFsAlbumStorageDB.CACHE_NAME, [trackTxtUri], (resp) => {
             return resp?.ok ? true : false;
         });
         return ret[0];
     }
-    async removeFromCache(trackTxtUri) {
-        const ret = await CacheUtils.deleteCachedUrls(JsonFsSuttaDB.CACHE_NAME, [trackTxtUri]);
+    async addToCache(baseRef) {
+        const trackTxtUri = this.queryTrackTextUri(baseRef);
+        const ret = await CacheUtils.addCachedUrls(JsonFsAlbumStorageDB.CACHE_NAME, [trackTxtUri]);
+        return ret[0];
+    }
+    async removeFromCache(baseRef) {
+        const trackTxtUri = this.queryTrackTextUri(baseRef);
+        const ret = await CacheUtils.deleteCachedUrls(JsonFsAlbumStorageDB.CACHE_NAME, [trackTxtUri]);
         return ret[0];
     }
     _queryTrackReferences(colRef) {
-        const trackRefs = suttaDb[colRef];
+        const trackRefs = albumDb[colRef];
         return trackRefs;
     }
 }
-//# sourceMappingURL=sutta-db.js.map
+//# sourceMappingURL=album-storage-db.js.map

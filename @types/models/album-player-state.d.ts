@@ -1,5 +1,5 @@
 import { LocalStorageState } from '../runtime/localstorage-state.js';
-import { SuttaStorageQueryable } from './sutta-storage-queryable.js';
+import { AlbumStorageQueryable } from './album-storage-queryable.js';
 export declare class TrackSelection extends LocalStorageState {
     context: string;
     albumIndex: number;
@@ -9,12 +9,12 @@ export declare class TrackSelection extends LocalStorageState {
     isLoaded: boolean;
     constructor(ctx: string, albIdx?: number, trkIdx?: number, bRef?: string);
     read(src: TrackSelection): void;
-    updateBaseRef(qry: SuttaStorageQueryable): void;
+    updateBaseRef(qry: AlbumStorageQueryable): void;
     isSimilar(toChk: TrackSelection): boolean;
     save(): void;
     restore(): void;
 }
-export declare class SuttaPlayerState extends LocalStorageState {
+export declare class AlbumPlayerState extends LocalStorageState {
     navSel: TrackSelection;
     textSel: TrackSelection;
     audioSel: TrackSelection;
