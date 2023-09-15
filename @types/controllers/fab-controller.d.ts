@@ -11,6 +11,9 @@ export declare class FabController {
     tearDown(): Promise<boolean>;
     notifyDuration(dur: number): void;
     private _registerListeners;
+    private _registerAudioSeekListerners;
+    private _registerDisplayListener;
+    private _registerStartStopBookmarkListeners;
     private _onSkipAudioToLine;
     private _managePromisedDuration;
 }

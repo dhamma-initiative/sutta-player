@@ -49,8 +49,8 @@ export class SettingsController {
             this._model.showLineNums = this._view.showLineNumsElem.checked
             this._view.toggleLineNums()
         }
-        this._view.searchAlbumsElem.onchange = async () => {
-            this._model.searchAlbums = this._view.searchAlbumsElem.selectedIndex
+        this._view.searchScopeElem.onchange = async () => {
+            this._model.searchScope = this._view.searchScopeElem.selectedIndex
         }
         this._view.useRegExElem.onchange = async () => {
             this._model.useRegEx = this._view.useRegExElem.checked
@@ -61,6 +61,10 @@ export class SettingsController {
         this._view.darkThemeElem.onchange = async () => {
             this._model.darkTheme = this._view.darkThemeElem.checked
             this._view.setColorTheme()
+        }
+        this._view.showContextControlsElem.onchange = async () => {
+            this._model.showContextControls = this._view.showContextControlsElem.checked
+            this._view.showHideContextControls(this._model.showContextControls)
         }
     }
 }

@@ -1,4 +1,4 @@
-import { AlbumPlayerState } from '../models/album-player-state.js';
+import { AlbumPlayerState, BookmarkedSelection } from '../models/album-player-state.js';
 export class SuttaPlayerView {
     static LINEID_PREFIX = '_ln_';
     // settings
@@ -7,8 +7,9 @@ export class SuttaPlayerView {
     repeatElem;
     linkTextToAudioElem;
     showLineNumsElem;
+    searchScopeElem;
     darkThemeElem;
-    searchAlbumsElem;
+    showContextControlsElem;
     useRegExElem;
     ignoreDiacriticsElem;
     offlineMenuElem;
@@ -26,8 +27,12 @@ export class SuttaPlayerView {
     loadTextElem;
     loadRandomElem;
     shareLinkElem;
+    // search
     searchForElem;
     searchSectionElem;
+    searchSectionLabelElem;
+    pauseSearchResultsElem;
+    clearSearchResultsElem;
     searchResultsElem;
     // display
     playingTrackElem;
@@ -57,26 +62,24 @@ export class SuttaPlayerView {
     _model;
     _albumStore;
     _audioStore;
+    _viewControllable;
     _charPosLineIndex = [];
+    _trackLov;
     removeFromCacheBaseRef = null;
-    constructor(mdl, albumStore, audioStore) {
+    constructor(mdl, albumStore, audioStore, vc) {
         this._model = mdl;
         this._albumStore = albumStore;
         this._audioStore = audioStore;
+        this._viewControllable = vc;
         this._bindHtmlElements();
     }
     async initialise(cb) {
         this.loadAlbumsList();
-        this.loadTracksList();
+        await this.loadTracksList();
         await this.loadTrackTextForUi(cb);
         this.refreshAudioControls();
-        this.loadTrackAudio();
-        if (this._model.bookmarkLineRef !== '') {
-            const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkLineRef);
-            this.scrollToTextLineNumber(lineRefVals[0], lineRefVals[1]);
-        }
-        else
-            window.scroll(0, this._model.currentScrollY);
+        await this.loadTrackAudio();
+        this._finaliseShareLinkLoadIfRqd();
     }
     refreshAudioControls() {
         this.autoPlayElem.checked = this._model.autoPlay;
@@ -88,25 +91,39 @@ export class SuttaPlayerView {
         this.scrollTextWithAudioElem.checked = this._model.scrollTextWithAudio;
         this.showLineNumsElem.checked = this._model.showLineNums;
         this.darkThemeElem.checked = this._model.darkTheme;
+        this.showContextControlsElem.checked = this._model.showContextControls;
         this.searchForElem.value = this._model.searchFor;
-        this.searchAlbumsElem.selectedIndex = this._model.searchAlbums;
+        this.searchScopeElem.selectedIndex = this._model.searchScope;
         this.useRegExElem.checked = this._model.useRegEx;
         this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics;
         this.processingProgressElem.value = 0;
         this.setColorTheme();
         this.toggleLineNums();
         this.refreshSkipAudioToLine();
+        this.showHideContextControls(this._model.showContextControls);
     }
-    loadTracksList() {
-        const trackLov = this._albumStore.queryTrackReferences(this._model.navSel.albumIndex);
+    async loadTracksList() {
+        this._trackLov = this._albumStore.queryTrackReferences(this._model.navSel.albumIndex);
         this.trackElem.innerHTML = '';
-        for (let i = 0; i < trackLov.length; i++) {
+        const albumRef = this._model.navSel.dictionary['albumRef'];
+        for (let i = 0; i < this._trackLov.length; i++) {
+            const baseRef = `${albumRef}/${this._trackLov[i]}`;
+            const isInTxtCache = await this._albumStore.isInCache(baseRef);
+            const isInAudCache = await this._audioStore.isInCache(baseRef);
+            const cachedChar = (isInAudCache && isInTxtCache) ? '✔️' : isInAudCache ? '🔊' : isInTxtCache ? '👀' : '◻';
             const option = document.createElement('option');
             option.value = `${i}`;
-            option.innerText = trackLov[i];
+            option.innerHTML = `${cachedChar} ${this._trackLov[i]}`;
             this.trackElem.append(option);
         }
         this.trackElem.selectedIndex = this._model.navSel.trackIndex;
+        // this._viewControllable.finaliseTrackLov(this._trackLov)
+    }
+    finaliseLoadTracksList(status) {
+        for (let i = 0; i < status.length; i++) {
+            const cachedChar = (status[i] === 3) ? '✔️' : (status[i] === 2) ? '🔊' : (status[i] === 1) ? '👀' : '◻';
+            this.trackElem.children[i].innerHTML = `${cachedChar} ${this._trackLov[i]}`;
+        }
     }
     async loadTrackWith(trackSel) {
         if (trackSel.baseRef === null)
@@ -194,10 +211,17 @@ export class SuttaPlayerView {
         const idRef = `${SuttaPlayerView.LINEID_PREFIX}${lineNum}`;
         return idRef;
     }
-    loadTrackAudio() {
+    async loadTrackAudio() {
         const success = this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem);
-        if (success)
+        if (success) {
             this.audioPlayerElem.currentTime = this._model.currentTime;
+            if (this._model.bookmarkSel.isAwaitingLoad()) {
+                if (this._model.currentTime > -1) {
+                    // Uncaught (in promise) DOMException: play() failed because the user didn't interact with the document first. 
+                    // await this.audioPlayerElem.play()
+                }
+            }
+        }
     }
     loadTrackAudioWith(trackSel, audioElem) {
         if (trackSel.baseRef === null)
@@ -264,7 +288,7 @@ export class SuttaPlayerView {
         this.resetAppDialogElem.open = !this.resetAppDialogElem.open;
     }
     updateOfflineInfo(processingInfo, perc) {
-        let actn = 'Choose an action above';
+        let actn = '';
         if (this._model.stopDwnlDel === 1)
             actn = 'Downloading';
         else if (this._model.stopDwnlDel === 2)
@@ -273,9 +297,9 @@ export class SuttaPlayerView {
         this.processingProgressElem.value = perc;
     }
     refreshSkipAudioToLine() {
-        if (this._model.bookmarkLineRef !== '') {
-            const vals = AlbumPlayerState.fromLineRef(this._model.bookmarkLineRef);
-            this.skipAudioToLineElem.innerHTML = `Line ${vals[0]} &#9193;`;
+        if (this._model.bookmarkSel.lineRef) {
+            const vals = AlbumPlayerState.fromLineRef(this._model.bookmarkSel.lineRef);
+            this.skipAudioToLineElem.innerHTML = `&nbsp;Line&nbsp;${vals[0]}&nbsp;⏫&nbsp;`;
             this.skipAudioToLineElem.style.display = 'block';
         }
         else
@@ -287,15 +311,39 @@ export class SuttaPlayerView {
         for (let i = 0; i < colLov.length; i++) {
             const option = document.createElement('option');
             option.value = `${i}`;
-            const downChar = this._model.isAlbumDownloaded(i) ? '&#9745;' : '&#9744;';
-            option.innerHTML = `${downChar} ${colLov[i]}`;
+            option.innerHTML = `${colLov[i]}`;
             this.albumElem.append(option);
         }
         this.albumElem.selectedIndex = this._model.navSel.albumIndex;
     }
+    showHideContextControls(show) {
+        if (this._model.showContextControls)
+            show = this._model.showContextControls;
+        const dispStyle = show ? 'block' : 'none';
+        const sections = ['lhsFabSection', 'centreFabSection', 'rhsFabSection'];
+        for (let i = 0; i < sections.length; i++) {
+            const elem = document.getElementById(sections[i]);
+            elem.style.display = dispStyle;
+        }
+    }
+    _finaliseShareLinkLoadIfRqd() {
+        if (this._model.bookmarkSel.isAwaitingLoad()) {
+            if (this._model.bookmarkSel.endTime > -1)
+                this._model.bookmarkSel.context = BookmarkedSelection.AWAITING_AUDIO_END;
+            else
+                this._model.bookmarkSel.context = BookmarkedSelection.CONTEXT;
+        }
+        if (this._model.bookmarkSel.lineRef) {
+            const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkSel.lineRef);
+            this.scrollToTextLineNumber(lineRefVals[0], lineRefVals[1]);
+        }
+        else
+            window.scroll(0, this._model.currentScrollY);
+    }
     _bindHtmlElements() {
         this._bindSettingElements();
         this._bindNavigationElements();
+        this._bindSearchElements();
         this._bindDisplayElements();
         this._bindOfflineElements();
         this._bindResetAppElements();
@@ -308,10 +356,11 @@ export class SuttaPlayerView {
         this.repeatElem = document.getElementById('repeat');
         this.linkTextToAudioElem = document.getElementById('linkTextToAudio');
         this.showLineNumsElem = document.getElementById('showLineNums');
-        this.darkThemeElem = document.getElementById('darkTheme');
-        this.searchAlbumsElem = document.getElementById('searchAlbums');
+        this.searchScopeElem = document.getElementById('searchScope');
         this.useRegExElem = document.getElementById('useRegEx');
         this.ignoreDiacriticsElem = document.getElementById('ignoreDiacritics');
+        this.darkThemeElem = document.getElementById('darkTheme');
+        this.showContextControlsElem = document.getElementById('showContextControls');
         this.offlineMenuElem = document.getElementById('offlineMenu');
         this.resetAppMenuElem = document.getElementById('resetAppMenu');
     }
@@ -323,9 +372,14 @@ export class SuttaPlayerView {
         this.loadTextElem = document.getElementById('loadText');
         this.loadRandomElem = document.getElementById('loadRandom');
         this.shareLinkElem = document.getElementById('shareLink');
+    }
+    _bindSearchElements() {
         this.searchForElem = document.getElementById('searchFor');
-        this.searchSectionElem = document.getElementById('searchSection');
         this.searchResultsElem = document.getElementById('searchResults');
+        this.searchSectionElem = document.getElementById('searchSection');
+        this.searchSectionLabelElem = document.getElementById('searchSectionLabel');
+        this.pauseSearchResultsElem = document.getElementById('pauseSearchResults');
+        this.clearSearchResultsElem = document.getElementById('clearSearchResults');
     }
     _bindDisplayElements() {
         this.playingTrackElem = document.getElementById('playingTrack');

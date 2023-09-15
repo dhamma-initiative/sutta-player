@@ -162,11 +162,33 @@ pre {
   }
 }
 
-#fabSection {
+.fabHdrLabel {
+  font-weight: bold;
+}
+
+#lhsFabSection {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 30px;
+  z-index: 99;
+  opacity: .4;
+}
+
+#rhsFabSection {
   display: none;
   position: fixed;
   bottom: 20px;
   right: 30px;
+  z-index: 99;
+  opacity: .4;
+}
+
+#centreFabSection {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
   z-index: 99;
   opacity: .4;
 }
@@ -179,4 +201,35 @@ pre {
 [data-theme="dark"] kbd,
 [data-theme="dark"] pre {
     background-color: #11191f !important;
+}
+
+#searchResults {
+  padding: 8px;
+  white-space: pre-line;
+  font-size: smaller; 
+  resize: none;
+  width: 100%;
+}
+
+.sideBySideContainer {
+  content: "";
+  display: table;
+  clear: both;
+  width: 100%;
+}
+
+.sbsAlbumTrackComboBox {
+  float: left;
+  width: 50%;
+}      
+
+.sbsLoadElement {
+  float: left;
+  width: 25%;
+}
+
+.sbsLoadLabel {
+  display: flex;
+  align-items: center;
+  height: 50px;  
 }

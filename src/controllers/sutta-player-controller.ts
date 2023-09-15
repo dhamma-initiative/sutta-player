@@ -1,17 +1,20 @@
 import { SuttaPlayerView } from '../views/sutta-player-view.js'
 
-import { AlbumPlayerState, TrackSelection } from '../models/album-player-state.js'
+import { AlbumPlayerState, BookmarkedSelection, TrackSelection } from '../models/album-player-state.js'
 import { AlbumStorageQueryable } from "../models/album-storage-queryable.js"
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js'
+import { WorkerFactory, WorkerMessage } from '../runtime/worker-utils.js'
+import { ViewControllable } from '../views/view-controllable.js'
 import { AboutController } from './about-controller.js'
+import { CACHED_TRACKS_STATUS_RQST_MSG, CachedTracksStatusRespMsg, CachedTracksStatusRqstMsg } from './controller-commons.js'
 import { FabController } from './fab-controller.js'
 import { OfflineController } from './offline-controller.js'
 import { ResetAppController } from './resetapp-controller.js'
 import { SearchController } from './search-controller.js'
 import { SettingsController } from './settings-controller.js'
 
-export class SuttaPlayerController {
-    public static VERSION = "v1.0.6"
+export class SuttaPlayerController implements ViewControllable {
+    public static VERSION = "v1.0.7"
 
     _audioStore: AudioStorageQueryable
     _albumStore: AlbumStorageQueryable
@@ -33,12 +36,18 @@ export class SuttaPlayerController {
         this._onLineSelected(event)
     }
 
+    private _backgroundWorker: Worker
+
     public constructor(appRoot: string, albumStorage: AlbumStorageQueryable, audioStorage: AudioStorageQueryable) {
         this._appRoot = appRoot
         this._albumStore = albumStorage
         this._audioStore = audioStorage
-        this._model = new AlbumPlayerState()
-        this._view = new SuttaPlayerView(this._model, this._albumStore, this._audioStore)
+
+        this._backgroundWorker = new Worker('./esm/controllers/controller-worker.js', {type:'module'})
+
+        const bookmark = new BookmarkedSelection(appRoot)
+        this._model = new AlbumPlayerState(bookmark)
+        this._view = new SuttaPlayerView(this._model, this._albumStore, this._audioStore, this)
 
         this._settingsController = new SettingsController(this._model, this._view, this)
         this._searchController = new SearchController(this._model, this._view, this)
@@ -50,6 +59,7 @@ export class SuttaPlayerController {
 
     public async setup() {
         this._injectVersionInfo()
+        this._initialiseWorker()
         this._model.restore()
         this._loadShareLinkIfSpecified()
         if (this._model.navSel.baseRef === null)
@@ -81,11 +91,31 @@ export class SuttaPlayerController {
         this._view.showMessage(msg, dur)
     }
 
+    public finaliseTrackLov(trackLov: string[]) {
+        const core: CachedTracksStatusRqstMsg = {
+            navSel: this._model.navSel,
+            tracks: trackLov
+        }
+        const msg = WorkerFactory.createRqstMsg(CACHED_TRACKS_STATUS_RQST_MSG, core)
+        this._backgroundWorker.postMessage(msg)
+    }
+
     private _injectVersionInfo() {
         const htmlVerTxt = document.getElementById('appHtmlViewVer').textContent
         document.getElementById('appJsCtrlVer').textContent = SuttaPlayerController.VERSION
         console.log(`App HTML View version: ${htmlVerTxt}`)
         console.log(`App JS Controller version: ${SuttaPlayerController.VERSION}`)
+    }
+
+    private _initialiseWorker() {
+        this._backgroundWorker.addEventListener('message', (event: MessageEvent) => {
+            const msg: WorkerMessage = event.data
+            if (msg.type === CACHED_TRACKS_STATUS_RQST_MSG) {
+                const respMsg: CachedTracksStatusRespMsg = msg.payload
+                if (respMsg.navSel.albumIndex === this._model.navSel.albumIndex)
+                    this._view.finaliseLoadTracksList(respMsg.status)
+            }
+        })
     }
 
     private _registerListeners() {
@@ -96,7 +126,7 @@ export class SuttaPlayerController {
     private _registerNavigationListeners() {
         this._view.albumElem.onchange = async () => {
             if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex)
-                this._onAlbumSelected(null)
+                await this._onAlbumSelected(null)
         }
         this._view.trackElem.onclick = async () => {
             this._onTrackSelected(null)
@@ -113,8 +143,9 @@ export class SuttaPlayerController {
         this._view.loadRandomElem.onclick = async () => {
             await this._onLoadRandom()
         }
-        this._view.shareLinkElem.onclick = async () => {
-            this._onShareLink(this._model.navSel)
+        this._view.shareLinkElem.onclick = async (e: Event) => {
+            e.preventDefault()
+            this._onShareLink()
         }
     }
 
@@ -135,15 +166,19 @@ export class SuttaPlayerController {
             this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'playing')
             this._lastScrollTime = 0
             this._view.scrollPlayToggleElem.checked = true
+
+            
         }
         this._view.audioPlayerElem.onpause = async () => {
             this._model.audioState = 5
             this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'paused')
             this._view.scrollPlayToggleElem.checked = false
+            this._model.bookmarkSel.cancelAwaitingAudioEndIfRqd()
         }
         this._view.audioPlayerElem.onended = async () => {
             this._model.audioState = 6
             this._view.scrollPlayToggleElem.checked = false
+            this._model.bookmarkSel.cancelAwaitingAudioEndIfRqd()
             await this._onAudioEnded()
         }
         this._view.audioPlayerElem.ontimeupdate = async () => {
@@ -153,10 +188,16 @@ export class SuttaPlayerController {
                 this._view.syncTextPositionWithAudio()
             }
             this._model.currentTime = this._view.audioPlayerElem.currentTime
+            if (this._model.bookmarkSel.isAwaitingAudioEnd()) {
+                if (this._model.currentTime >= this._model.bookmarkSel.endTime) {
+                    this._model.bookmarkSel.cancelAwaitingAudioEndIfRqd()
+                    this._view.audioPlayerElem.pause()
+                }
+            }
         }
         this._view.linkNavToAudioElem.onclick = async (event: Event) => {
             event.preventDefault()
-            this._onLoadIntoNavSelector(this._model.audioSel)
+            await this._onLoadIntoNavSelector(this._model.audioSel)
             this.showUserMessage(`Navigation selection sync'd to ${this._model.audioSel.baseRef}`)
         }
         this._view.linkNavToTextElem.onclick = async (event: Event) => {
@@ -180,12 +221,12 @@ export class SuttaPlayerController {
         }
     }
 
-    private _onAlbumSelected(forceAlbIdx: number) {
+    private async _onAlbumSelected(forceAlbIdx: number) {
         this._model.navSel.albumIndex = (forceAlbIdx === null) ? Number(this._view.albumElem.value) : forceAlbIdx
         this._model.navSel.trackIndex = 0
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
         this._model.navSel.updateBaseRef(this._albumStore)
-        this._view.loadTracksList()
+        await this._view.loadTracksList()
     }
 
     private _onTrackSelected(forceTrackIdx: number) {
@@ -199,7 +240,8 @@ export class SuttaPlayerController {
         this._model.currentTime = 0
         this._model.audioState = -1
         this._model.audioSel.read(srcSel)
-        this._view.loadTrackAudio()
+        this._model.bookmarkSel.read(srcSel)
+        await this._view.loadTrackAudio()
         if (this._model.linkTextToAudio) 
             await this._onLoadText(this._model.audioSel)
         return false
@@ -208,7 +250,7 @@ export class SuttaPlayerController {
     async _onLoadText(srcSel: TrackSelection): Promise<boolean> {
         if (this._model.textSel.isSimilar(srcSel) && this._model.textSel.isLoaded)
             return true
-        this._model.bookmarkLineRef = ''  // clear bookmark
+        this._model.bookmarkSel.read(srcSel)
         this._view.refreshSkipAudioToLine()
         this._model.textSel.read(srcSel)
         await this._view.loadTrackTextForUi(this._lineSelectionCb)
@@ -230,7 +272,8 @@ export class SuttaPlayerController {
         const adjPercDiff = Math.floor((adjPx / rect.height) * percDiff)
         lineRefVals[1] = lineRefVals[1] + adjChars
         lineRefVals[2] = lineRefVals[2] + adjPercDiff
-        this._model.bookmarkLineRef = AlbumPlayerState.toLineRefUsingArr(lineRefVals)
+        let modLineRef = AlbumPlayerState.toLineRefUsingArr(lineRefVals)
+        this._model.bookmarkSel.set(null, null, modLineRef)
         this._view.refreshSkipAudioToLine()
         this.showUserMessage(`Bookmarked line ${lineNum}`)
     }
@@ -242,51 +285,39 @@ export class SuttaPlayerController {
         this._model.navSel.updateBaseRef(this._albumStore)
         if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
             this._view.albumElem.selectedIndex = this._model.navSel.albumIndex
-            this._view.loadTracksList()
+            await this._view.loadTracksList()
         }
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
         await this._onLoadAudio(this._model.navSel)
         await this._onLoadText(this._model.navSel)
     }
 
-    private _onShareLink(srcSel: TrackSelection) {
-        let baseRefHref = location.protocol + '//' + location.host + this._appRoot
-        baseRefHref += '#' + srcSel.baseRef + `?startTime=${this._model.currentTime}`
-        if (this._model.bookmarkLineRef !== '')
-            baseRefHref += `&line=${this._model.bookmarkLineRef}`
-        navigator.clipboard.writeText(baseRefHref)
+    private _onShareLink() {
+        let href = this._model.bookmarkSel.createLink()
+        navigator.clipboard.writeText(href)
         this.showUserMessage('Share Link copied to clipboard')
     }
 
-    _onLoadIntoNavSelector(srcSel: TrackSelection) {
+    async _onLoadIntoNavSelector(srcSel: TrackSelection) {
         this._model.navSel.read(srcSel)
         if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
             this._view.albumElem.selectedIndex = this._model.navSel.albumIndex
-            this._view.loadTracksList()
+            await this._view.loadTracksList()
         }
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
         this.showUserMessage('Track loaded into Navigator selection')
     }
 
     private _loadShareLinkIfSpecified() {
-        let href = location.href
-        let url = new URL(href)
-        if (url.hash) {
-            href = href.replace('#','')
-            url = new URL(href)
-           let baseRef = url.pathname.substring(this._appRoot.length)
-            if (baseRef.startsWith('/'))
-                baseRef = baseRef.substring(1)
-            const urlSel = this._albumStore.queryTrackSelection(baseRef)
-            if (urlSel.albumIndex > -1 && urlSel.trackIndex > -1) {
-                this._model.navSel.read(urlSel)
-                this._model.audioSel.read(urlSel)
-                this._model.textSel.read(urlSel)
-                this._model.currentTime = Number(url.searchParams.get('startTime'))
-                this._model.bookmarkLineRef = url.searchParams.get('line')
-                this._view.refreshSkipAudioToLine()
-                this._view.albumTrackSelectionElem.open = false
-            }
+        this._model.bookmarkSel.parseLink(this._albumStore)
+        if (this._model.bookmarkSel.isAwaitingLoad()) {
+            this._model.navSel.read(this._model.bookmarkSel)
+            this._model.audioSel.read(this._model.bookmarkSel)
+            this._model.textSel.read(this._model.bookmarkSel)
+            if (this._model.bookmarkSel.startTime > -1)
+                this._model.currentTime = this._model.bookmarkSel.startTime
+            this._view.refreshSkipAudioToLine()
+            this._view.albumTrackSelectionElem.open = false
         }
     }
 } 

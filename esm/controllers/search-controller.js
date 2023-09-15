@@ -1,4 +1,5 @@
 import { AlbumPlayerState, TrackSelection } from "../models/album-player-state.js";
+import { DeferredPromise } from "../runtime/deferred-promise.js";
 import { StringUtils } from '../runtime/string-utils.js';
 export class SearchController {
     static DIACRITICS_CHR = ["ā", "ī", "ū", "ṁ", "ṃ", "ṇ", "ṅ", "ñ", "ṣ", "ṭ", "ḍ", "ḷ", "ḥ"];
@@ -8,6 +9,8 @@ export class SearchController {
     _mainCtrl;
     _searchSel = new TrackSelection('searchSel');
     _maxSurroundingChars = 150;
+    _idxPosMatchMap = new Map();
+    _continueSearchDeferred;
     constructor(mdl, vw, ctrl) {
         this._model = mdl;
         this._view = vw;
@@ -21,27 +24,61 @@ export class SearchController {
         this._model = null;
         return true;
     }
-    _registerListeners() {
-        this._view.searchResultsElem.onclick = async (e) => {
-            await this._onSearchResultSelected();
-        };
-        const searchResultsSummaryElem = document.getElementById('searchResultSummary');
+    async _registerListeners() {
         const searchFormElem = this._view.searchForElem.parentElement;
         searchFormElem.onsubmit = async (e) => {
             e.preventDefault();
-            await this._onSearchFor(searchResultsSummaryElem);
+            await this._onSearchFor();
+        };
+        this._view.pauseSearchResultsElem.onchange = async () => {
+            this._onPauseSearchResults();
+        };
+        this._view.clearSearchResultsElem.onclick = async (e) => {
+            e.preventDefault();
+            this._onClearSearchResults();
+        };
+        this._view.searchResultsElem.onclick = async (e) => {
+            this._onSearchResultSelected();
         };
     }
-    async _onSearchFor(searchResultsSummaryElem) {
+    _onPauseSearchResults() {
+        if (this._view.pauseSearchResultsElem.checked)
+            this._continueSearchDeferred = new DeferredPromise();
+        else if (this._continueSearchDeferred) {
+            this._continueSearchDeferred.resolve(true);
+            this._continueSearchDeferred = null;
+        }
+    }
+    _onClearSearchResults() {
+        if (this._model.startSearch && !this._view.pauseSearchResultsElem.checked) {
+            this._mainCtrl.showUserMessage('Pause search before clearing results!');
+            return;
+        }
+        this._view.searchResultsElem.innerHTML = '';
+        this._idxPosMatchMap.clear();
+    }
+    async _onSearchFor() {
         this._model.startSearch = !this._model.startSearch;
-        const elem = document.getElementById('offlineMenuBusy');
+        this._abortSearchIfRequired();
         if (this._model.startSearch) {
+            this._view.pauseSearchResultsElem.disabled = false;
             await this.onStartSearch();
             this._model.startSearch = false;
+            this._view.pauseSearchResultsElem.disabled = true;
+        }
+    }
+    _abortSearchIfRequired() {
+        if (this._continueSearchDeferred) {
+            this._continueSearchDeferred.reject('Search aborted!');
+            this._continueSearchDeferred = null;
         }
     }
     async _onSearchResultSelected() {
+        if (typeof this._view.searchResultsElem.selectionStart == 'undefined')
+            return false;
         const rsltSel = this._getSearchResultSelection();
+        if (!rsltSel)
+            return false;
         this._mainCtrl._onLoadIntoNavSelector(rsltSel);
         await this._mainCtrl._onLoadAudio(rsltSel);
         this._view.audioPlayerElem.pause();
@@ -49,38 +86,54 @@ export class SearchController {
             await this._mainCtrl._onLoadText(rsltSel);
         const lineChars = AlbumPlayerState.fromLineRef(rsltSel.context);
         this._view.scrollToTextLineNumber(lineChars[0], lineChars[1]);
-        this._model.bookmarkLineRef = rsltSel.context;
+        this._model.bookmarkSel.read(rsltSel);
+        this._model.bookmarkSel.set(null, null, rsltSel.context);
         this._view.refreshSkipAudioToLine();
         this._mainCtrl.showUserMessage(`Loading match on line ${lineChars[0]} of ${rsltSel.baseRef}`);
     }
     _getSearchResultSelection() {
-        const opt = this._view.searchResultsElem.selectedOptions[0];
-        const baseRef = opt.parentElement.label;
-        const ret = this._mainCtrl._albumStore.queryTrackSelection(baseRef);
-        ret.context = this._view.searchResultsElem.value;
+        let text = this._view.searchResultsElem.value;
+        let before = text.substring(0, this._view.searchResultsElem.selectionStart);
+        let after = text.substring(this._view.searchResultsElem.selectionEnd, text.length);
+        let startPos = before.lastIndexOf("\n") >= 0 ? before.lastIndexOf("\n") + 1 : 0;
+        const matchRef = this._idxPosMatchMap.get(startPos);
+        if (!matchRef)
+            return null;
+        let endPos = after.indexOf("\n") >= 0 ? this._view.searchResultsElem.selectionEnd + after.indexOf("\n") : text.length;
+        this._view.searchResultsElem.selectionStart = startPos;
+        this._view.searchResultsElem.selectionEnd = endPos;
+        const ret = this._mainCtrl._albumStore.queryTrackSelection(matchRef.baseRef);
+        ret.context = matchRef.lineRef;
         return ret;
     }
     async onStartSearch() {
-        if (!this._model.startSearch)
+        if (!this._model.startSearch) {
+            this._abortSearchIfRequired();
             return false;
+        }
         this._initialiseSearch();
         if (this._view.searchForElem.value.length === 0) {
             this._view.searchSectionElem.open = false;
-            this._mainCtrl.showUserMessage('Search results cleared');
             return false;
         }
         if (this._view.searchForElem.value.length < 2) {
             this._mainCtrl.showUserMessage('Search criteria must have at least two characters');
             return false;
         }
-        await this._searchPreferencedAlbums();
+        try {
+            await this._searchPreferencedAlbums();
+        }
+        catch (e) {
+            this._mainCtrl.showUserMessage(e.message);
+        }
         this._model.startSearch = false;
         return true;
     }
     _initialiseSearch() {
         this._view.searchResultsElem.innerHTML = '';
+        this._idxPosMatchMap.clear();
         this._view.searchSectionElem.open = true;
-        this._maxSurroundingChars = this._estimateNumberOfCharactersForSelect();
+        this._maxSurroundingChars = this._estimateNumberOfCharactersForResultsView();
         this._model.searchFor = this._view.searchForElem.value;
     }
     async _searchPreferencedAlbums() {
@@ -96,40 +149,46 @@ export class SearchController {
                     break;
                 this._searchSel.trackIndex = j;
                 this._searchSel.updateBaseRef(this._mainCtrl._albumStore);
+                if (this._model.searchScope === 1) {
+                    const inCache = await this._mainCtrl._albumStore.isInCache(this._searchSel.baseRef);
+                    if (!inCache)
+                        continue;
+                }
                 const src = await this._getTrackSource();
-                tracks = this._reportMatches(src, tracks);
+                tracks = await this._reportMatches(src, tracks);
             }
         }
-        const occurances = this._view.searchResultsElem.length;
+        this._notifySearchProgress(tracks);
+    }
+    _notifySearchProgress(tracks) {
+        const occurances = this._idxPosMatchMap.size;
         this._mainCtrl.showUserMessage(`${occurances} results in ${tracks} tracks`);
     }
-    _reportMatches(src, tracks) {
+    async _reportMatches(src, tracks) {
         const searchFor = this._model.searchFor;
         const indexPositions = this._model.useRegEx ? StringUtils.allIndexOfUsingRegEx(src, searchFor) : StringUtils.allIndexesOf(src, searchFor);
         if (indexPositions.length > 0) {
             tracks++;
-            const optGrp = this._createOptionGroupElem();
+            this._view.searchResultsElem.innerHTML += (tracks === 1 ? '' : '\n\n') + this._searchSel.baseRef;
             const linePositions = StringUtils.allLinePositions(src, indexPositions);
             for (let i = 0; i < indexPositions.length; i++) {
-                this._appendResultToGroup(src, indexPositions[i], linePositions[i], optGrp);
+                if (this._continueSearchDeferred) {
+                    this._notifySearchProgress(tracks);
+                    await this._continueSearchDeferred;
+                }
+                this._appendResultToTextArea(src, indexPositions[i], linePositions[i]);
             }
         }
         return tracks;
     }
-    _appendResultToGroup(src, idxPos, lineNum, elem) {
-        const matchCtx = StringUtils.surroundingTrim(src, idxPos, this._maxSurroundingChars);
-        const opt = document.createElement('option');
-        opt.label = matchCtx;
+    _appendResultToTextArea(src, idxPos, lineNum) {
+        const startPos = this._view.searchResultsElem.textLength + 1;
+        let matchCtx = StringUtils.surroundingTrim(src, idxPos, this._maxSurroundingChars).replaceAll('\n', ' ');
+        matchCtx = `\n…${matchCtx}… - ${lineNum}`;
+        this._view.searchResultsElem.innerHTML += matchCtx;
         const perc = (idxPos / src.length) * 100;
         const lineRef = AlbumPlayerState.toLineRef(lineNum, idxPos, perc, 0, 0);
-        opt.value = lineRef;
-        elem.append(opt);
-    }
-    _createOptionGroupElem() {
-        const optGrp = document.createElement('optgroup');
-        optGrp.label = this._searchSel.baseRef;
-        this._view.searchResultsElem.append(optGrp);
-        return optGrp;
+        this._idxPosMatchMap.set(startPos, { baseRef: this._searchSel.baseRef, lineRef: lineRef });
     }
     async _getTrackSource() {
         let src = await this._mainCtrl._albumStore.queryTrackText(this._searchSel.baseRef);
@@ -148,27 +207,20 @@ export class SearchController {
     }
     _getAlbumIndexes() {
         const ret = [this._model.navSel.albumIndex];
-        if (this._model.searchAlbums > 0) {
-            if (this._model.searchAlbums === 1 && !this._model.isAlbumDownloaded(this._model.navSel.albumIndex))
-                ret.pop(); // remove the default this._model.navSel.albumIndex entry
+        if (this._model.searchScope > 0) {
             const albumSrcRefs = this._mainCtrl._albumStore.queryAlbumReferences();
             for (let i = 0; i < albumSrcRefs.length; i++) {
-                if (ret.indexOf(i) === -1) {
-                    let addToCriteria = true;
-                    if (this._model.searchAlbums === 1 && !this._model.isAlbumDownloaded(i))
-                        addToCriteria = false;
-                    if (addToCriteria)
-                        ret.push(i);
-                }
+                if (ret.indexOf(i) === -1)
+                    ret.push(i);
             }
         }
         return ret;
     }
-    _estimateNumberOfCharactersForSelect() {
+    _estimateNumberOfCharactersForResultsView() {
         const computedStyle = window.getComputedStyle(this._view.searchResultsElem);
         const fontSize = parseFloat(computedStyle.getPropertyValue('font-size')) * 0.45;
         const maxChars = Math.floor(this._view.searchResultsElem.clientWidth / fontSize);
-        return maxChars;
+        return maxChars * 1.5; // extra for 2 lines in for textarea
     }
 }
 //# sourceMappingURL=search-controller.js.map

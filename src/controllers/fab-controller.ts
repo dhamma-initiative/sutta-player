@@ -47,27 +47,75 @@ export class FabController {
         this._view.gotoTopElem.onclick = async () => {
             window.scroll(0, 0)
         }
-        const fabSection = document.getElementById('fabSection')
+
+        this._registerDisplayListener()
+        this._registerAudioSeekListerners()
+        this._registerStartStopBookmarkListeners()
+    }
+
+    private _registerAudioSeekListerners() {
+        const skipsFwd5Sec = document.getElementById('skipsFwd5Sec')
+        const skipsBack5Sec = document.getElementById('skipsBack5Sec')
+        skipsFwd5Sec.onclick = async (e: Event) => {
+            e.preventDefault()
+            if (this._model.audioState > 1) {
+                this._view.audioPlayerElem.currentTime += 5
+                // this._mainCtrl.showUserMessage('skipping forward 5 seconds')
+            }
+        }
+        skipsBack5Sec.onclick = async (e: Event) => {
+            e.preventDefault()
+            if (this._model.audioState > 1) {
+                this._view.audioPlayerElem.currentTime -= 5
+                // this._mainCtrl.showUserMessage('skipping backward 5 seconds')
+            }
+        }
+    }
+
+    private _registerDisplayListener() {
+        const rhsFabSection = document.getElementById('rhsFabSection')
+        const lhsFabSection = document.getElementById('lhsFabSection')
+        const centreFabSection = document.getElementById('centreFabSection')
         window.onscroll = () => {
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
-                fabSection.style.display = "block"
-            } else {
-                fabSection.style.display = "none"
+            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) 
+                this._view.showHideContextControls(true)
+            else
+                this._view.showHideContextControls(false)
+        }
+    }
+
+    private _registerStartStopBookmarkListeners() {
+        const setStartAtBookmark = document.getElementById('setStartAtBookmark')
+        const setStopAtBookmark = document.getElementById('setStopAtBookmark')
+        setStartAtBookmark.onclick = async (e: Event) => {
+            e.preventDefault()
+            if (this._model.audioState > 1) {
+                this._model.bookmarkSel.read(this._model.audioSel)
+                this._model.bookmarkSel.set(this._view.audioPlayerElem.currentTime, null, null)
+                this._mainCtrl.showUserMessage('Bookmarked audio start')
+            }
+        }
+        setStopAtBookmark.onclick = async (e: Event) => {
+            e.preventDefault()
+            if (this._model.audioState > 1) {
+                this._model.bookmarkSel.read(this._model.audioSel)
+                this._model.bookmarkSel.set(null, this._view.audioPlayerElem.currentTime, null)
+                this._mainCtrl.showUserMessage('Bookmarked audio end')
             }
         }
     }
 
     private async _onSkipAudioToLine() {
-        if (this._model.bookmarkLineRef === "")
+        if (!this._model.bookmarkSel.lineRef)
             return
-        const currBookmarkLineRef = this._model.bookmarkLineRef
-        const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkLineRef)
-        this._mainCtrl._onLoadIntoNavSelector(this._model.textSel)
+        const currBookmarkLineRef = this._model.bookmarkSel.lineRef
+        const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkSel.lineRef)
+        this._mainCtrl._onLoadIntoNavSelector(this._model.bookmarkSel)
         this._audDurPromise = new DeferredPromise<number>()
-        const alreadyLoaded = await this._mainCtrl._onLoadAudio(this._model.textSel)
+        const alreadyLoaded = await this._mainCtrl._onLoadAudio(this._model.bookmarkSel)
         if (alreadyLoaded)
             this._audDurPromise.resolve(this._view.audioPlayerElem.duration)
-        this._model.bookmarkLineRef = currBookmarkLineRef
+        this._model.bookmarkSel.lineRef = currBookmarkLineRef
         this._view.refreshSkipAudioToLine()
         await this._managePromisedDuration(lineRefVals)
         await this._view.audioPlayerElem.play()

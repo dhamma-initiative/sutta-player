@@ -87,10 +87,6 @@ export class OfflineController {
             return wasTextDownloaded && wasAudioDownloaded
         }
         const procSel = await this._onOfflineAlbumProcessing(downloadHandler, 'Downloaded')
-        if (procSel.dictionary['completed']) {
-            this._model.downloadedAlbums.push(procSel.albumIndex)
-            this._view.loadAlbumsList()
-        }
     }
 
     private async _onRemoveAlbum() {
@@ -100,11 +96,6 @@ export class OfflineController {
             return wasTextDeleted && wasAudioDeleted
         }
         const procSel = await this._onOfflineAlbumProcessing(removeHandler, 'Removed')
-        if (procSel.dictionary['completed']) {
-            const idxPos = this._model.downloadedAlbums.indexOf(procSel.albumIndex)  
-            this._model.downloadedAlbums.splice(idxPos, 1)
-            this._view.loadAlbumsList()
-        }
     }
 
     private async _onOfflineAlbumProcessing(handler: OfflineProcessingCallback, msgType: string): Promise<TrackSelection> {

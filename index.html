@@ -26,7 +26,7 @@
             <ul>
                 <li>
                     <details role="list" dir="rtl">
-                        <summary aria-haspopup="listbox" role="link" class="contrast">&#9881; Settings</summary>
+                        <summary aria-haspopup="listbox" role="link" class="contrast">⚙️ Settings</summary>
                         <ul role="listbox">
                             <li>:Audio</li>
                             <li>
@@ -62,10 +62,10 @@
                             </li>
                             <li>:Search</li>
                             <li>
-                                <label for="searchAlbums">
-                                    <select id="searchAlbums">
+                                <label for="searchScope">
+                                    <select id="searchScope">
                                         <option value="0">Selected Albums</option>
-                                        <option value="1">Downloaded Albums</option>
+                                        <option value="1">Cached Tracks</option>
                                         <option value="2">All Albums</option>
                                     </select>
                                 </label>
@@ -87,6 +87,12 @@
                                 <label for="darkTheme">
                                     Dark/night theme
                                     <input type="checkbox" role="switch" id="darkTheme" name="darkTheme" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="showContextControls">
+                                    Show context controls
+                                    <input type="checkbox" role="switch" id="showContextControls" name="showContextControls" />
                                 </label>
                             </li>
                             <li><a id="offlineMenu" href="#"></span>...Offline</a></li>
@@ -113,47 +119,47 @@
     <!-- Main -->
     <main class="container">
         <details id="albumTrackSelection" open>
-            <summary>&#8801; Album/Track selections</summary>
-            <table>
-                <tbody>
-                    <tr>
-                        <td colspan="2">
-                            <select id="album" required>
-                            </select>
-                        </td>
-                        <td colspan="2">
-                            <select id="track" required>
-                            </select>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td><button id="loadAudio" title="Load track into audio player">A&#8609;</button></td>
-                        <td><button id="loadText" title="Load text into text viewer" class="secondary">T&#8609;</button></td>
-                        <td><button id="loadRandom" title="Load a random track into player & viewer" class="contrast">R&#8609;</button></td>
-                        <td><button id="shareLink" title="Copy selection to clipboard" class="contrast">&#8694;</button></td>
-                    </tr>
-                </tbody>          
-            </table>
+            <summary>☰ Album/Track selections</summary>
+            <div class="sideBySideContainer">
+                <div class="sbsAlbumTrackComboBox">
+                    <select id="album" required>
+                    </select>
+                </div>
+                <div class="sbsAlbumTrackComboBox">
+                    <select id="track" required>
+                    </select>
+                </div>
+            </div>
+            <div class="sideBySideContainer">
+                <span class="sbsLoadElement sbsLoadLabel">↡&nbsp;Load:</span>
+                <button id="loadAudio" title="Load track into audio player" class="sbsLoadElement">🔊 Aud</button>
+                <button id="loadText" title="Load text into text viewer" class="secondary sbsLoadElement">👀 Txt</button>
+                <button id="loadRandom" title="Load a random track into player & viewer" class="contrast sbsLoadElement">💣 Rnd</button>
+            </div>
             <div>
                 <form>
                     <input type="search" id="searchFor" name="searchFor" placeholder="Search">
                 </form>
             </div>
             <details id="searchSection">
-                <summary aria-busy="false" id="searchResultSummary">&nbsp;Results</summary>
-                <select id="searchResults" required size="10">
-                </select>                
+                <summary>
+                    <span id="searchSectionLabel">Search results</span>&nbsp;
+                    <a id="clearSearchResults" href="#" class="linkNavButton">&nbsp;✖️&nbsp;</a>&nbsp;&nbsp;⏸️
+                    <input type="checkbox" role="switch" id="pauseSearchResults" name="pauseSearchResults" disabled/>
+                </summary>
+                <textarea id="searchResults" rows="10" wrap="off" readonly>
+                </textarea>
             </details>
         </details>
 
         <details open>
-            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;A&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="playingTrack">awaiting load</span></summary>
+            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;🔊&nbsp;↟&nbsp;</a>&nbsp;<span id="playingTrack">awaiting load</span></summary>
             <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload">
             </audio>
         </details>
 
         <details open>
-            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;T&nbsp;&#8607;&nbsp;</a>&nbsp;<span id="displayingTrack">awaiting load</span></summary>
+            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;👀&nbsp;↟&nbsp;</a>&nbsp;<span id="displayingTrack">awaiting load</span></summary>
             <pre>
 <code id="trackTextBody" class="displayLineNums"></code>
             </pre>                
@@ -201,30 +207,43 @@
             <article>
                 <h3>Reset Sutta Player App</h3>
                 <ul>
-                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.6</span></li>
+                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.7</span></li>
                     <li>App JS Controller version: <span id="appJsCtrlVer">REPLACE</span></li>
                 </ul>
                 <p>
                   Resetting the application will delete all downloaded Albums and cached data. The App will then reload from the website.
                 </p>
-                <p>Please confirm your action.</p>
+                <p>Please confirm action.</p>
                 <footer>
                   <a id="resetAppClose" href="#" role="button" class="secondary">Cancel</a>
                   <a id="resetAppConfirm" href="#" role="button">Confirm</a>
                 </footer>
               </article>            
         </dialog>
-        <div id="fabSection" dir="rtl">
-            <label for="scrollPlayToggle">
-                <input type="checkbox" role="switch" id="scrollPlayToggle" name="scrollPlayToggle" disabled/>
-                Play
-            </label>
-            <a href="#" id="skipAudioToLine">REPLACE</a>
+        <div id="lhsFabSection">
+            <label class="fabHdrLabel">Text:</label>
             <label for="scrollTextWithAudio">
                 <input type="checkbox" role="switch" id="scrollTextWithAudio" name="scrollTextWithAudio" />
                 Auto scroll
             </label>
             <hr/>
+            <label class="fabHdrLabel">Link:</label>
+            <a href="#" id="setStartAtBookmark" class="linkNavButton">&nbsp;▶️&nbsp;</a>&nbsp;&nbsp;🔊&nbsp;&nbsp;<a href="#" id="setStopAtBookmark" class="linkNavButton">&nbsp;⏹️&nbsp;</a>
+            <hr/>
+            <a id="shareLink" href="#" title="Copy link to clipboard" class="linkNavButton">&nbsp;📎&nbsp;Share&nbsp;</a>
+        </div>
+        <div id="rhsFabSection" dir="rtl">
+            <label class="fabHdrLabel">:Audio</label>
+            <label for="scrollPlayToggle">
+                <input type="checkbox" role="switch" id="scrollPlayToggle" name="scrollPlayToggle" disabled/>
+                ▶️
+            </label>
+            <hr/>
+            <a href="#" id="skipsFwd5Sec" class="linkNavButton">&nbsp;⏩&nbsp;</a>&nbsp;sec 5&nbsp;<a href="#" id="skipsBack5Sec" class="linkNavButton">&nbsp;⏪&nbsp;</a>
+            <hr/>
+            <a href="#" id="skipAudioToLine" class="linkNavButton">REPLACE</a>            
+        </div>
+        <div id="centreFabSection">
             <a href="#" id="gotoTop" title="Go to top" class="contrast">Top</a>
         </div>
         <div id="snackbar"></div>

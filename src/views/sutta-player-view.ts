@@ -1,7 +1,7 @@
-import { off } from 'process'
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js'
-import { AlbumPlayerState, TrackSelection } from '../models/album-player-state.js'
+import { AlbumPlayerState, BookmarkedSelection, TrackSelection } from '../models/album-player-state.js'
 import { AlbumStorageQueryable } from "../models/album-storage-queryable.js"
+import { ViewControllable } from './view-controllable.js'
 
 export class SuttaPlayerView {
     public static LINEID_PREFIX = '_ln_'
@@ -11,8 +11,10 @@ export class SuttaPlayerView {
     repeatElem: HTMLInputElement
     linkTextToAudioElem: HTMLInputElement
     showLineNumsElem: HTMLInputElement
+    searchScopeElem: HTMLSelectElement
     darkThemeElem: HTMLInputElement
-    searchAlbumsElem: HTMLSelectElement
+    showContextControlsElem: HTMLInputElement
+
     useRegExElem: HTMLInputElement
     ignoreDiacriticsElem: HTMLInputElement
     offlineMenuElem: HTMLAnchorElement
@@ -32,9 +34,14 @@ export class SuttaPlayerView {
     loadTextElem: HTMLButtonElement
     loadRandomElem: HTMLButtonElement
     shareLinkElem: HTMLButtonElement
+
+    // search
     searchForElem: HTMLInputElement
     searchSectionElem: HTMLDetailsElement
-    searchResultsElem: HTMLSelectElement
+    searchSectionLabelElem: HTMLSpanElement
+    pauseSearchResultsElem: HTMLInputElement
+    clearSearchResultsElem: HTMLAnchorElement
+    searchResultsElem: HTMLTextAreaElement
 
     // display
     playingTrackElem: HTMLElement
@@ -69,29 +76,28 @@ export class SuttaPlayerView {
     private _model: AlbumPlayerState
     private _albumStore: AlbumStorageQueryable
     private _audioStore: AudioStorageQueryable
+    private _viewControllable: ViewControllable
 
     private _charPosLineIndex: number[] = []
+    private _trackLov: string[]
     
     public removeFromCacheBaseRef: string = null
 
-    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable, audioStore: AudioStorageQueryable) {
+    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable, audioStore: AudioStorageQueryable, vc: ViewControllable) {
         this._model = mdl
         this._albumStore = albumStore
         this._audioStore = audioStore
+        this._viewControllable = vc
         this._bindHtmlElements()
     }
 
     public async initialise(cb: (event: MouseEvent) => void) {
         this.loadAlbumsList()
-        this.loadTracksList()
+        await this.loadTracksList()
         await this.loadTrackTextForUi(cb)
         this.refreshAudioControls()
-        this.loadTrackAudio()
-        if (this._model.bookmarkLineRef !== '') {
-            const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkLineRef)
-            this.scrollToTextLineNumber(lineRefVals[0], lineRefVals[1])
-        } else
-            window.scroll(0, this._model.currentScrollY)
+        await this.loadTrackAudio()
+        this._finaliseShareLinkLoadIfRqd()
     }
 
     public refreshAudioControls() {
@@ -106,9 +112,10 @@ export class SuttaPlayerView {
 
         this.showLineNumsElem.checked = this._model.showLineNums
         this.darkThemeElem.checked = this._model.darkTheme
+        this.showContextControlsElem.checked = this._model.showContextControls
 
         this.searchForElem.value = this._model.searchFor
-        this.searchAlbumsElem.selectedIndex = this._model.searchAlbums
+        this.searchScopeElem.selectedIndex = this._model.searchScope
         this.useRegExElem.checked = this._model.useRegEx
         this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics
         
@@ -117,18 +124,32 @@ export class SuttaPlayerView {
         this.setColorTheme()
         this.toggleLineNums()
         this.refreshSkipAudioToLine()
+        this.showHideContextControls(this._model.showContextControls)
     }
 
-    public loadTracksList() {
-        const trackLov = this._albumStore.queryTrackReferences(this._model.navSel.albumIndex)
+    public async loadTracksList() {
+        this._trackLov = this._albumStore.queryTrackReferences(this._model.navSel.albumIndex)
         this.trackElem.innerHTML = ''
-        for (let i = 0; i < trackLov.length; i++) {
+        const albumRef: string = <string> this._model.navSel.dictionary['albumRef']
+        for (let i = 0; i < this._trackLov.length; i++) {
+            const baseRef = `${albumRef}/${this._trackLov[i]}`
+            const isInTxtCache = await this._albumStore.isInCache(baseRef)
+            const isInAudCache = await this._audioStore.isInCache(baseRef)
+            const cachedChar = (isInAudCache && isInTxtCache) ? '✔️' : isInAudCache ? '🔊' : isInTxtCache ? '👀' : '◻'
             const option = document.createElement('option')
             option.value = `${i}`
-            option.innerText = trackLov[i]
+            option.innerHTML = `${cachedChar} ${this._trackLov[i]}`
             this.trackElem.append(option)
         }
         this.trackElem.selectedIndex = this._model.navSel.trackIndex
+        // this._viewControllable.finaliseTrackLov(this._trackLov)
+    }
+
+    public finaliseLoadTracksList(status: number[]) {
+        for (let i = 0; i < status.length; i++) {
+            const cachedChar = (status[i] === 3) ? '✔️' : (status[i] === 2) ? '🔊' : (status[i] === 1) ? '👀' : '◻'
+            this.trackElem.children[i].innerHTML = `${cachedChar} ${this._trackLov[i]}`
+        }
     }
 
     public async loadTrackWith(trackSel: TrackSelection): Promise<string> {
@@ -230,10 +251,17 @@ export class SuttaPlayerView {
         return idRef
     }
 
-    public loadTrackAudio() {
+    public async loadTrackAudio() {
         const success = this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem)
-        if (success)
+        if (success) {
             this.audioPlayerElem.currentTime = this._model.currentTime
+            if (this._model.bookmarkSel.isAwaitingLoad()) {
+                if (this._model.currentTime > -1) {
+                    // Uncaught (in promise) DOMException: play() failed because the user didn't interact with the document first. 
+                    // await this.audioPlayerElem.play()
+                }
+            }
+        }
     }
 
     public loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): boolean {
@@ -306,7 +334,7 @@ export class SuttaPlayerView {
     }
 
     public updateOfflineInfo(processingInfo: string, perc: number) {
-        let actn = 'Choose an action above'
+        let actn = ''
         if (this._model.stopDwnlDel === 1)
             actn = 'Downloading'
         else if (this._model.stopDwnlDel === 2)
@@ -316,9 +344,9 @@ export class SuttaPlayerView {
     }
 
     public refreshSkipAudioToLine() {
-        if (this._model.bookmarkLineRef !== '') {
-            const vals = AlbumPlayerState.fromLineRef(this._model.bookmarkLineRef)
-            this.skipAudioToLineElem.innerHTML = `Line ${vals[0]} &#9193;`
+        if (this._model.bookmarkSel.lineRef) {
+            const vals = AlbumPlayerState.fromLineRef(this._model.bookmarkSel.lineRef)
+            this.skipAudioToLineElem.innerHTML = `&nbsp;Line&nbsp;${vals[0]}&nbsp;⏫&nbsp;`
             this.skipAudioToLineElem.style.display = 'block'
         } else
             this.skipAudioToLineElem.style.display = 'none'
@@ -330,16 +358,41 @@ export class SuttaPlayerView {
         for (let i = 0; i < colLov.length; i++) {
             const option = document.createElement('option')
             option.value = `${i}`
-            const downChar = this._model.isAlbumDownloaded(i) ? '&#9745;' : '&#9744;'
-            option.innerHTML = `${downChar} ${colLov[i]}`
+            option.innerHTML = `${colLov[i]}`
             this.albumElem.append(option)
         }
         this.albumElem.selectedIndex = this._model.navSel.albumIndex
     }
 
+    public showHideContextControls(show: boolean) {
+        if (this._model.showContextControls)
+            show = this._model.showContextControls
+        const dispStyle = show ? 'block' : 'none'
+        const sections = ['lhsFabSection', 'centreFabSection', 'rhsFabSection']
+        for (let i = 0; i < sections.length; i++) {
+            const elem = document.getElementById(sections[i])
+            elem.style.display = dispStyle
+        }
+    }
+
+    private _finaliseShareLinkLoadIfRqd() {
+        if (this._model.bookmarkSel.isAwaitingLoad()) {
+            if (this._model.bookmarkSel.endTime > -1)
+                this._model.bookmarkSel.context = BookmarkedSelection.AWAITING_AUDIO_END
+            else
+                this._model.bookmarkSel.context = BookmarkedSelection.CONTEXT
+        }
+        if (this._model.bookmarkSel.lineRef) {
+            const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkSel.lineRef)
+            this.scrollToTextLineNumber(lineRefVals[0], lineRefVals[1])
+        } else
+            window.scroll(0, this._model.currentScrollY)
+    }
+
     private _bindHtmlElements() {
         this._bindSettingElements()
         this._bindNavigationElements()
+        this._bindSearchElements()
         this._bindDisplayElements()
         this._bindOfflineElements()
         this._bindResetAppElements()
@@ -353,10 +406,12 @@ export class SuttaPlayerView {
         this.repeatElem = <HTMLInputElement>document.getElementById('repeat')
         this.linkTextToAudioElem = <HTMLInputElement>document.getElementById('linkTextToAudio')
         this.showLineNumsElem = <HTMLInputElement>document.getElementById('showLineNums')
-        this.darkThemeElem = <HTMLInputElement>document.getElementById('darkTheme')
-        this.searchAlbumsElem = <HTMLSelectElement>document.getElementById('searchAlbums')
+        this.searchScopeElem = <HTMLSelectElement>document.getElementById('searchScope')
         this.useRegExElem = <HTMLInputElement>document.getElementById('useRegEx')
         this.ignoreDiacriticsElem = <HTMLInputElement>document.getElementById('ignoreDiacritics')
+
+        this.darkThemeElem = <HTMLInputElement>document.getElementById('darkTheme')
+        this.showContextControlsElem = <HTMLInputElement>document.getElementById('showContextControls')
 
         this.offlineMenuElem = <HTMLAnchorElement>document.getElementById('offlineMenu')
         this.resetAppMenuElem = <HTMLAnchorElement>document.getElementById('resetAppMenu')
@@ -370,9 +425,15 @@ export class SuttaPlayerView {
         this.loadTextElem = <HTMLButtonElement>document.getElementById('loadText')
         this.loadRandomElem = <HTMLButtonElement>document.getElementById('loadRandom')
         this.shareLinkElem = <HTMLButtonElement>document.getElementById('shareLink')
+    }
+
+    private _bindSearchElements() {
         this.searchForElem = <HTMLInputElement>document.getElementById('searchFor')
+        this.searchResultsElem = <HTMLTextAreaElement>document.getElementById('searchResults')
         this.searchSectionElem = <HTMLDetailsElement>document.getElementById('searchSection')
-        this.searchResultsElem = <HTMLSelectElement>document.getElementById('searchResults')
+        this.searchSectionLabelElem = <HTMLSpanElement>document.getElementById('searchSectionLabel')
+        this.pauseSearchResultsElem = <HTMLInputElement>document.getElementById('pauseSearchResults')
+        this.clearSearchResultsElem = <HTMLAnchorElement>document.getElementById('clearSearchResults')
     }
 
     private _bindDisplayElements() {

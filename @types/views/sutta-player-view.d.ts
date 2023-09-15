@@ -1,6 +1,7 @@
 import { AudioStorageQueryable } from '../models/audio-storage-queryable.js';
 import { AlbumPlayerState, TrackSelection } from '../models/album-player-state.js';
 import { AlbumStorageQueryable } from "../models/album-storage-queryable.js";
+import { ViewControllable } from './view-controllable.js';
 export declare class SuttaPlayerView {
     static LINEID_PREFIX: string;
     autoPlayElem: HTMLInputElement;
@@ -8,8 +9,9 @@ export declare class SuttaPlayerView {
     repeatElem: HTMLInputElement;
     linkTextToAudioElem: HTMLInputElement;
     showLineNumsElem: HTMLInputElement;
+    searchScopeElem: HTMLSelectElement;
     darkThemeElem: HTMLInputElement;
-    searchAlbumsElem: HTMLSelectElement;
+    showContextControlsElem: HTMLInputElement;
     useRegExElem: HTMLInputElement;
     ignoreDiacriticsElem: HTMLInputElement;
     offlineMenuElem: HTMLAnchorElement;
@@ -27,7 +29,10 @@ export declare class SuttaPlayerView {
     shareLinkElem: HTMLButtonElement;
     searchForElem: HTMLInputElement;
     searchSectionElem: HTMLDetailsElement;
-    searchResultsElem: HTMLSelectElement;
+    searchSectionLabelElem: HTMLSpanElement;
+    pauseSearchResultsElem: HTMLInputElement;
+    clearSearchResultsElem: HTMLAnchorElement;
+    searchResultsElem: HTMLTextAreaElement;
     playingTrackElem: HTMLElement;
     linkNavToAudioElem: HTMLAnchorElement;
     audioPlayerElem: HTMLAudioElement;
@@ -53,12 +58,15 @@ export declare class SuttaPlayerView {
     private _model;
     private _albumStore;
     private _audioStore;
+    private _viewControllable;
     private _charPosLineIndex;
+    private _trackLov;
     removeFromCacheBaseRef: string;
-    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable, audioStore: AudioStorageQueryable);
+    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable, audioStore: AudioStorageQueryable, vc: ViewControllable);
     initialise(cb: (event: MouseEvent) => void): Promise<void>;
     refreshAudioControls(): void;
-    loadTracksList(): void;
+    loadTracksList(): Promise<void>;
+    finaliseLoadTracksList(status: number[]): void;
     loadTrackWith(trackSel: TrackSelection): Promise<string>;
     loadTrackTextForUi(lineSelCb: (event: MouseEvent) => void): Promise<void>;
     createLineRefValues(lineNum: number): string;
@@ -69,7 +77,7 @@ export declare class SuttaPlayerView {
     syncTextPositionWithAudio(): void;
     parseLineNumber(idRef: string): number;
     static createLineElementId(lineNum: number): string;
-    loadTrackAudio(): void;
+    loadTrackAudio(): Promise<void>;
     loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): boolean;
     updatePlayingTrackInfo(baseRef: string, status: string): void;
     showMessage(msg: string, dur?: number): void;
@@ -80,9 +88,12 @@ export declare class SuttaPlayerView {
     updateOfflineInfo(processingInfo: string, perc: number): void;
     refreshSkipAudioToLine(): void;
     loadAlbumsList(): void;
+    showHideContextControls(show: boolean): void;
+    private _finaliseShareLinkLoadIfRqd;
     private _bindHtmlElements;
     private _bindSettingElements;
     private _bindNavigationElements;
+    private _bindSearchElements;
     private _bindDisplayElements;
     private _bindOfflineElements;
     private _bindResetAppElements;
