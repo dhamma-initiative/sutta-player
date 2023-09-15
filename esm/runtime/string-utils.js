@@ -13,8 +13,8 @@ export class StringUtils {
         }
         return ret;
     }
-    static allIndexOfUsingRegEx(src, regEx) {
-        const regex = new RegExp(regEx, 'gm');
+    static allIndexOfUsingRegEx(src, regEx, flags = 'gm') {
+        const regex = new RegExp(regEx, flags);
         let m;
         const ret = [];
         while ((m = regex.exec(src)) !== null) {

@@ -10,7 +10,11 @@ export class SuttaPlayerView {
     searchScopeElem;
     darkThemeElem;
     showContextControlsElem;
+    searchMenuElem;
+    searchDialogElem;
+    searchDialogCloseElem;
     useRegExElem;
+    regExFlagsElem;
     ignoreDiacriticsElem;
     offlineMenuElem;
     resetAppMenuElem;
@@ -77,11 +81,11 @@ export class SuttaPlayerView {
         this.loadAlbumsList();
         await this.loadTracksList();
         await this.loadTrackTextForUi(cb);
-        this.refreshAudioControls();
+        this.refreshViewSettings();
         await this.loadTrackAudio();
         this._finaliseShareLinkLoadIfRqd();
     }
-    refreshAudioControls() {
+    refreshViewSettings() {
         this.autoPlayElem.checked = this._model.autoPlay;
         this.audioPlayerElem.autoplay = this._model.autoPlay;
         this.playNextElem.checked = this._model.playNext;
@@ -95,6 +99,7 @@ export class SuttaPlayerView {
         this.searchForElem.value = this._model.searchFor;
         this.searchScopeElem.selectedIndex = this._model.searchScope;
         this.useRegExElem.checked = this._model.useRegEx;
+        this.regExFlagsElem.value = this._model.regExFlags;
         this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics;
         this.processingProgressElem.value = 0;
         this.setColorTheme();
@@ -356,9 +361,6 @@ export class SuttaPlayerView {
         this.repeatElem = document.getElementById('repeat');
         this.linkTextToAudioElem = document.getElementById('linkTextToAudio');
         this.showLineNumsElem = document.getElementById('showLineNums');
-        this.searchScopeElem = document.getElementById('searchScope');
-        this.useRegExElem = document.getElementById('useRegEx');
-        this.ignoreDiacriticsElem = document.getElementById('ignoreDiacritics');
         this.darkThemeElem = document.getElementById('darkTheme');
         this.showContextControlsElem = document.getElementById('showContextControls');
         this.offlineMenuElem = document.getElementById('offlineMenu');
@@ -374,12 +376,19 @@ export class SuttaPlayerView {
         this.shareLinkElem = document.getElementById('shareLink');
     }
     _bindSearchElements() {
+        this.searchMenuElem = document.getElementById('searchMenu');
+        this.searchDialogElem = document.getElementById('searchDialog');
+        this.searchDialogCloseElem = document.getElementById('searchDialogClose');
         this.searchForElem = document.getElementById('searchFor');
         this.searchResultsElem = document.getElementById('searchResults');
         this.searchSectionElem = document.getElementById('searchSection');
         this.searchSectionLabelElem = document.getElementById('searchSectionLabel');
         this.pauseSearchResultsElem = document.getElementById('pauseSearchResults');
         this.clearSearchResultsElem = document.getElementById('clearSearchResults');
+        this.searchScopeElem = document.getElementById('searchScope');
+        this.useRegExElem = document.getElementById('useRegEx');
+        this.regExFlagsElem = document.getElementById('regExFlags');
+        this.ignoreDiacriticsElem = document.getElementById('ignoreDiacritics');
     }
     _bindDisplayElements() {
         this.playingTrackElem = document.getElementById('playingTrack');

@@ -169,6 +169,7 @@ export class AlbumPlayerState extends LocalStorageState {
     searchFor = '';
     searchScope = 0; // [selected album: 0, cached tracks: 1, all albums: 2]
     useRegEx = false;
+    regExFlags = 'gm';
     ignoreDiacritics = true;
     audioState = -1; // transient [unspecified: -1, specified: 0, assigned: 1, loadedMetadata: 2, loaded: 3, playing: 4, paused: 5, ended: 6]
     stopDwnlDel = 0; // transient
@@ -195,6 +196,7 @@ export class AlbumPlayerState extends LocalStorageState {
         this._setItemString('searchFor', this.searchFor);
         this._setItemNumber('searchScope', this.searchScope);
         this._setItemBoolean('useRegEx', this.useRegEx);
+        this._setItemString('regExFlags', this.regExFlags);
         this._setItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
     }
     restore() {
@@ -213,6 +215,7 @@ export class AlbumPlayerState extends LocalStorageState {
         this.searchFor = this._getItemString('searchFor', this.searchFor);
         this.searchScope = this._getItemNumber('searchScope', this.searchScope);
         this.useRegEx = this._getItemBoolean('useRegEx', this.useRegEx);
+        this.regExFlags = this._getItemString('regExFlags', this.regExFlags);
         this.ignoreDiacritics = this._getItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
     }
     static toLineRef(lineNum, begIdxPos, begPerc, endIdxPos, endPerc) {

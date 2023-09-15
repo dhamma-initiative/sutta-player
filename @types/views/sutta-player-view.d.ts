@@ -12,7 +12,11 @@ export declare class SuttaPlayerView {
     searchScopeElem: HTMLSelectElement;
     darkThemeElem: HTMLInputElement;
     showContextControlsElem: HTMLInputElement;
+    searchMenuElem: HTMLAnchorElement;
+    searchDialogElem: HTMLDialogElement;
+    searchDialogCloseElem: HTMLAnchorElement;
     useRegExElem: HTMLInputElement;
+    regExFlagsElem: HTMLInputElement;
     ignoreDiacriticsElem: HTMLInputElement;
     offlineMenuElem: HTMLAnchorElement;
     resetAppMenuElem: HTMLAnchorElement;
@@ -64,7 +68,7 @@ export declare class SuttaPlayerView {
     removeFromCacheBaseRef: string;
     constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable, audioStore: AudioStorageQueryable, vc: ViewControllable);
     initialise(cb: (event: MouseEvent) => void): Promise<void>;
-    refreshAudioControls(): void;
+    refreshViewSettings(): void;
     loadTracksList(): Promise<void>;
     finaliseLoadTracksList(status: number[]): void;
     loadTrackWith(trackSel: TrackSelection): Promise<string>;

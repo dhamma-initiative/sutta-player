@@ -60,29 +60,7 @@
                                     <input type="checkbox" role="switch" id="showLineNums" name="showLineNums" />
                                 </label>
                             </li>
-                            <li>:Search</li>
-                            <li>
-                                <label for="searchScope">
-                                    <select id="searchScope">
-                                        <option value="0">Selected Albums</option>
-                                        <option value="1">Cached Tracks</option>
-                                        <option value="2">All Albums</option>
-                                    </select>
-                                </label>
-                            </li>
-                            <li>
-                                <label for="useRegEx">
-                                    RegEx
-                                    <input type="checkbox" role="switch" id="useRegEx" name="useRegEx" />
-                                </label>
-                            </li>
-                            <li>
-                                <label for="ignoreDiacritics">
-                                    Ignore diacritics
-                                    <input type="checkbox" role="switch" id="ignoreDiacritics" name="ignoreDiacritics" checked/>
-                                </label>
-                            </li>                            
-                            <li><hr/></li>
+                            <li>:Appearance</li>
                             <li>
                                 <label for="darkTheme">
                                     Dark/night theme
@@ -95,6 +73,7 @@
                                     <input type="checkbox" role="switch" id="showContextControls" name="showContextControls" />
                                 </label>
                             </li>
+                            <li>:Storage</li>
                             <li><a id="offlineMenu" href="#"></span>...Offline</a></li>
                             <li><a id="resetAppMenu" href="#">...Reset App</a></li>
                         </ul>
@@ -146,6 +125,7 @@
                     <span id="searchSectionLabel">Search results</span>&nbsp;
                     <a id="clearSearchResults" href="#" class="linkNavButton">&nbsp;✖️&nbsp;</a>&nbsp;&nbsp;⏸️
                     <input type="checkbox" role="switch" id="pauseSearchResults" name="pauseSearchResults" disabled/>
+                    &nbsp;|&nbsp;<a id="searchMenu" href="#" class="linkNavButton">&nbsp;🔍&nbsp;Options&nbsp;</a>
                 </summary>
                 <textarea id="searchResults" rows="10" wrap="off" readonly>
                 </textarea>
@@ -172,6 +152,35 @@
                     <h3>About</h3>
                 </header>
                 <p id="aboutTextBody" style="white-space: pre-wrap;"></p>
+            </article>
+        </dialog>
+
+        <dialog id="searchDialog">
+            <article>
+                <header>
+                    <a id="searchDialogClose" href="#" aria-label="Close" class="close"></a>
+                    <h3>Search options</h3>
+                </header>
+                <label for="searchScope">
+                    Scope:
+                    <select id="searchScope">
+                        <option value="0">Selected Albums</option>
+                        <option value="1">Cached Tracks</option>
+                        <option value="2">All Albums</option>
+                    </select>
+                </label>
+                <label for="useRegEx">
+                    RegEx
+                    <input type="checkbox" role="switch" id="useRegEx" name="useRegEx" />
+                </label>
+                <label for="regExFlags">
+                    RegEx Flags:
+                    <input type="text" id="regExFlags" name="regExFlags" placeholder="RegEx Flags" required>
+                </label>
+                <label for="ignoreDiacritics">
+                    Ignore diacritics
+                    <input type="checkbox" role="switch" id="ignoreDiacritics" name="ignoreDiacritics" checked/>
+                </label>
             </article>
         </dialog>
 
@@ -220,6 +229,7 @@
                 </footer>
               </article>            
         </dialog>
+
         <div id="lhsFabSection">
             <label class="fabHdrLabel">Text:</label>
             <label for="scrollTextWithAudio">

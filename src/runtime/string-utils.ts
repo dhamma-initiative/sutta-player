@@ -14,8 +14,8 @@ export class StringUtils {
         return ret
     }
 
-    public static allIndexOfUsingRegEx(src: string, regEx: string): number[] {
-        const regex = new RegExp(regEx, 'gm')
+    public static allIndexOfUsingRegEx(src: string, regEx: string, flags: string = 'gm'): number[] {
+        const regex = new RegExp(regEx, flags)
         let m;
         const ret = []
         while ((m = regex.exec(src)) !== null) {

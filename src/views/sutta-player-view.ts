@@ -15,7 +15,11 @@ export class SuttaPlayerView {
     darkThemeElem: HTMLInputElement
     showContextControlsElem: HTMLInputElement
 
+    searchMenuElem: HTMLAnchorElement
+    searchDialogElem: HTMLDialogElement
+    searchDialogCloseElem: HTMLAnchorElement
     useRegExElem: HTMLInputElement
+    regExFlagsElem: HTMLInputElement
     ignoreDiacriticsElem: HTMLInputElement
     offlineMenuElem: HTMLAnchorElement
     resetAppMenuElem: HTMLAnchorElement
@@ -95,12 +99,12 @@ export class SuttaPlayerView {
         this.loadAlbumsList()
         await this.loadTracksList()
         await this.loadTrackTextForUi(cb)
-        this.refreshAudioControls()
+        this.refreshViewSettings()
         await this.loadTrackAudio()
         this._finaliseShareLinkLoadIfRqd()
     }
 
-    public refreshAudioControls() {
+    public refreshViewSettings() {
         this.autoPlayElem.checked = this._model.autoPlay
         this.audioPlayerElem.autoplay = this._model.autoPlay
         this.playNextElem.checked = this._model.playNext
@@ -117,6 +121,7 @@ export class SuttaPlayerView {
         this.searchForElem.value = this._model.searchFor
         this.searchScopeElem.selectedIndex = this._model.searchScope
         this.useRegExElem.checked = this._model.useRegEx
+        this.regExFlagsElem.value = this._model.regExFlags
         this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics
         
         this.processingProgressElem.value = 0
@@ -406,9 +411,6 @@ export class SuttaPlayerView {
         this.repeatElem = <HTMLInputElement>document.getElementById('repeat')
         this.linkTextToAudioElem = <HTMLInputElement>document.getElementById('linkTextToAudio')
         this.showLineNumsElem = <HTMLInputElement>document.getElementById('showLineNums')
-        this.searchScopeElem = <HTMLSelectElement>document.getElementById('searchScope')
-        this.useRegExElem = <HTMLInputElement>document.getElementById('useRegEx')
-        this.ignoreDiacriticsElem = <HTMLInputElement>document.getElementById('ignoreDiacritics')
 
         this.darkThemeElem = <HTMLInputElement>document.getElementById('darkTheme')
         this.showContextControlsElem = <HTMLInputElement>document.getElementById('showContextControls')
@@ -428,12 +430,20 @@ export class SuttaPlayerView {
     }
 
     private _bindSearchElements() {
+        this.searchMenuElem = <HTMLAnchorElement>document.getElementById('searchMenu')
+        this.searchDialogElem = <HTMLDialogElement>document.getElementById('searchDialog')
+        this.searchDialogCloseElem = <HTMLAnchorElement>document.getElementById('searchDialogClose')
         this.searchForElem = <HTMLInputElement>document.getElementById('searchFor')
         this.searchResultsElem = <HTMLTextAreaElement>document.getElementById('searchResults')
         this.searchSectionElem = <HTMLDetailsElement>document.getElementById('searchSection')
         this.searchSectionLabelElem = <HTMLSpanElement>document.getElementById('searchSectionLabel')
         this.pauseSearchResultsElem = <HTMLInputElement>document.getElementById('pauseSearchResults')
         this.clearSearchResultsElem = <HTMLAnchorElement>document.getElementById('clearSearchResults')
+
+        this.searchScopeElem = <HTMLSelectElement>document.getElementById('searchScope')
+        this.useRegExElem = <HTMLInputElement>document.getElementById('useRegEx')
+        this.regExFlagsElem = <HTMLInputElement>document.getElementById('regExFlags')
+        this.ignoreDiacriticsElem = <HTMLInputElement>document.getElementById('ignoreDiacritics')
     }
 
     private _bindDisplayElements() {

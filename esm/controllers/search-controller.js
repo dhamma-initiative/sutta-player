@@ -25,11 +25,32 @@ export class SearchController {
         return true;
     }
     async _registerListeners() {
+        this._view.searchMenuElem.onclick = async (e) => {
+            e.preventDefault();
+            this._view.searchDialogElem.open = !this._view.searchDialogElem.open;
+        };
+        this._view.searchDialogCloseElem.onclick = this._view.searchMenuElem.onclick;
+        this._view.searchScopeElem.onchange = async () => {
+            this._model.searchScope = this._view.searchScopeElem.selectedIndex;
+        };
+        this._view.useRegExElem.onchange = async () => {
+            this._model.useRegEx = this._view.useRegExElem.checked;
+        };
+        this._view.regExFlagsElem.onchange = async () => {
+            this._model.regExFlags = this._view.regExFlagsElem.value;
+        };
+        this._view.ignoreDiacriticsElem.onchange = async () => {
+            this._model.ignoreDiacritics = this._view.ignoreDiacriticsElem.checked;
+        };
         const searchFormElem = this._view.searchForElem.parentElement;
         searchFormElem.onsubmit = async (e) => {
             e.preventDefault();
             await this._onSearchFor();
         };
+        this._view.searchForElem.addEventListener('keyup', (keyboardEvent) => {
+            if (keyboardEvent.key === 'Enter')
+                this._view.searchForElem.blur();
+        });
         this._view.pauseSearchResultsElem.onchange = async () => {
             this._onPauseSearchResults();
         };
@@ -62,9 +83,15 @@ export class SearchController {
         this._abortSearchIfRequired();
         if (this._model.startSearch) {
             this._view.pauseSearchResultsElem.disabled = false;
-            await this.onStartSearch();
-            this._model.startSearch = false;
-            this._view.pauseSearchResultsElem.disabled = true;
+            try {
+                this._view.searchSectionLabelElem.setAttribute('aria-busy', 'true');
+                await this.onStartSearch();
+            }
+            finally {
+                this._view.searchSectionLabelElem.setAttribute('aria-busy', 'false');
+                this._model.startSearch = false;
+                this._view.pauseSearchResultsElem.disabled = true;
+            }
         }
     }
     _abortSearchIfRequired() {
@@ -166,7 +193,8 @@ export class SearchController {
     }
     async _reportMatches(src, tracks) {
         const searchFor = this._model.searchFor;
-        const indexPositions = this._model.useRegEx ? StringUtils.allIndexOfUsingRegEx(src, searchFor) : StringUtils.allIndexesOf(src, searchFor);
+        const regExFlags = this._model.regExFlags;
+        const indexPositions = this._model.useRegEx ? StringUtils.allIndexOfUsingRegEx(src, searchFor, regExFlags) : StringUtils.allIndexesOf(src, searchFor);
         if (indexPositions.length > 0) {
             tracks++;
             this._view.searchResultsElem.innerHTML += (tracks === 1 ? '' : '\n\n') + this._searchSel.baseRef;

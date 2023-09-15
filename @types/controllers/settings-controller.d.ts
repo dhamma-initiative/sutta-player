@@ -9,4 +9,7 @@ export declare class SettingsController {
     setup(): Promise<void>;
     tearDown(): Promise<boolean>;
     private _registerListeners;
+    private _registerAudioListeners;
+    private _registerTextListeners;
+    private _registerAppearanceListeners;
 }
