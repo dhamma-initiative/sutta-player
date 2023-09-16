@@ -1,6 +1,6 @@
 {
-    "SuttaStorageQueryableImpl": "./json-fs/album-storage-db.js",
-    "AudioStorageQueryableImpl": "./google-drive/audio-storage-db.js",
+    "AlbumStorageQueryableImpl": "./github-di/album-track-storage-db.js",
+    "AudioStorageQueryableImpl": "./github-di/album-track-storage-db.js",
     "hosts": ["localhost:9000", "dhamma-initiative.github.io"],
     "appRoots": ["", "sutta-player/"],
     "enableCache": true

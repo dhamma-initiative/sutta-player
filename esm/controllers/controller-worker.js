@@ -7,7 +7,7 @@ class ControllerWorker {
     _albumStorage;
     _audioStorage;
     async serve() {
-        this._albumStorage = await AlbumStorageQueryableFactory.create(appConfig.SuttaStorageQueryableImpl);
+        this._albumStorage = await AlbumStorageQueryableFactory.create(appConfig.AlbumStorageQueryableImpl);
         this._audioStorage = await AudioStorageQueryableFactory.create(appConfig.AudioStorageQueryableImpl);
         self.addEventListener('message', (event) => {
             const baseMsg = event.data;

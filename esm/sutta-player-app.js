@@ -24,7 +24,7 @@ export class SuttaPlayerApp {
     }
     async start(appRoot) {
         const cacheAvailable = await CacheUtils.initialise(appRoot + 'sutta-player-sw.js');
-        this._albumStorage = await AlbumStorageQueryableFactory.create(appConfig.SuttaStorageQueryableImpl);
+        this._albumStorage = await AlbumStorageQueryableFactory.create(appConfig.AlbumStorageQueryableImpl);
         this._audioStorage = await AudioStorageQueryableFactory.create(appConfig.AudioStorageQueryableImpl);
         this._controller = new SuttaPlayerController(appRoot, this._albumStorage, this._audioStorage);
         if (!cacheAvailable)
