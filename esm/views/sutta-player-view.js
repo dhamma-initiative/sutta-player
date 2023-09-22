@@ -49,6 +49,7 @@ export class SuttaPlayerView {
     offlineDialogElem;
     offlineDialogCloseElem;
     offlineTitleElem;
+    concurrencyCountElem;
     downloadAlbumElem;
     deleteAlbumElem;
     removeAudioFromCacheElem;
@@ -65,21 +66,15 @@ export class SuttaPlayerView {
     gotoTopElem;
     _model;
     _albumStore;
-    _audioStore;
-    _viewControllable;
     _charPosLineIndex = [];
-    _trackLov;
-    removeFromCacheBaseRef = null;
-    constructor(mdl, albumStore, audioStore, vc) {
+    constructor(mdl, albumStore) {
         this._model = mdl;
         this._albumStore = albumStore;
-        this._audioStore = audioStore;
-        this._viewControllable = vc;
         this._bindHtmlElements();
     }
     async initialise(cb) {
         this.loadAlbumsList();
-        await this.loadTracksList();
+        await this.refreshTrackSelectionList();
         await this.loadTrackTextForUi(cb);
         this.refreshViewSettings();
         await this.loadTrackAudio();
@@ -101,34 +96,31 @@ export class SuttaPlayerView {
         this.useRegExElem.checked = this._model.useRegEx;
         this.regExFlagsElem.value = this._model.regExFlags;
         this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics;
+        this.concurrencyCountElem.selectedIndex = this._model.concurrencyCount;
         this.processingProgressElem.value = 0;
         this.setColorTheme();
         this.toggleLineNums();
         this.refreshSkipAudioToLine();
         this.showHideContextControls(this._model.showContextControls);
     }
-    async loadTracksList() {
-        this._trackLov = this._albumStore.queryTrackReferences(this._model.navSel.albumIndex);
+    async refreshTrackSelectionList() {
         this.trackElem.innerHTML = '';
-        const albumRef = this._model.navSel.dictionary['albumRef'];
-        for (let i = 0; i < this._trackLov.length; i++) {
-            const baseRef = `${albumRef}/${this._trackLov[i]}`;
-            const isInTxtCache = await this._albumStore.isInCache(baseRef);
-            const isInAudCache = await this._audioStore.isInCache(baseRef);
-            const cachedChar = (isInAudCache && isInTxtCache) ? '✔️' : isInAudCache ? '🔊' : isInTxtCache ? '👀' : '◻';
+        const albIdx = this._model.navSel.albumIndex;
+        const trkIdx = this._model.navSel.trackIndex;
+        const trackLov = this._albumStore.queryTrackReferences(albIdx);
+        let count = 0;
+        this._albumStore.queryAlbumCacheStatus(albIdx, (baseRef, idx, taStatus, cargo) => {
+            if (albIdx !== cargo.albumIndex)
+                return;
+            count++;
+            const cachedChar = (taStatus[0] && taStatus[1]) ? '✔️' : (taStatus[1]) ? '🔊' : (taStatus[0]) ? '👀' : '◻';
             const option = document.createElement('option');
-            option.value = `${i}`;
-            option.innerHTML = `${cachedChar} ${this._trackLov[i]}`;
-            this.trackElem.append(option);
-        }
-        this.trackElem.selectedIndex = this._model.navSel.trackIndex;
-        // this._viewControllable.finaliseTrackLov(this._trackLov)
-    }
-    finaliseLoadTracksList(status) {
-        for (let i = 0; i < status.length; i++) {
-            const cachedChar = (status[i] === 3) ? '✔️' : (status[i] === 2) ? '🔊' : (status[i] === 1) ? '👀' : '◻';
-            this.trackElem.children[i].innerHTML = `${cachedChar} ${this._trackLov[i]}`;
-        }
+            option.value = `${idx}`;
+            option.innerHTML = `${cachedChar} ${trackLov[idx]}`;
+            this.trackElem.add(option, idx);
+            if (count === trackLov.length)
+                this.trackElem.selectedIndex = trkIdx;
+        });
     }
     async loadTrackWith(trackSel) {
         if (trackSel.baseRef === null)
@@ -217,22 +209,25 @@ export class SuttaPlayerView {
         return idRef;
     }
     async loadTrackAudio() {
-        const success = this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem);
+        const success = await this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem);
         if (success) {
             this.audioPlayerElem.currentTime = this._model.currentTime;
             if (this._model.bookmarkSel.isAwaitingLoad()) {
                 if (this._model.currentTime > -1) {
                     // Uncaught (in promise) DOMException: play() failed because the user didn't interact with the document first. 
-                    // await this.audioPlayerElem.play()
+                    try {
+                        await this.audioPlayerElem.play();
+                    }
+                    catch (err) { }
                 }
             }
         }
     }
-    loadTrackAudioWith(trackSel, audioElem) {
+    async loadTrackAudioWith(trackSel, audioElem) {
         if (trackSel.baseRef === null)
             return false;
         this._model.audioState = 0;
-        const srcRef = this._audioStore.queryHtmlAudioSrcRef(trackSel.baseRef);
+        const srcRef = this._albumStore.queryTrackHtmlAudioSrcRef(trackSel.baseRef);
         audioElem.src = srcRef;
         this._model.audioState = 1;
         trackSel.isLoaded = true;
@@ -278,11 +273,10 @@ export class SuttaPlayerView {
             const albumName = this.albumElem.children[this.albumElem.selectedIndex].textContent;
             this.offlineTitleElem.textContent = albumName;
         }
-        const isCached = await this._audioStore.isInCache(this._model.navSel.baseRef);
-        if (isCached) {
-            this.removeFromCacheBaseRef = this._model.navSel.baseRef;
+        const isCached = await this._albumStore.isInCache(this._model.navSel.baseRef, true, true);
+        if (isCached[0] || isCached[1]) {
             this.removeAudioFromCacheElem.style.display = "block";
-            this.removeAudioFromCacheElem.innerHTML = `Remove ${this.removeFromCacheBaseRef} from cache`;
+            this.removeAudioFromCacheElem.innerHTML = `Remove ${this._model.navSel.baseRef} from cache`;
         }
         else
             this.removeAudioFromCacheElem.style.display = "none";
@@ -299,7 +293,8 @@ export class SuttaPlayerView {
         else if (this._model.stopDwnlDel === 2)
             actn = 'Deleting';
         this.processingInfoElem.textContent = `${actn} ${processingInfo}`;
-        this.processingProgressElem.value = perc;
+        if (perc > -1)
+            this.processingProgressElem.value = perc;
     }
     refreshSkipAudioToLine() {
         if (this._model.bookmarkSel.lineRef) {
@@ -402,6 +397,7 @@ export class SuttaPlayerView {
         this.offlineDialogElem = document.getElementById('offlineDialog');
         this.offlineDialogCloseElem = document.getElementById('offlineDialogClose');
         this.offlineTitleElem = document.getElementById('offlineTitle');
+        this.concurrencyCountElem = document.getElementById('concurrencyCount');
         this.downloadAlbumElem = document.getElementById('downloadAlbum');
         this.deleteAlbumElem = document.getElementById('deleteAlbum');
         this.removeAudioFromCacheElem = document.getElementById('removeAudioFromCache');

@@ -1,7 +1,5 @@
-import { AudioStorageQueryable } from '../models/audio-storage-queryable.js'
 import { AlbumPlayerState, BookmarkedSelection, TrackSelection } from '../models/album-player-state.js'
 import { AlbumStorageQueryable } from "../models/album-storage-queryable.js"
-import { ViewControllable } from './view-controllable.js'
 
 export class SuttaPlayerView {
     public static LINEID_PREFIX = '_ln_'
@@ -60,6 +58,7 @@ export class SuttaPlayerView {
     offlineDialogElem: HTMLDialogElement
     offlineDialogCloseElem: HTMLAnchorElement
     offlineTitleElem: HTMLElement
+    concurrencyCountElem: HTMLSelectElement
     downloadAlbumElem: HTMLInputElement
     deleteAlbumElem: HTMLInputElement
     removeAudioFromCacheElem: HTMLButtonElement
@@ -79,25 +78,17 @@ export class SuttaPlayerView {
 
     private _model: AlbumPlayerState
     private _albumStore: AlbumStorageQueryable
-    private _audioStore: AudioStorageQueryable
-    private _viewControllable: ViewControllable
-
     private _charPosLineIndex: number[] = []
-    private _trackLov: string[]
     
-    public removeFromCacheBaseRef: string = null
-
-    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable, audioStore: AudioStorageQueryable, vc: ViewControllable) {
+    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable) {
         this._model = mdl
         this._albumStore = albumStore
-        this._audioStore = audioStore
-        this._viewControllable = vc
         this._bindHtmlElements()
     }
 
     public async initialise(cb: (event: MouseEvent) => void) {
         this.loadAlbumsList()
-        await this.loadTracksList()
+        await this.refreshTrackSelectionList()
         await this.loadTrackTextForUi(cb)
         this.refreshViewSettings()
         await this.loadTrackAudio()
@@ -124,6 +115,7 @@ export class SuttaPlayerView {
         this.regExFlagsElem.value = this._model.regExFlags
         this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics
         
+        this.concurrencyCountElem.selectedIndex = this._model.concurrencyCount
         this.processingProgressElem.value = 0
 
         this.setColorTheme()
@@ -132,29 +124,24 @@ export class SuttaPlayerView {
         this.showHideContextControls(this._model.showContextControls)
     }
 
-    public async loadTracksList() {
-        this._trackLov = this._albumStore.queryTrackReferences(this._model.navSel.albumIndex)
+    public async refreshTrackSelectionList() {
         this.trackElem.innerHTML = ''
-        const albumRef: string = <string> this._model.navSel.dictionary['albumRef']
-        for (let i = 0; i < this._trackLov.length; i++) {
-            const baseRef = `${albumRef}/${this._trackLov[i]}`
-            const isInTxtCache = await this._albumStore.isInCache(baseRef)
-            const isInAudCache = await this._audioStore.isInCache(baseRef)
-            const cachedChar = (isInAudCache && isInTxtCache) ? '✔️' : isInAudCache ? '🔊' : isInTxtCache ? '👀' : '◻'
+        const albIdx = this._model.navSel.albumIndex
+        const trkIdx = this._model.navSel.trackIndex
+        const trackLov = this._albumStore.queryTrackReferences(albIdx)
+        let count = 0
+        this._albumStore.queryAlbumCacheStatus(albIdx, (baseRef, idx, taStatus, cargo) => {
+            if (albIdx !== cargo.albumIndex)
+                return
+            count++
+            const cachedChar = (taStatus[0] && taStatus[1]) ? '✔️' : (taStatus[1]) ? '🔊' : (taStatus[0]) ? '👀' : '◻'
             const option = document.createElement('option')
-            option.value = `${i}`
-            option.innerHTML = `${cachedChar} ${this._trackLov[i]}`
-            this.trackElem.append(option)
-        }
-        this.trackElem.selectedIndex = this._model.navSel.trackIndex
-        // this._viewControllable.finaliseTrackLov(this._trackLov)
-    }
-
-    public finaliseLoadTracksList(status: number[]) {
-        for (let i = 0; i < status.length; i++) {
-            const cachedChar = (status[i] === 3) ? '✔️' : (status[i] === 2) ? '🔊' : (status[i] === 1) ? '👀' : '◻'
-            this.trackElem.children[i].innerHTML = `${cachedChar} ${this._trackLov[i]}`
-        }
+            option.value = `${idx}`
+            option.innerHTML = `${cachedChar} ${trackLov[idx]}`
+            this.trackElem.add(option, idx)
+            if (count === trackLov.length)
+                this.trackElem.selectedIndex = trkIdx
+        })
     }
 
     public async loadTrackWith(trackSel: TrackSelection): Promise<string> {
@@ -257,23 +244,25 @@ export class SuttaPlayerView {
     }
 
     public async loadTrackAudio() {
-        const success = this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem)
+        const success = await this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem)
         if (success) {
             this.audioPlayerElem.currentTime = this._model.currentTime
             if (this._model.bookmarkSel.isAwaitingLoad()) {
                 if (this._model.currentTime > -1) {
                     // Uncaught (in promise) DOMException: play() failed because the user didn't interact with the document first. 
-                    // await this.audioPlayerElem.play()
+                    try {
+                        await this.audioPlayerElem.play()
+                    } catch (err) {}
                 }
             }
         }
     }
 
-    public loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): boolean {
+    public async loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): Promise<boolean> {
         if (trackSel.baseRef === null)
             return false
         this._model.audioState = 0
-        const srcRef = this._audioStore.queryHtmlAudioSrcRef(trackSel.baseRef)
+        const srcRef = this._albumStore.queryTrackHtmlAudioSrcRef(trackSel.baseRef)
         audioElem.src = srcRef
         this._model.audioState = 1
         trackSel.isLoaded = true
@@ -323,11 +312,10 @@ export class SuttaPlayerView {
             const albumName = this.albumElem.children[this.albumElem.selectedIndex].textContent
             this.offlineTitleElem.textContent = albumName
         }
-        const isCached = await this._audioStore.isInCache(this._model.navSel.baseRef)
-        if (isCached) {
-            this.removeFromCacheBaseRef = this._model.navSel.baseRef
+        const isCached = await this._albumStore.isInCache(this._model.navSel.baseRef, true, true)
+        if (isCached[0] || isCached[1]) {
             this.removeAudioFromCacheElem.style.display = "block"
-            this.removeAudioFromCacheElem.innerHTML = `Remove ${this.removeFromCacheBaseRef} from cache`
+            this.removeAudioFromCacheElem.innerHTML = `Remove ${this._model.navSel.baseRef} from cache`
         } else
             this.removeAudioFromCacheElem.style.display = "none"
     }
@@ -345,7 +333,8 @@ export class SuttaPlayerView {
         else if (this._model.stopDwnlDel === 2)
             actn = 'Deleting'
         this.processingInfoElem.textContent = `${actn} ${processingInfo}`
-        this.processingProgressElem.value = perc
+        if (perc > -1)
+            this.processingProgressElem.value = perc
     }
 
     public refreshSkipAudioToLine() {
@@ -459,6 +448,7 @@ export class SuttaPlayerView {
         this.offlineDialogElem = <HTMLDialogElement>document.getElementById('offlineDialog')
         this.offlineDialogCloseElem = <HTMLAnchorElement>document.getElementById('offlineDialogClose')
         this.offlineTitleElem = <HTMLElement>document.getElementById('offlineTitle')
+        this.concurrencyCountElem = <HTMLSelectElement>document.getElementById('concurrencyCount')
         this.downloadAlbumElem = <HTMLInputElement>document.getElementById('downloadAlbum')
         this.deleteAlbumElem = <HTMLInputElement>document.getElementById('deleteAlbum')
         this.removeAudioFromCacheElem = <HTMLButtonElement>document.getElementById('removeAudioFromCache')

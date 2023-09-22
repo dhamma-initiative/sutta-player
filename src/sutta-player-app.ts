@@ -1,5 +1,4 @@
 import { SuttaPlayerController } from './controllers/sutta-player-controller.js'
-import { AudioStorageQueryable, AudioStorageQueryableFactory } from './models/audio-storage-queryable.js'
 import { AlbumStorageQueryable, AlbumStorageQueryableFactory } from './models/album-storage-queryable.js'
 
 import appConfig from './app-config.json' assert { type: 'json' }
@@ -9,7 +8,6 @@ export class SuttaPlayerApp {
     private static _SINGLETON: SuttaPlayerApp
 
     private _albumStorage: AlbumStorageQueryable
-    private _audioStorage: AudioStorageQueryable
 
     private _controller: SuttaPlayerController
 
@@ -31,8 +29,7 @@ export class SuttaPlayerApp {
     public async start(appRoot: string) {
         const cacheAvailable = await CacheUtils.initialise(appRoot + 'sutta-player-sw.js')
         this._albumStorage = await AlbumStorageQueryableFactory.create(appConfig.AlbumStorageQueryableImpl)
-        this._audioStorage = await AudioStorageQueryableFactory.create(appConfig.AudioStorageQueryableImpl)
-        this._controller = new SuttaPlayerController(appRoot, this._albumStorage, this._audioStorage)
+        this._controller = new SuttaPlayerController(appRoot, this._albumStorage)
         if (!cacheAvailable)
             this._controller.showUserMessage('Service-worker/Cache not loaded')
         await this._controller.setup()

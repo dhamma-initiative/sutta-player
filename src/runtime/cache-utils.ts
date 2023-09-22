@@ -2,7 +2,10 @@ export const REGISTERROUTE = 'RegisterRoute'
 export const CACHE_URLS = 'CACHE_URLS'
 
 export const CACHEFIRST = 'CacheFirst'
+export const CACHEFIRST_TEXTANDDOWNLOADS = 'CacheFirst_TextAndDownloads'
+
 export const CACHEABLERESPONSEPLUGIN = 'CacheableResponsePlugin'
+export const RANGEREQUESTSPLUGIN = 'RangeRequestsPlugin'
 
 export type WorkboxMessageJson = {
     type: string
@@ -48,16 +51,27 @@ export class CacheUtils {
         return true
     }
 
-    public static async isInCache(cacheName: string, urls: string[], chkResp?: (resp: Response) => boolean): Promise<boolean[]> {
-        const ret: boolean[] = []
+    public static async getFromCache(cacheName: string, urls: string[]): Promise<Response[]> {
+        const ret: Response[] = []
         if (!caches)
             return ret
         const cache = await caches.open(cacheName)
         for (let i = 0; i < urls.length; i++) {
             const cachedResponse = await cache.match(urls[i])
-            let isCached = cachedResponse?.ok ? true : false
-            if (!isCached && chkResp) 
-                isCached = chkResp(cachedResponse)
+            ret.push(cachedResponse)
+        }            
+        return ret
+    }
+
+    public static async isInCache(cacheName: string, urls: string[], notOkRespCheck?: (resp: Response, url?: string) => boolean): Promise<boolean[]> {
+        const ret: boolean[] = []
+        if (!caches)
+            return ret
+        const cachedResponses = await CacheUtils.getFromCache(cacheName, urls)
+        for (let i = 0; i < urls.length; i++) {
+            let isCached = cachedResponses[i]?.ok ? true : false
+            if (!isCached && notOkRespCheck) 
+                isCached = notOkRespCheck(cachedResponses[i], urls[i])
             ret.push(isCached)
         }
         return ret
@@ -69,12 +83,15 @@ export class CacheUtils {
             return ret
         const cache = await caches.open(cacheName)
         for (let i = 0; i < urls.length; i++) {
+            let isCached = false
             try {
-                await cache.add(urls[i])
-                ret.push(true)
+                if (urls[i]) {
+                    await cache.add(urls[i])
+                    isCached = true
+                } 
             } catch (e) {
-                ret.push(false)
             }
+            ret.push(isCached)
         }
         return ret
     }

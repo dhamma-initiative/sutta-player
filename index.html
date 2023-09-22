@@ -134,7 +134,7 @@
 
         <details open>
             <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;🔊&nbsp;↟&nbsp;</a>&nbsp;<span id="playingTrack">awaiting load</span></summary>
-            <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload">
+            <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload" crossorigin="anonymous">
             </audio>
         </details>
 
@@ -193,6 +193,13 @@
                 <p><strong id="offlineTitle"></strong></p>
                 <fieldset>
                     <legend>Offline Action</legend>
+                    <label for="concurrencyCount"># of concurrent download threads</label>
+                    <select id="concurrencyCount" required>
+                      <option value="0" selected>None; Use main App Thread</option>
+                      <option value="1" selected>1 Worker</option>
+                      <option value="2" selected>2 Workers</option>
+                      <option value="3" selected>3 Workers</option>
+                    </select>                    
                     <label for="downloadAlbum">
                       <input type="checkbox" role="switch" id="downloadAlbum" name="offlineAction" value="downloadAlbum">
                       Download Album for offline use<br>
@@ -216,7 +223,7 @@
             <article>
                 <h3>Reset Sutta Player App</h3>
                 <ul>
-                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.7</span></li>
+                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.8</span></li>
                     <li>App JS Controller version: <span id="appJsCtrlVer">REPLACE</span></li>
                 </ul>
                 <p>
@@ -249,7 +256,7 @@
                 ▶️
             </label>
             <hr/>
-            <a href="#" id="skipsFwd5Sec" class="linkNavButton">&nbsp;⏩&nbsp;</a>&nbsp;sec 5&nbsp;<a href="#" id="skipsBack5Sec" class="linkNavButton">&nbsp;⏪&nbsp;</a>
+            <a href="#" id="skipsFwd5Sec" class="linkNavButton">&nbsp;⏩&nbsp;</a>&nbsp;5 sec&nbsp;<a href="#" id="skipsBack5Sec" class="linkNavButton">&nbsp;⏪&nbsp;</a>
             <hr/>
             <a href="#" id="skipAudioToLine" class="linkNavButton">REPLACE</a>            
         </div>

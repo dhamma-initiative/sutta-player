@@ -1,4 +1,3 @@
-import { start } from "repl"
 import { AlbumPlayerState, TrackSelection } from "../models/album-player-state.js"
 import { DeferredPromise } from "../runtime/deferred-promise.js"
 import { StringUtils } from '../runtime/string-utils.js'
@@ -126,16 +125,16 @@ export class SearchController {
         if (!rsltSel)
             return false
         this._mainCtrl._onLoadIntoNavSelector(rsltSel)
-        await this._mainCtrl._onLoadAudio(rsltSel)
-        this._view.audioPlayerElem.pause()
         if (!this._model.linkTextToAudio)
             await this._mainCtrl._onLoadText(rsltSel)
+        this._view.audioPlayerElem.pause()
         const lineChars = AlbumPlayerState.fromLineRef(rsltSel.context)
         this._view.scrollToTextLineNumber(lineChars[0], lineChars[1])
         this._model.bookmarkSel.read(rsltSel)
         this._model.bookmarkSel.set(null, null, rsltSel.context)
         this._view.refreshSkipAudioToLine()
         this._mainCtrl.showUserMessage(`Loading match on line ${lineChars[0]} of ${rsltSel.baseRef}`)
+        await this._mainCtrl._onLoadAudio(rsltSel)
     }
 
     private _getSearchResultSelection(): TrackSelection {
@@ -199,8 +198,8 @@ export class SearchController {
                 this._searchSel.trackIndex = j
                 this._searchSel.updateBaseRef(this._mainCtrl._albumStore)
                 if (this._model.searchScope === 1) {
-                    const inCache = await this._mainCtrl._albumStore.isInCache(this._searchSel.baseRef)
-                    if (!inCache)
+                    const inCache = await this._mainCtrl._albumStore.isInCache(this._searchSel.baseRef, true, false)
+                    if (!inCache[0])
                         continue
                 }
                 const src = await this._getTrackSource()

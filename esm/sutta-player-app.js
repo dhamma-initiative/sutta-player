@@ -1,12 +1,10 @@
 import { SuttaPlayerController } from './controllers/sutta-player-controller.js';
-import { AudioStorageQueryableFactory } from './models/audio-storage-queryable.js';
 import { AlbumStorageQueryableFactory } from './models/album-storage-queryable.js';
 import appConfig from './app-config.json' assert { type: 'json' };
 import { CacheUtils } from './runtime/cache-utils.js';
 export class SuttaPlayerApp {
     static _SINGLETON;
     _albumStorage;
-    _audioStorage;
     _controller;
     static queryAppRoot() {
         const host = location.host;
@@ -25,8 +23,7 @@ export class SuttaPlayerApp {
     async start(appRoot) {
         const cacheAvailable = await CacheUtils.initialise(appRoot + 'sutta-player-sw.js');
         this._albumStorage = await AlbumStorageQueryableFactory.create(appConfig.AlbumStorageQueryableImpl);
-        this._audioStorage = await AudioStorageQueryableFactory.create(appConfig.AudioStorageQueryableImpl);
-        this._controller = new SuttaPlayerController(appRoot, this._albumStorage, this._audioStorage);
+        this._controller = new SuttaPlayerController(appRoot, this._albumStorage);
         if (!cacheAvailable)
             this._controller.showUserMessage('Service-worker/Cache not loaded');
         await this._controller.setup();

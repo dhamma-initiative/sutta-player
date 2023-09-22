@@ -2280,6 +2280,138 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     addRoute(options);
   }
 
+  // node_modules/workbox-range-requests/_version.js
+  try {
+    self["workbox:range-requests:7.0.0"] && _();
+  } catch (e) {
+  }
+
+  // node_modules/workbox-range-requests/utils/calculateEffectiveBoundaries.js
+  function calculateEffectiveBoundaries(blob, start, end) {
+    if (true) {
+      finalAssertExports.isInstance(blob, Blob, {
+        moduleName: "workbox-range-requests",
+        funcName: "calculateEffectiveBoundaries",
+        paramName: "blob"
+      });
+    }
+    const blobSize = blob.size;
+    if (end && end > blobSize || start && start < 0) {
+      throw new WorkboxError("range-not-satisfiable", {
+        size: blobSize,
+        end,
+        start
+      });
+    }
+    let effectiveStart;
+    let effectiveEnd;
+    if (start !== void 0 && end !== void 0) {
+      effectiveStart = start;
+      effectiveEnd = end + 1;
+    } else if (start !== void 0 && end === void 0) {
+      effectiveStart = start;
+      effectiveEnd = blobSize;
+    } else if (end !== void 0 && start === void 0) {
+      effectiveStart = blobSize - end;
+      effectiveEnd = blobSize;
+    }
+    return {
+      start: effectiveStart,
+      end: effectiveEnd
+    };
+  }
+
+  // node_modules/workbox-range-requests/utils/parseRangeHeader.js
+  function parseRangeHeader(rangeHeader) {
+    if (true) {
+      finalAssertExports.isType(rangeHeader, "string", {
+        moduleName: "workbox-range-requests",
+        funcName: "parseRangeHeader",
+        paramName: "rangeHeader"
+      });
+    }
+    const normalizedRangeHeader = rangeHeader.trim().toLowerCase();
+    if (!normalizedRangeHeader.startsWith("bytes=")) {
+      throw new WorkboxError("unit-must-be-bytes", { normalizedRangeHeader });
+    }
+    if (normalizedRangeHeader.includes(",")) {
+      throw new WorkboxError("single-range-only", { normalizedRangeHeader });
+    }
+    const rangeParts = /(\d*)-(\d*)/.exec(normalizedRangeHeader);
+    if (!rangeParts || !(rangeParts[1] || rangeParts[2])) {
+      throw new WorkboxError("invalid-range-values", { normalizedRangeHeader });
+    }
+    return {
+      start: rangeParts[1] === "" ? void 0 : Number(rangeParts[1]),
+      end: rangeParts[2] === "" ? void 0 : Number(rangeParts[2])
+    };
+  }
+
+  // node_modules/workbox-range-requests/createPartialResponse.js
+  async function createPartialResponse(request, originalResponse) {
+    try {
+      if (true) {
+        finalAssertExports.isInstance(request, Request, {
+          moduleName: "workbox-range-requests",
+          funcName: "createPartialResponse",
+          paramName: "request"
+        });
+        finalAssertExports.isInstance(originalResponse, Response, {
+          moduleName: "workbox-range-requests",
+          funcName: "createPartialResponse",
+          paramName: "originalResponse"
+        });
+      }
+      if (originalResponse.status === 206) {
+        return originalResponse;
+      }
+      const rangeHeader = request.headers.get("range");
+      if (!rangeHeader) {
+        throw new WorkboxError("no-range-header");
+      }
+      const boundaries = parseRangeHeader(rangeHeader);
+      const originalBlob = await originalResponse.blob();
+      const effectiveBoundaries = calculateEffectiveBoundaries(originalBlob, boundaries.start, boundaries.end);
+      const slicedBlob = originalBlob.slice(effectiveBoundaries.start, effectiveBoundaries.end);
+      const slicedBlobSize = slicedBlob.size;
+      const slicedResponse = new Response(slicedBlob, {
+        // Status code 206 is for a Partial Content response.
+        // See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/206
+        status: 206,
+        statusText: "Partial Content",
+        headers: originalResponse.headers
+      });
+      slicedResponse.headers.set("Content-Length", String(slicedBlobSize));
+      slicedResponse.headers.set("Content-Range", `bytes ${effectiveBoundaries.start}-${effectiveBoundaries.end - 1}/${originalBlob.size}`);
+      return slicedResponse;
+    } catch (error) {
+      if (true) {
+        logger.warn(`Unable to construct a partial response; returning a 416 Range Not Satisfiable response instead.`);
+        logger.groupCollapsed(`View details here.`);
+        logger.log(error);
+        logger.log(request);
+        logger.log(originalResponse);
+        logger.groupEnd();
+      }
+      return new Response("", {
+        status: 416,
+        statusText: "Range Not Satisfiable"
+      });
+    }
+  }
+
+  // node_modules/workbox-range-requests/RangeRequestsPlugin.js
+  var RangeRequestsPlugin = class {
+    constructor() {
+      this.cachedResponseWillBeUsed = async ({ request, cachedResponse }) => {
+        if (cachedResponse && request.headers.has("range")) {
+          return await createPartialResponse(request, cachedResponse);
+        }
+        return cachedResponse;
+      };
+    }
+  };
+
   // node_modules/workbox-strategies/utils/messages.js
   var messages2 = {
     strategyStart: (strategyName, request) => `Using ${strategyName} to respond to '${getFriendlyURL(request.url)}'`,
@@ -2354,7 +2486,9 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
   // esm/runtime/cache-utils.js
   var REGISTERROUTE = "RegisterRoute";
   var CACHEFIRST = "CacheFirst";
+  var CACHEFIRST_TEXTANDDOWNLOADS = "CacheFirst_TextAndDownloads";
   var CACHEABLERESPONSEPLUGIN = "CacheableResponsePlugin";
+  var RANGEREQUESTSPLUGIN = "RangeRequestsPlugin";
 
   // esm/sutta-player-sw-stub.js
   precacheAndRoute(self.__WB_MANIFEST);
@@ -2370,8 +2504,36 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
         if (plugins.length > 0)
           args.plugins = plugins;
         return new CacheFirst({ cacheName: args.cacheName, plugins: args.plugins });
+      } else if (this.registerRouteJson.strategy.class_name === CACHEFIRST_TEXTANDDOWNLOADS) {
+        return this._createCacheFirstTextAndDownloadsStrategy();
       }
-      throw new Error("Currently only CacheFirst is supported");
+      throw new Error("Currently only CacheFirst & CacheFirst_TextAndDownloads are supported");
+    }
+    _createCacheFirstTextAndDownloadsStrategy() {
+      const ret = async ({ event }) => {
+        try {
+          const request = event.request.clone();
+          const cache = await caches.open(this.registerRouteJson.strategy.cacheName);
+          let response = await cache.match(request.url);
+          if (response)
+            return response;
+          response = await fetch(request);
+          if (this._isAudioUrl(request.url)) {
+            if (response.status === 206)
+              return response;
+            response = await fetch(request.url);
+          } else
+            response = await fetch(request);
+          await cache.put(request, response.clone());
+          return response;
+        } catch (error) {
+          console.log(error);
+        }
+      };
+      return ret;
+    }
+    _isAudioUrl(url) {
+      return url.endsWith(".mp3") || url.endsWith(".wav");
     }
     _createPlugins() {
       const plugins = [];
@@ -2381,8 +2543,10 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
       for (let i = 0; i < pluginsList.length; i++) {
         if (pluginsList[i].class_name === CACHEABLERESPONSEPLUGIN)
           plugins.push(new CacheableResponsePlugin(pluginsList[i].options));
+        else if (pluginsList[i].class_name === RANGEREQUESTSPLUGIN)
+          plugins.push(new RangeRequestsPlugin());
         else
-          throw new Error("Only CacheableResponsePlugin is supported");
+          throw new Error("Only CacheableResponsePlugin & RangeRequestsPlugin are supported");
       }
       return plugins;
     }
@@ -2390,8 +2554,6 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
       const strategy = this._createStrategy();
       if (this.registerRouteJson.url_origin)
         registerRoute(({ url }) => url.origin === this.registerRouteJson.url_origin, strategy);
-      else if (this.registerRouteJson.url_href_endsWith)
-        registerRoute(({ url }) => url.href.endsWith(".txt"), strategy);
     }
   };
   addEventListener("message", (event) => {

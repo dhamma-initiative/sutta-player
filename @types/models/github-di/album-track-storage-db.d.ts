@@ -1,12 +1,13 @@
 import { TrackSelection } from '../album-player-state.js';
-import { AlbumStorageQueryable } from '../album-storage-queryable.js';
-import { AudioStorageQueryable } from '../audio-storage-queryable.js';
+import { AlbumStorageQueryable, ProcessedItem } from '../album-storage-queryable.js';
 export declare function createAlbumStorageQueryable(): Promise<AlbumStorageQueryable>;
-export declare function createAudioQueryable(): Promise<AudioStorageQueryable>;
 export declare class GithubDiSuttaStorageDB implements AlbumStorageQueryable {
     static SINGLETON: GithubDiSuttaStorageDB;
-    static CACHE_NAME: string;
-    static ORIGIN: string;
+    private _albumDbJson;
+    private _noOfWorkers;
+    private _abortCachingOperation;
+    private _downloadScheduler;
+    private _albumCacheStatusQuerier;
     setup(): Promise<void>;
     queryAlbumNames(): string[];
     queryAlbumReferences(): string[];
@@ -14,11 +15,18 @@ export declare class GithubDiSuttaStorageDB implements AlbumStorageQueryable {
     queryTrackBaseRef(albIdx: number, trackIdx: number): string;
     queryTrackSelection(baseRef: string): TrackSelection;
     queryTrackText(baseRef: string): Promise<string>;
-    queryTrackTextUri(baseRef: string): string;
-    readTextFile(relPath: string): Promise<string>;
-    queryHtmlAudioSrcRef(baseRef: string): string;
-    isInCache(baseRef: string): Promise<boolean>;
-    addToCache(baseRef: string): Promise<boolean>;
-    removeFromCache(baseRef: string): Promise<boolean>;
+    queryTrackTextUrl(baseRef: string): string;
+    queryTrackHtmlAudioSrcRef(baseRef: string): string;
+    readTextFile(url: string): Promise<string>;
+    isInCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>;
+    addToCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>;
+    removeFromCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>;
+    queryAlbumCacheStatus(albIdx: number, onChecked: ProcessedItem): void;
+    private _prepareBaseRefAsUrls;
     protected _queryTrackReferences(colRef: string): string[];
+    hasDownloadWorker(): boolean;
+    setConcurrency(count: number): number;
+    startDownloads(baseRefs: string[], onDownloaded: ProcessedItem): Promise<void>;
+    startDeletes(baseRefs: string[], onDeleted: ProcessedItem): Promise<void>;
+    abortOperation(): void;
 }

@@ -131,8 +131,8 @@ export class FabController {
         const audDur = await Promise.race([this._audDurPromise, timeOut])
         this._audDurPromise = null
         if (audDur === -1) {
-            const deleted = await this._mainCtrl._audioStore.removeFromCache(this._model.audioSel.baseRef)
-            if (deleted)
+            const deleted = await this._mainCtrl._albumStore.removeFromCache(this._model.audioSel.baseRef, false, true)
+            if (deleted[0])
                 this._mainCtrl.showUserMessage(`Partial cache removed. Please try reloading...`)
         } else
             this._view.seekToTimePosition(lineRefVals[1], lineRefVals[2], audDur)

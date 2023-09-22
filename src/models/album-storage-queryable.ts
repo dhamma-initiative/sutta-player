@@ -1,18 +1,32 @@
-import { TrackSelection } from "./album-player-state"
+import { TrackSelection } from "./album-player-state.js"
 
-export interface AlbumStorageQueryable {
+export type ProcessedItem = (baseRef: string, idx: number, txtAudStatus: boolean[], cargo?: any) => void
+
+export interface OfflineService {
+    setConcurrency(count: number): number
+    startDownloads(baseRefs: string[], onDownloaded: ProcessedItem): void
+    startDeletes(baseRefs: string[], onDeleted: ProcessedItem): void
+    abortOperation(): void
+}
+
+export interface CacheService {
+    isInCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>
+    addToCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>
+    removeFromCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>
+
+    queryAlbumCacheStatus(albIdx: number, onChecked: ProcessedItem): void
+}
+
+export interface AlbumStorageQueryable extends CacheService, OfflineService {
     queryAlbumNames(): string[]
     queryAlbumReferences(): string[]
     queryTrackReferences(albIdx: number): string[]
     queryTrackBaseRef(albIdx: number, trackIdx: number): string
     queryTrackSelection(baseRef: string): TrackSelection
     queryTrackText(baseRef: string): Promise<string>
-    queryTrackTextUri(baseRef: string): string
-    readTextFile(relPath: string): Promise<string>
-
-    isInCache(baseRef: string): Promise<boolean>
-    addToCache(baseRef: string): Promise<boolean>
-    removeFromCache(baseRef: string): Promise<boolean>
+    queryTrackTextUrl(baseRef: string): string
+    queryTrackHtmlAudioSrcRef(baseRef: string): string
+    readTextFile(url: string): Promise<string>
 }
 
 export class AlbumStorageQueryableFactory {

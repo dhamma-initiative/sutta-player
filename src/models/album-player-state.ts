@@ -55,6 +55,7 @@ export class TrackSelection extends LocalStorageState {
         this.baseRef = bRef
         this.dictionary = {}
         this.isLoaded = false
+        this._refreshDictionary()
     }
 
     public save() {
@@ -179,6 +180,7 @@ export class AlbumPlayerState extends LocalStorageState {
     navSel: TrackSelection = new TrackSelection('navSel')
     textSel: TrackSelection = new TrackSelection('textSel')
     audioSel: TrackSelection = new TrackSelection('audioSel')
+
     autoPlay: boolean = true
     playNext: boolean = true
     repeat: boolean = false
@@ -194,6 +196,8 @@ export class AlbumPlayerState extends LocalStorageState {
     useRegEx: boolean = false
     regExFlags: string = 'gm'
     ignoreDiacritics: boolean = true
+
+    concurrencyCount: number = 0
 
     audioState: number = -1 // transient [unspecified: -1, specified: 0, assigned: 1, loadedMetadata: 2, loaded: 3, playing: 4, paused: 5, ended: 6]
     stopDwnlDel: number = 0 // transient
@@ -220,6 +224,7 @@ export class AlbumPlayerState extends LocalStorageState {
         this._setItemNumber('currentTime', this.currentTime)
         this._setItemBoolean('darkTheme', this.darkTheme)
         this._setItemBoolean('showContextControls', this.showContextControls)
+        this._setItemNumber('concurrencyCount', this.concurrencyCount)
 
         this._setItemString('searchFor', this.searchFor)
         this._setItemNumber('searchScope', this.searchScope)
@@ -241,6 +246,7 @@ export class AlbumPlayerState extends LocalStorageState {
         this.currentScrollY = this._getItemNumber('currentScrollY', this.currentScrollY)
         this.darkTheme = this._getItemBoolean('darkTheme', this.darkTheme)
         this.showContextControls = this._getItemBoolean('showContextControls', this.showContextControls)
+        this.concurrencyCount = this._getItemNumber('concurrencyCount', this.concurrencyCount)
 
         this.searchFor = this._getItemString('searchFor', this.searchFor)
         this.searchScope = this._getItemNumber('searchScope', this.searchScope)

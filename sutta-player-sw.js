@@ -2280,6 +2280,138 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
     addRoute(options);
   }
 
+  // node_modules/workbox-range-requests/_version.js
+  try {
+    self["workbox:range-requests:7.0.0"] && _();
+  } catch (e) {
+  }
+
+  // node_modules/workbox-range-requests/utils/calculateEffectiveBoundaries.js
+  function calculateEffectiveBoundaries(blob, start, end) {
+    if (true) {
+      finalAssertExports.isInstance(blob, Blob, {
+        moduleName: "workbox-range-requests",
+        funcName: "calculateEffectiveBoundaries",
+        paramName: "blob"
+      });
+    }
+    const blobSize = blob.size;
+    if (end && end > blobSize || start && start < 0) {
+      throw new WorkboxError("range-not-satisfiable", {
+        size: blobSize,
+        end,
+        start
+      });
+    }
+    let effectiveStart;
+    let effectiveEnd;
+    if (start !== void 0 && end !== void 0) {
+      effectiveStart = start;
+      effectiveEnd = end + 1;
+    } else if (start !== void 0 && end === void 0) {
+      effectiveStart = start;
+      effectiveEnd = blobSize;
+    } else if (end !== void 0 && start === void 0) {
+      effectiveStart = blobSize - end;
+      effectiveEnd = blobSize;
+    }
+    return {
+      start: effectiveStart,
+      end: effectiveEnd
+    };
+  }
+
+  // node_modules/workbox-range-requests/utils/parseRangeHeader.js
+  function parseRangeHeader(rangeHeader) {
+    if (true) {
+      finalAssertExports.isType(rangeHeader, "string", {
+        moduleName: "workbox-range-requests",
+        funcName: "parseRangeHeader",
+        paramName: "rangeHeader"
+      });
+    }
+    const normalizedRangeHeader = rangeHeader.trim().toLowerCase();
+    if (!normalizedRangeHeader.startsWith("bytes=")) {
+      throw new WorkboxError("unit-must-be-bytes", { normalizedRangeHeader });
+    }
+    if (normalizedRangeHeader.includes(",")) {
+      throw new WorkboxError("single-range-only", { normalizedRangeHeader });
+    }
+    const rangeParts = /(\d*)-(\d*)/.exec(normalizedRangeHeader);
+    if (!rangeParts || !(rangeParts[1] || rangeParts[2])) {
+      throw new WorkboxError("invalid-range-values", { normalizedRangeHeader });
+    }
+    return {
+      start: rangeParts[1] === "" ? void 0 : Number(rangeParts[1]),
+      end: rangeParts[2] === "" ? void 0 : Number(rangeParts[2])
+    };
+  }
+
+  // node_modules/workbox-range-requests/createPartialResponse.js
+  async function createPartialResponse(request, originalResponse) {
+    try {
+      if (true) {
+        finalAssertExports.isInstance(request, Request, {
+          moduleName: "workbox-range-requests",
+          funcName: "createPartialResponse",
+          paramName: "request"
+        });
+        finalAssertExports.isInstance(originalResponse, Response, {
+          moduleName: "workbox-range-requests",
+          funcName: "createPartialResponse",
+          paramName: "originalResponse"
+        });
+      }
+      if (originalResponse.status === 206) {
+        return originalResponse;
+      }
+      const rangeHeader = request.headers.get("range");
+      if (!rangeHeader) {
+        throw new WorkboxError("no-range-header");
+      }
+      const boundaries = parseRangeHeader(rangeHeader);
+      const originalBlob = await originalResponse.blob();
+      const effectiveBoundaries = calculateEffectiveBoundaries(originalBlob, boundaries.start, boundaries.end);
+      const slicedBlob = originalBlob.slice(effectiveBoundaries.start, effectiveBoundaries.end);
+      const slicedBlobSize = slicedBlob.size;
+      const slicedResponse = new Response(slicedBlob, {
+        // Status code 206 is for a Partial Content response.
+        // See https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/206
+        status: 206,
+        statusText: "Partial Content",
+        headers: originalResponse.headers
+      });
+      slicedResponse.headers.set("Content-Length", String(slicedBlobSize));
+      slicedResponse.headers.set("Content-Range", `bytes ${effectiveBoundaries.start}-${effectiveBoundaries.end - 1}/${originalBlob.size}`);
+      return slicedResponse;
+    } catch (error) {
+      if (true) {
+        logger.warn(`Unable to construct a partial response; returning a 416 Range Not Satisfiable response instead.`);
+        logger.groupCollapsed(`View details here.`);
+        logger.log(error);
+        logger.log(request);
+        logger.log(originalResponse);
+        logger.groupEnd();
+      }
+      return new Response("", {
+        status: 416,
+        statusText: "Range Not Satisfiable"
+      });
+    }
+  }
+
+  // node_modules/workbox-range-requests/RangeRequestsPlugin.js
+  var RangeRequestsPlugin = class {
+    constructor() {
+      this.cachedResponseWillBeUsed = async ({ request, cachedResponse }) => {
+        if (cachedResponse && request.headers.has("range")) {
+          return await createPartialResponse(request, cachedResponse);
+        }
+        return cachedResponse;
+      };
+    }
+  };
+
   // node_modules/workbox-strategies/utils/messages.js
   var messages2 = {
     strategyStart: (strategyName, request) => `Using ${strategyName} to respond to '${getFriendlyURL(request.url)}'`,
@@ -2354,10 +2486,12 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
   // esm/runtime/cache-utils.js
   var REGISTERROUTE = "RegisterRoute";
   var CACHEFIRST = "CacheFirst";
+  var CACHEFIRST_TEXTANDDOWNLOADS = "CacheFirst_TextAndDownloads";
   var CACHEABLERESPONSEPLUGIN = "CacheableResponsePlugin";
+  var RANGEREQUESTSPLUGIN = "RangeRequestsPlugin";
 
   // esm/sutta-player-sw-stub.js
-  precacheAndRoute([{"revision":"5b75e5e5bb8e9dd94eec5fe7eb450e69","url":"css/custom.css"},{"revision":"39f2989c158319daf02e9d4fc0bad1b5","url":"css/pico-1.5.9/pico.min.css"},{"revision":"7426a64c657df8e9cc1db396183154cb","url":"esm/app-config.json"},{"revision":"f6b5b0a20fe97844d0c5a90375cf574f","url":"esm/controllers/about-controller.js"},{"revision":"9d8a29b8a6bac3eb3f0be7381fac452b","url":"esm/controllers/controller-commons.js"},{"revision":"6efa2df82dd0f6626a3f70bd012792a3","url":"esm/controllers/controller-worker.js"},{"revision":"0dd00b05b1660501ec7f1867a25a2a40","url":"esm/controllers/fab-controller.js"},{"revision":"1dcd9b8b38dba9c10027e26ee1d5ccc0","url":"esm/controllers/offline-controller.js"},{"revision":"39cb1e6c6d30b2c5a099f2ca2df5a9a6","url":"esm/controllers/resetapp-controller.js"},{"revision":"b89a13d82b89402b54511326ff8e92c4","url":"esm/controllers/search-controller.js"},{"revision":"e60691d4f86c91bad86cfc51426048b8","url":"esm/controllers/settings-controller.js"},{"revision":"930ae0001bbd96b7db81de20c764e15a","url":"esm/controllers/sutta-player-controller.js"},{"revision":"5c80eb1509244a7f07135f12143b61b7","url":"esm/models/album-player-state.js"},{"revision":"f5b665f622aeffd451af6e68754a810c","url":"esm/models/album-storage-queryable.js"},{"revision":"6ebd0b59b783c121e72f1d783dffe555","url":"esm/models/audio-storage-queryable.js"},{"revision":"0e2d1078cd05cc642051a1aa9a1157aa","url":"esm/models/github-di/album-track-storage-db.js"},{"revision":"23ca2131802ac8a0ee164a40771a1626","url":"esm/models/github-di/album-track-storage-db.json"},{"revision":"91db4ab6dffce1f3faa7cbbf7f1462e8","url":"esm/models/google-drive/audio-storage-db.js"},{"revision":"cfed37b8ba579c0c12e61cd9a95cd96d","url":"esm/models/google-drive/audio-storage-db.json"},{"revision":"86bad4a2302b4c3814513551ae7ef9ef","url":"esm/models/json-fs/album-storage-db.js"},{"revision":"23ca2131802ac8a0ee164a40771a1626","url":"esm/models/json-fs/album-storage-db.json"},{"revision":"74322428351a6d3b5988753f244813fe","url":"esm/runtime/cache-utils.js"},{"revision":"ad551d892ba6bd2f7a73307ac4febdc6","url":"esm/runtime/deferred-promise.js"},{"revision":"f69d49862110d9923c3f9a3fca253e99","url":"esm/runtime/localstorage-state.js"},{"revision":"59b0b9019640540a9e31712ff1c280a0","url":"esm/runtime/string-utils.js"},{"revision":"d0ad72f2153d4b284e52a0d6a3628e3c","url":"esm/runtime/worker-utils.js"},{"revision":"f8edfb523ac383041e8f02117560fdcb","url":"esm/sutta-player-app.js"},{"revision":"ce9fa16763a8c006140259e324461fee","url":"esm/sutta-player-sw-stub.js"},{"revision":"517d54dfe8fa1e498ffa7af770f15d0e","url":"esm/views/event-utils.js"},{"revision":"2729e28beed38e5a0c1db6330a3d7c99","url":"esm/views/sutta-player-view.js"},{"revision":"e9f11c3c6cc0666f71ce3d20a493df7d","url":"esm/views/view-controllable.js"},{"revision":"967362d1b79eb9e40964a59f05b598ac","url":"favicon.ico"},{"revision":"379f40cb923ae36726ea2f0c5e35c514","url":"img/dhamma-chakka.png"},{"revision":"6368abe9e828248565095224c76eb910","url":"img/dhamma-chakka192.png"},{"revision":"ed2a0d9cd39ececf341795c3ac2597ea","url":"index.html"},{"revision":"fa1072e6989a041e4a70bef0a71f6d56","url":"LICENSE_CONTENT_ṭhānissaro_bhikkhu.md"},{"revision":"07b4ccf9a3cd695e65d78d0a614bec00","url":"LICENSE_picocss.md"},{"revision":"596dc76b6a7e326158d0988ad1d17f47","url":"manifest.json"},{"revision":"64be0cf0b5b4e42ea9a6dc2cceeda7f4","url":"README.md"}]);
+  precacheAndRoute([{"revision":"5b75e5e5bb8e9dd94eec5fe7eb450e69","url":"css/custom.css"},{"revision":"39f2989c158319daf02e9d4fc0bad1b5","url":"css/pico-1.5.9/pico.min.css"},{"revision":"12ec9524c595d778c34250f1cbc9a6d2","url":"esm/app-config.json"},{"revision":"f6b5b0a20fe97844d0c5a90375cf574f","url":"esm/controllers/about-controller.js"},{"revision":"7d3577be6febd30eb71ee24307ca58dc","url":"esm/controllers/fab-controller.js"},{"revision":"aaea27ce9500f38a6dc064ce77a5afe6","url":"esm/controllers/offline-controller.js"},{"revision":"39cb1e6c6d30b2c5a099f2ca2df5a9a6","url":"esm/controllers/resetapp-controller.js"},{"revision":"cc0c2abb9b5492a034c63e9ceae8db44","url":"esm/controllers/search-controller.js"},{"revision":"e60691d4f86c91bad86cfc51426048b8","url":"esm/controllers/settings-controller.js"},{"revision":"4cc557c9d8aab6418242f950f33dc0ff","url":"esm/controllers/sutta-player-controller.js"},{"revision":"96e94442e9a5439411d94d25e0092528","url":"esm/models/album-player-state.js"},{"revision":"f5b665f622aeffd451af6e68754a810c","url":"esm/models/album-storage-queryable.js"},{"revision":"0f5a58c973e16b56338aa6a914872f3e","url":"esm/models/github-di/album-track-storage-db.js"},{"revision":"23ca2131802ac8a0ee164a40771a1626","url":"esm/models/github-di/album-track-storage-db.json"},{"revision":"d472b21219204e5081b5a50fea68aebb","url":"esm/models/github-di/bg-tracks-commons.js"},{"revision":"f742f94f32259cde21ad0a0c94040240","url":"esm/models/github-di/bg-tracks-download-worker.js"},{"revision":"4539aaae2582a76b3079dbf3ef468bcd","url":"esm/models/github-di/bg-tracks-status-worker.js"},{"revision":"9ce2faa7165c6e214c8ac3a95e1ee834","url":"esm/runtime/cache-utils.js"},{"revision":"ad551d892ba6bd2f7a73307ac4febdc6","url":"esm/runtime/deferred-promise.js"},{"revision":"f69d49862110d9923c3f9a3fca253e99","url":"esm/runtime/localstorage-state.js"},{"revision":"59b0b9019640540a9e31712ff1c280a0","url":"esm/runtime/string-utils.js"},{"revision":"9da4c5dd75f99232c7d4f7a28b3cd02f","url":"esm/runtime/worker-utils.js"},{"revision":"5d75368f11dff066e98cb2037ddb657a","url":"esm/sutta-player-app.js"},{"revision":"3f737b53f0d6936fdd71671b570442b4","url":"esm/sutta-player-sw-stub.js"},{"revision":"517d54dfe8fa1e498ffa7af770f15d0e","url":"esm/views/event-utils.js"},{"revision":"979d39c0164104ae78ef5119ea32ac39","url":"esm/views/sutta-player-view.js"},{"revision":"967362d1b79eb9e40964a59f05b598ac","url":"favicon.ico"},{"revision":"379f40cb923ae36726ea2f0c5e35c514","url":"img/dhamma-chakka.png"},{"revision":"6368abe9e828248565095224c76eb910","url":"img/dhamma-chakka192.png"},{"revision":"0cb34b7932e89a6fc1834d9a9149c0c9","url":"index.html"},{"revision":"fa1072e6989a041e4a70bef0a71f6d56","url":"LICENSE_CONTENT_ṭhānissaro_bhikkhu.md"},{"revision":"07b4ccf9a3cd695e65d78d0a614bec00","url":"LICENSE_picocss.md"},{"revision":"596dc76b6a7e326158d0988ad1d17f47","url":"manifest.json"},{"revision":"64be0cf0b5b4e42ea9a6dc2cceeda7f4","url":"README.md"}]);
   var RouteFactory = class {
     registerRouteJson;
     constructor(regRtJson) {
@@ -2370,8 +2504,36 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
         if (plugins.length > 0)
           args.plugins = plugins;
         return new CacheFirst({ cacheName: args.cacheName, plugins: args.plugins });
+      } else if (this.registerRouteJson.strategy.class_name === CACHEFIRST_TEXTANDDOWNLOADS) {
+        return this._createCacheFirstTextAndDownloadsStrategy();
       }
-      throw new Error("Currently only CacheFirst is supported");
+      throw new Error("Currently only CacheFirst & CacheFirst_TextAndDownloads are supported");
+    }
+    _createCacheFirstTextAndDownloadsStrategy() {
+      const ret = async ({ event }) => {
+        try {
+          const request = event.request.clone();
+          const cache = await caches.open(this.registerRouteJson.strategy.cacheName);
+          let response = await cache.match(request.url);
+          if (response)
+            return response;
+          response = await fetch(request);
+          if (this._isAudioUrl(request.url)) {
+            if (response.status === 206)
+              return response;
+            response = await fetch(request.url);
+          } else
+            response = await fetch(request);
+          await cache.put(request, response.clone());
+          return response;
+        } catch (error) {
+          console.log(error);
+        }
+      };
+      return ret;
+    }
+    _isAudioUrl(url) {
+      return url.endsWith(".mp3") || url.endsWith(".wav");
     }
     _createPlugins() {
       const plugins = [];
@@ -2381,8 +2543,10 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
       for (let i = 0; i < pluginsList.length; i++) {
         if (pluginsList[i].class_name === CACHEABLERESPONSEPLUGIN)
           plugins.push(new CacheableResponsePlugin(pluginsList[i].options));
+        else if (pluginsList[i].class_name === RANGEREQUESTSPLUGIN)
+          plugins.push(new RangeRequestsPlugin());
         else
-          throw new Error("Only CacheableResponsePlugin is supported");
+          throw new Error("Only CacheableResponsePlugin & RangeRequestsPlugin are supported");
       }
       return plugins;
     }
@@ -2390,8 +2554,6 @@ This is generally NOT safe. Learn more at https://bit.ly/wb-precache`;
       const strategy = this._createStrategy();
       if (this.registerRouteJson.url_origin)
         registerRoute(({ url }) => url.origin === this.registerRouteJson.url_origin, strategy);
-      else if (this.registerRouteJson.url_href_endsWith)
-        registerRoute(({ url }) => url.href.endsWith(".txt"), strategy);
     }
   };
   addEventListener("message", (event) => {

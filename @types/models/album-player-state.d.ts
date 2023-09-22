@@ -53,6 +53,7 @@ export declare class AlbumPlayerState extends LocalStorageState {
     useRegEx: boolean;
     regExFlags: string;
     ignoreDiacritics: boolean;
+    concurrencyCount: number;
     audioState: number;
     stopDwnlDel: number;
     bookmarkSel: BookmarkedSelection;

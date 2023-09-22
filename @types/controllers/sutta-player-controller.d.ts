@@ -1,10 +1,7 @@
 import { TrackSelection } from '../models/album-player-state.js';
 import { AlbumStorageQueryable } from "../models/album-storage-queryable.js";
-import { AudioStorageQueryable } from '../models/audio-storage-queryable.js';
-import { ViewControllable } from '../views/view-controllable.js';
-export declare class SuttaPlayerController implements ViewControllable {
+export declare class SuttaPlayerController {
     static VERSION: string;
-    _audioStore: AudioStorageQueryable;
     _albumStore: AlbumStorageQueryable;
     private _appRoot;
     private _model;
@@ -17,14 +14,11 @@ export declare class SuttaPlayerController implements ViewControllable {
     private _aboutController;
     private _lastScrollTime;
     private _lineSelectionCb;
-    private _backgroundWorker;
-    constructor(appRoot: string, albumStorage: AlbumStorageQueryable, audioStorage: AudioStorageQueryable);
+    constructor(appRoot: string, albumStorage: AlbumStorageQueryable);
     setup(): Promise<void>;
     tearDown(): Promise<void>;
     showUserMessage(msg: string, dur?: number): void;
-    finaliseTrackLov(trackLov: string[]): void;
     private _injectVersionInfo;
-    private _initialiseWorker;
     private _registerListeners;
     private _registerNavigationListeners;
     private _registerDisplayListeners;

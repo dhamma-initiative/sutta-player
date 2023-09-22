@@ -1,7 +1,5 @@
-import { AudioStorageQueryable } from '../models/audio-storage-queryable.js';
 import { AlbumPlayerState, TrackSelection } from '../models/album-player-state.js';
 import { AlbumStorageQueryable } from "../models/album-storage-queryable.js";
-import { ViewControllable } from './view-controllable.js';
 export declare class SuttaPlayerView {
     static LINEID_PREFIX: string;
     autoPlayElem: HTMLInputElement;
@@ -46,6 +44,7 @@ export declare class SuttaPlayerView {
     offlineDialogElem: HTMLDialogElement;
     offlineDialogCloseElem: HTMLAnchorElement;
     offlineTitleElem: HTMLElement;
+    concurrencyCountElem: HTMLSelectElement;
     downloadAlbumElem: HTMLInputElement;
     deleteAlbumElem: HTMLInputElement;
     removeAudioFromCacheElem: HTMLButtonElement;
@@ -61,16 +60,11 @@ export declare class SuttaPlayerView {
     gotoTopElem: HTMLAnchorElement;
     private _model;
     private _albumStore;
-    private _audioStore;
-    private _viewControllable;
     private _charPosLineIndex;
-    private _trackLov;
-    removeFromCacheBaseRef: string;
-    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable, audioStore: AudioStorageQueryable, vc: ViewControllable);
+    constructor(mdl: AlbumPlayerState, albumStore: AlbumStorageQueryable);
     initialise(cb: (event: MouseEvent) => void): Promise<void>;
     refreshViewSettings(): void;
-    loadTracksList(): Promise<void>;
-    finaliseLoadTracksList(status: number[]): void;
+    refreshTrackSelectionList(): Promise<void>;
     loadTrackWith(trackSel: TrackSelection): Promise<string>;
     loadTrackTextForUi(lineSelCb: (event: MouseEvent) => void): Promise<void>;
     createLineRefValues(lineNum: number): string;
@@ -82,7 +76,7 @@ export declare class SuttaPlayerView {
     parseLineNumber(idRef: string): number;
     static createLineElementId(lineNum: number): string;
     loadTrackAudio(): Promise<void>;
-    loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): boolean;
+    loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): Promise<boolean>;
     updatePlayingTrackInfo(baseRef: string, status: string): void;
     showMessage(msg: string, dur?: number): void;
     toggleLineNums(): void;

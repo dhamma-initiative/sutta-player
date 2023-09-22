@@ -1,16 +1,13 @@
 import { SuttaPlayerView } from '../views/sutta-player-view.js';
 import { AlbumPlayerState, BookmarkedSelection } from '../models/album-player-state.js';
-import { WorkerFactory } from '../runtime/worker-utils.js';
 import { AboutController } from './about-controller.js';
-import { CACHED_TRACKS_STATUS_RQST_MSG } from './controller-commons.js';
 import { FabController } from './fab-controller.js';
 import { OfflineController } from './offline-controller.js';
 import { ResetAppController } from './resetapp-controller.js';
 import { SearchController } from './search-controller.js';
 import { SettingsController } from './settings-controller.js';
 export class SuttaPlayerController {
-    static VERSION = "v1.0.7";
-    _audioStore;
+    static VERSION = "v1.0.8";
     _albumStore;
     _appRoot;
     _model;
@@ -25,15 +22,12 @@ export class SuttaPlayerController {
     _lineSelectionCb = (event) => {
         this._onLineSelected(event);
     };
-    _backgroundWorker;
-    constructor(appRoot, albumStorage, audioStorage) {
+    constructor(appRoot, albumStorage) {
         this._appRoot = appRoot;
         this._albumStore = albumStorage;
-        this._audioStore = audioStorage;
-        this._backgroundWorker = new Worker('./esm/controllers/controller-worker.js', { type: 'module' });
         const bookmark = new BookmarkedSelection(appRoot);
         this._model = new AlbumPlayerState(bookmark);
-        this._view = new SuttaPlayerView(this._model, this._albumStore, this._audioStore, this);
+        this._view = new SuttaPlayerView(this._model, this._albumStore);
         this._settingsController = new SettingsController(this._model, this._view, this);
         this._searchController = new SearchController(this._model, this._view, this);
         this._fabController = new FabController(this._model, this._view, this);
@@ -43,7 +37,6 @@ export class SuttaPlayerController {
     }
     async setup() {
         this._injectVersionInfo();
-        this._initialiseWorker();
         this._model.restore();
         this._loadShareLinkIfSpecified();
         if (this._model.navSel.baseRef === null)
@@ -72,29 +65,11 @@ export class SuttaPlayerController {
     showUserMessage(msg, dur) {
         this._view.showMessage(msg, dur);
     }
-    finaliseTrackLov(trackLov) {
-        const core = {
-            navSel: this._model.navSel,
-            tracks: trackLov
-        };
-        const msg = WorkerFactory.createRqstMsg(CACHED_TRACKS_STATUS_RQST_MSG, core);
-        this._backgroundWorker.postMessage(msg);
-    }
     _injectVersionInfo() {
         const htmlVerTxt = document.getElementById('appHtmlViewVer').textContent;
         document.getElementById('appJsCtrlVer').textContent = SuttaPlayerController.VERSION;
         console.log(`App HTML View version: ${htmlVerTxt}`);
         console.log(`App JS Controller version: ${SuttaPlayerController.VERSION}`);
-    }
-    _initialiseWorker() {
-        this._backgroundWorker.addEventListener('message', (event) => {
-            const msg = event.data;
-            if (msg.type === CACHED_TRACKS_STATUS_RQST_MSG) {
-                const respMsg = msg.payload;
-                if (respMsg.navSel.albumIndex === this._model.navSel.albumIndex)
-                    this._view.finaliseLoadTracksList(respMsg.status);
-            }
-        });
     }
     _registerListeners() {
         this._registerNavigationListeners();
@@ -198,7 +173,7 @@ export class SuttaPlayerController {
         this._model.navSel.trackIndex = 0;
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex;
         this._model.navSel.updateBaseRef(this._albumStore);
-        await this._view.loadTracksList();
+        await this._view.refreshTrackSelectionList();
     }
     _onTrackSelected(forceTrackIdx) {
         this._model.navSel.trackIndex = (forceTrackIdx === null) ? Number(this._view.trackElem.value) : forceTrackIdx;
@@ -211,9 +186,9 @@ export class SuttaPlayerController {
         this._model.audioState = -1;
         this._model.audioSel.read(srcSel);
         this._model.bookmarkSel.read(srcSel);
-        await this._view.loadTrackAudio();
         if (this._model.linkTextToAudio)
             await this._onLoadText(this._model.audioSel);
+        await this._view.loadTrackAudio();
         return false;
     }
     async _onLoadText(srcSel) {
@@ -252,11 +227,11 @@ export class SuttaPlayerController {
         this._model.navSel.updateBaseRef(this._albumStore);
         if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
             this._view.albumElem.selectedIndex = this._model.navSel.albumIndex;
-            await this._view.loadTracksList();
+            await this._view.refreshTrackSelectionList();
         }
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex;
-        await this._onLoadAudio(this._model.navSel);
         await this._onLoadText(this._model.navSel);
+        await this._onLoadAudio(this._model.navSel);
     }
     _onShareLink() {
         let href = this._model.bookmarkSel.createLink();
@@ -267,7 +242,7 @@ export class SuttaPlayerController {
         this._model.navSel.read(srcSel);
         if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
             this._view.albumElem.selectedIndex = this._model.navSel.albumIndex;
-            await this._view.loadTracksList();
+            await this._view.refreshTrackSelectionList();
         }
         this._view.trackElem.selectedIndex = this._model.navSel.trackIndex;
         this.showUserMessage('Track loaded into Navigator selection');
