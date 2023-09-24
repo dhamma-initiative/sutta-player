@@ -31,7 +31,7 @@ export class OfflineController {
 
     private _registerListeners() {
         this._view.offlineMenuElem.onclick = async (event) => {
-            this._view.toggleOfflineDialog(event)
+            await this._view.toggleOfflineDialog(event)
         }
         this._view.offlineDialogCloseElem.onclick = this._view.offlineMenuElem.onclick
         this._view.concurrencyCountElem.onchange = async () => {
@@ -42,14 +42,14 @@ export class OfflineController {
                 this._prepareOfflineControls([false, true], [null, null])
                 await this._onDownloadAlbum()
             } else 
-                this._activeHandler.abortOperation()
+                this._activeHandler.abortOfflineOperation()
         }
         this._view.deleteAlbumElem.onchange = async () => {
             if (this._view.deleteAlbumElem.checked) {
                 this._prepareOfflineControls([true, false], [null, null])
                 await this._onRemoveAlbum()
             } else 
-                this._activeHandler.abortOperation()
+                this._activeHandler.abortOfflineOperation()
         }
         this._view.removeAudioFromCacheElem.onclick = async () => {
             const deleted = await this._mainCtrl._albumStore.removeFromCache(this._model.navSel.baseRef, true, true)
@@ -69,15 +69,15 @@ export class OfflineController {
 
     private async _onDownloadAlbum(): Promise<void> {
         this._activeHandler = this._getOfflineServiceHandler()
-        const baseRefs = this._mainCtrl._albumStore.queryTrackReferences(this._model.navSel.albumIndex)
+        const baseRefs = await this._mainCtrl._albumStore.queryTrackReferences(this._model.navSel.albumIndex)
         const basePath = this._model.navSel.dictionary['albumRef']
         let currCount = 0
         for (let i = 0; i < baseRefs.length; i++) 
             baseRefs[i] = `${basePath}/${baseRefs[i]}`
         this._model.stopDwnlDel = 1
-        await this._activeHandler.startDownloads(baseRefs, (baseRef, idx, wastxtAudOk, cargo) => {
+        await this._activeHandler.startDownloads(baseRefs, async (baseRef, idx, wastxtAudOk, cargo) => {
             if (cargo.wasAborted) 
-                this._handleOperationExit('Downloaded', [false, false], [null, null])
+                await this._handleOperationExit('Downloaded', [false, false], [null, null])
             else {
                 currCount++
                 this._updateProgress(baseRef, currCount, baseRefs.length)
@@ -87,22 +87,22 @@ export class OfflineController {
                     this._view.showMessage(`${baseRef} download failed`)
                 }
                 if (cargo.isLast) 
-                  this._handleOperationExit('Downloaded', [false, false], [false, null])
+                  await this._handleOperationExit('Downloaded', [false, false], [false, null])
             }
         })
     }
 
     private async _onRemoveAlbum(): Promise<void> {
         this._activeHandler = this._getOfflineServiceHandler()
-        const baseRefs = this._mainCtrl._albumStore.queryTrackReferences(this._model.navSel.albumIndex)
+        const baseRefs = await this._mainCtrl._albumStore.queryTrackReferences(this._model.navSel.albumIndex)
         const basePath = this._model.navSel.dictionary['albumRef']
         let currCount = 0
         for (let i = 0; i < baseRefs.length; i++) 
             baseRefs[i] = `${basePath}/${baseRefs[i]}`
         this._model.stopDwnlDel = 2
-        await this._activeHandler.startDeletes(baseRefs, (baseRef, idx, wastxtAudOk, cargo) => {
+        await this._activeHandler.startDeletes(baseRefs, async (baseRef, idx, wastxtAudOk, cargo) => {
             if (cargo.wasAborted) 
-                this._handleOperationExit('Deleted', [false, false], [null, null])
+                await this._handleOperationExit('Deleted', [false, false], [null, null])
             else {
                 currCount++
                 this._updateProgress(baseRef, currCount, baseRefs.length)
@@ -110,14 +110,14 @@ export class OfflineController {
                 if (!(wastxtAudOk[0] && wastxtAudOk[1]))
                     this._view.updateOfflineInfo(`${baseRef} failure encountered`, -1)
                 if (cargo.isLast) 
-                    this._handleOperationExit('Deleted', [false, false], [null, false])
+                    await this._handleOperationExit('Deleted', [false, false], [null, false])
             }
         })
     }
 
-    private _handleOperationExit(finalStatusMsg: string, wnDelDisable: boolean[], dwnDelChecked: boolean[]) {
+    private async _handleOperationExit(finalStatusMsg: string, wnDelDisable: boolean[], dwnDelChecked: boolean[]): Promise<void> {
         this._notifyFinalStatus(finalStatusMsg)
-        this._view.refreshTrackSelectionList()
+        await this._view.refreshTrackSelectionList()
         this._prepareOfflineControls(wnDelDisable, dwnDelChecked)
     }
 
@@ -192,7 +192,7 @@ class MainThreadOfflineService implements OfflineService {
         }
     }
 
-    public abortOperation(): void {
+    public abortOfflineOperation(): void {
         this._abortOperation = true
     }
 }

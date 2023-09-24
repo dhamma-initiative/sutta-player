@@ -1,6 +1,13 @@
+import { MatchedSearchRef, SearchContext } from "../album-storage-queryable"
+
 export const DOWNLOAD_TRACKS_RQST_MSG = 'DOWNLOAD_TRACKS_RQST_MSG'
 export const CACHED_TRACKS_STATUS_RQST_MSG = 'CACHED_TRACKS_STATUS_RQST_MSG'
 export const CACHED_TRACKS_STATUS_FINISHED_RESP_MSG = 'CACHED_TRACKS_STATUS_FINISHED_RESP_MSG'
+
+export const SEARCH_TRACKS_RQST_MSG = 'SEARCH_TRACKS_RQST_MSG'
+export const SEARCH_TRACKS_STATE_CHG_RQST_MSG = 'SEARCH_TRACKS_STATE_CHG_RQST_MSG'
+export const SEARCH_TRACKS_PAUSE_CHG_RESP_MSG = 'SEARCH_TRACKS_PAUSE_CHG_RESP_MSG'
+export const SEARCH_TRACKS_FINISHED_RESP_MSG = 'SEARCH_TRACKS_FINISHED_RESP_MSG'
 
 export const CACHE_NAME = 'dhamma-initiative.github.io'
 export const ORIGIN = `https://${CACHE_NAME}`
@@ -26,6 +33,10 @@ export interface AlbumTrackRqstMsg {
     albumRef: string
     tracks: TrackProcessRqstMsg[]
 }
+
+export type SearchTrackRqstMsg = SearchContext
+
+export type MatchedTrackRespMsg = MatchedSearchRef
 
 export class UrlUtils {
     public static queryTrackTextUrl(baseRef: string): string {

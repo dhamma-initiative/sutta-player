@@ -1,5 +1,5 @@
 import { LocalStorageState } from '../runtime/localstorage-state.js'
-import { AlbumStorageQueryable } from './album-storage-queryable.js'
+import { AlbumStorageQueryable, QueryService } from './album-storage-queryable.js'
 
 export class TrackSelection extends LocalStorageState {
     context: string
@@ -33,8 +33,8 @@ export class TrackSelection extends LocalStorageState {
         return ret
     }
 
-    public updateBaseRef(qry: AlbumStorageQueryable) {
-        this.baseRef = qry.queryTrackBaseRef(this.albumIndex, this.trackIndex)
+    public async updateBaseRef(qry: QueryService): Promise<void> {
+        this.baseRef = await qry.queryTrackBaseRef(this.albumIndex, this.trackIndex)
         this._refreshDictionary()
     }
 
@@ -74,10 +74,13 @@ export class TrackSelection extends LocalStorageState {
     private _refreshDictionary() {
         if (this.baseRef !== null) {
             const idxPos = this.baseRef.lastIndexOf('/')
-            if (idxPos > -1)
-                this.dictionary['albumRef'] = this.baseRef.substring(0, idxPos)            
-            else
-                this.dictionary['albumRef'] = this.baseRef        
+            if (idxPos > -1) {
+                this.dictionary['albumRef'] = this.baseRef.substring(0, idxPos)
+                this.dictionary['trackName'] = this.baseRef.substring(idxPos+1)
+            } else {
+                this.dictionary['albumRef'] = this.baseRef
+                this.dictionary['trackName'] = ''
+            }
         }
     }
 }
@@ -141,7 +144,7 @@ export class BookmarkedSelection extends TrackSelection {
         return ret
     }
 
-    public parseLink(qry: AlbumStorageQueryable) {
+    public async parseLink(qry: AlbumStorageQueryable): Promise<void> {
         let href = location.href
         let url = new URL(href)
         if (url.hash) {
@@ -150,7 +153,7 @@ export class BookmarkedSelection extends TrackSelection {
            let baseRef = url.pathname.substring(this.appRoot.length)
             if (baseRef.startsWith('/'))
                 baseRef = baseRef.substring(1)
-            const urlSel = qry.queryTrackSelection(baseRef)
+            const urlSel = await qry.queryTrackSelection(baseRef)
             if (urlSel.albumIndex > -1 && urlSel.trackIndex > -1) {
                 this.read(urlSel)
                 const st = url.searchParams.get('startTime')
@@ -189,7 +192,6 @@ export class AlbumPlayerState extends LocalStorageState {
     currentScrollY: number = 0
     currentTime: number = 0
     darkTheme: boolean = false
-    showContextControls: boolean = false
 
     searchFor: string = ''
     searchScope: number = 0 // [selected album: 0, cached tracks: 1, all albums: 2]
@@ -223,7 +225,6 @@ export class AlbumPlayerState extends LocalStorageState {
         this._setItemNumber('currentScrollY', window.scrollY)
         this._setItemNumber('currentTime', this.currentTime)
         this._setItemBoolean('darkTheme', this.darkTheme)
-        this._setItemBoolean('showContextControls', this.showContextControls)
         this._setItemNumber('concurrencyCount', this.concurrencyCount)
 
         this._setItemString('searchFor', this.searchFor)
@@ -245,7 +246,6 @@ export class AlbumPlayerState extends LocalStorageState {
         this.currentTime = this._getItemNumber('currentTime', this.currentTime)
         this.currentScrollY = this._getItemNumber('currentScrollY', this.currentScrollY)
         this.darkTheme = this._getItemBoolean('darkTheme', this.darkTheme)
-        this.showContextControls = this._getItemBoolean('showContextControls', this.showContextControls)
         this.concurrencyCount = this._getItemNumber('concurrencyCount', this.concurrencyCount)
 
         this.searchFor = this._getItemString('searchFor', this.searchFor)

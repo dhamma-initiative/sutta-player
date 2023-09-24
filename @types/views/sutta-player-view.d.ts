@@ -9,7 +9,6 @@ export declare class SuttaPlayerView {
     showLineNumsElem: HTMLInputElement;
     searchScopeElem: HTMLSelectElement;
     darkThemeElem: HTMLInputElement;
-    showContextControlsElem: HTMLInputElement;
     searchMenuElem: HTMLAnchorElement;
     searchDialogElem: HTMLDialogElement;
     searchDialogCloseElem: HTMLAnchorElement;
@@ -54,7 +53,8 @@ export declare class SuttaPlayerView {
     resetAppCloseElem: HTMLAnchorElement;
     resetAppConfirmElem: HTMLAnchorElement;
     snackbarElem: HTMLDivElement;
-    scrollPlayToggleElem: HTMLInputElement;
+    ctxMenuToggleElem: HTMLInputElement;
+    ctxPlayToggleElem: HTMLInputElement;
     skipAudioToLineElem: HTMLAnchorElement;
     scrollTextWithAudioElem: HTMLInputElement;
     gotoTopElem: HTMLAnchorElement;
@@ -65,6 +65,8 @@ export declare class SuttaPlayerView {
     initialise(cb: (event: MouseEvent) => void): Promise<void>;
     refreshViewSettings(): void;
     refreshTrackSelectionList(): Promise<void>;
+    refreshTrackSelectionLabel(trackSel?: TrackSelection): Promise<void>;
+    private _annotateTrackSelection;
     loadTrackWith(trackSel: TrackSelection): Promise<string>;
     loadTrackTextForUi(lineSelCb: (event: MouseEvent) => void): Promise<void>;
     createLineRefValues(lineNum: number): string;

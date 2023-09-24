@@ -67,12 +67,6 @@
                                     <input type="checkbox" role="switch" id="darkTheme" name="darkTheme" />
                                 </label>
                             </li>
-                            <li>
-                                <label for="showContextControls">
-                                    Show context controls
-                                    <input type="checkbox" role="switch" id="showContextControls" name="showContextControls" />
-                                </label>
-                            </li>
                             <li>:Storage</li>
                             <li><a id="offlineMenu" href="#"></span>...Offline</a></li>
                             <li><a id="resetAppMenu" href="#">...Reset App</a></li>
@@ -133,13 +127,13 @@
         </details>
 
         <details open>
-            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;🔊&nbsp;↟&nbsp;</a>&nbsp;<span id="playingTrack">awaiting load</span></summary>
+            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;🔊&nbsp;🔃&nbsp;</a>&nbsp;<span id="playingTrack">awaiting load</span></summary>
             <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload" crossorigin="anonymous">
             </audio>
         </details>
 
         <details open>
-            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;👀&nbsp;↟&nbsp;</a>&nbsp;<span id="displayingTrack">awaiting load</span></summary>
+            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;👀&nbsp;🔃&nbsp;</a>&nbsp;<span id="displayingTrack">awaiting load</span></summary>
             <pre>
 <code id="trackTextBody" class="displayLineNums"></code>
             </pre>                
@@ -223,7 +217,7 @@
             <article>
                 <h3>Reset Sutta Player App</h3>
                 <ul>
-                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.8</span></li>
+                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.10</span></li>
                     <li>App JS Controller version: <span id="appJsCtrlVer">REPLACE</span></li>
                 </ul>
                 <p>
@@ -251,14 +245,20 @@
         </div>
         <div id="rhsFabSection" dir="rtl">
             <label class="fabHdrLabel">:Audio</label>
-            <label for="scrollPlayToggle">
-                <input type="checkbox" role="switch" id="scrollPlayToggle" name="scrollPlayToggle" disabled/>
+            <label for="ctxPlayToggle">
+                <input type="checkbox" role="switch" id="ctxPlayToggle" name="ctxPlayToggle" disabled/>
                 ▶️
             </label>
             <hr/>
-            <a href="#" id="skipsFwd5Sec" class="linkNavButton">&nbsp;⏩&nbsp;</a>&nbsp;5 sec&nbsp;<a href="#" id="skipsBack5Sec" class="linkNavButton">&nbsp;⏪&nbsp;</a>
+            <a href="#" id="skipsFwd5Sec" class="linkNavButton">&nbsp;⏩&nbsp;</a>&nbsp;sec&nbsp;5&nbsp;<a href="#" id="skipsBack5Sec" class="linkNavButton">&nbsp;⏪&nbsp;</a>
             <hr/>
             <a href="#" id="skipAudioToLine" class="linkNavButton">REPLACE</a>            
+        </div>
+        <div id="rhsCtxFabSection" dir="rtl">
+            <label for="ctxMenuToggle">
+                <input type="checkbox" role="switch" id="ctxMenuToggle" name="ctxMenuToggle"/>
+                🎮
+            </label>
         </div>
         <div id="centreFabSection">
             <a href="#" id="gotoTop" title="Go to top" class="contrast">Top</a>

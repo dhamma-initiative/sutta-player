@@ -26,7 +26,7 @@ export class SettingsController {
     private _registerListeners() {
         this._registerAudioListeners()
         this._registerTextListeners()
-        this._registerAppearanceListeners
+        this._registerAppearanceListeners()
     }
 
     private _registerAudioListeners() {
@@ -64,10 +64,6 @@ export class SettingsController {
         this._view.darkThemeElem.onchange = async () => {
             this._model.darkTheme = this._view.darkThemeElem.checked
             this._view.setColorTheme()
-        }
-        this._view.showContextControlsElem.onchange = async () => {
-            this._model.showContextControls = this._view.showContextControlsElem.checked
-            this._view.showHideContextControls(this._model.showContextControls)
         }
     }
 }

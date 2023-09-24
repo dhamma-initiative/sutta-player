@@ -1,32 +1,18 @@
-import { TrackSelection } from '../album-player-state.js';
-import { AlbumStorageQueryable, ProcessedItem } from '../album-storage-queryable.js';
+import { AlbumStorageQueryable, ProcessedItem, SearchContext, SearchControl } from '../album-storage-queryable.js';
+import { InternalQueryCacheStore } from './internal-query-cache-store.js';
 export declare function createAlbumStorageQueryable(): Promise<AlbumStorageQueryable>;
-export declare class GithubDiSuttaStorageDB implements AlbumStorageQueryable {
+export declare class GithubDiSuttaStorageDB extends InternalQueryCacheStore implements AlbumStorageQueryable {
     static SINGLETON: GithubDiSuttaStorageDB;
-    private _albumDbJson;
     private _noOfWorkers;
     private _abortCachingOperation;
     private _downloadScheduler;
     private _albumCacheStatusQuerier;
     setup(): Promise<void>;
-    queryAlbumNames(): string[];
-    queryAlbumReferences(): string[];
-    queryTrackReferences(albIdx: number): string[];
-    queryTrackBaseRef(albIdx: number, trackIdx: number): string;
-    queryTrackSelection(baseRef: string): TrackSelection;
-    queryTrackText(baseRef: string): Promise<string>;
-    queryTrackTextUrl(baseRef: string): string;
-    queryTrackHtmlAudioSrcRef(baseRef: string): string;
-    readTextFile(url: string): Promise<string>;
-    isInCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>;
-    addToCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>;
-    removeFromCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]>;
-    queryAlbumCacheStatus(albIdx: number, onChecked: ProcessedItem): void;
-    private _prepareBaseRefAsUrls;
-    protected _queryTrackReferences(colRef: string): string[];
-    hasDownloadWorker(): boolean;
+    queryAlbumCacheStatus(albIdx: number, onStatus: ProcessedItem): Promise<void>;
     setConcurrency(count: number): number;
     startDownloads(baseRefs: string[], onDownloaded: ProcessedItem): Promise<void>;
     startDeletes(baseRefs: string[], onDeleted: ProcessedItem): Promise<void>;
-    abortOperation(): void;
+    abortOfflineOperation(): void;
+    createSearchControl(criteria: SearchContext): SearchControl;
+    close(): void;
 }

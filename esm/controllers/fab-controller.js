@@ -23,8 +23,11 @@ export class FabController {
             this._audDurPromise.resolve(this._view.audioPlayerElem.duration);
     }
     _registerListeners() {
-        this._view.scrollPlayToggleElem.onchange = async () => {
-            if (this._view.scrollPlayToggleElem.checked)
+        this._view.ctxMenuToggleElem.onchange = async () => {
+            this._view.showHideContextControls(this._view.ctxMenuToggleElem.checked);
+        };
+        this._view.ctxPlayToggleElem.onchange = async () => {
+            if (this._view.ctxPlayToggleElem.checked)
                 await this._view.audioPlayerElem.play();
             else
                 this._view.audioPlayerElem.pause();
@@ -39,7 +42,6 @@ export class FabController {
         this._view.gotoTopElem.onclick = async () => {
             window.scroll(0, 0);
         };
-        this._registerDisplayListener();
         this._registerAudioSeekListerners();
         this._registerStartStopBookmarkListeners();
     }
@@ -59,17 +61,6 @@ export class FabController {
                 this._view.audioPlayerElem.currentTime -= 5;
                 // this._mainCtrl.showUserMessage('skipping backward 5 seconds')
             }
-        };
-    }
-    _registerDisplayListener() {
-        const rhsFabSection = document.getElementById('rhsFabSection');
-        const lhsFabSection = document.getElementById('lhsFabSection');
-        const centreFabSection = document.getElementById('centreFabSection');
-        window.onscroll = () => {
-            if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20)
-                this._view.showHideContextControls(true);
-            else
-                this._view.showHideContextControls(false);
         };
     }
     _registerStartStopBookmarkListeners() {
@@ -97,7 +88,7 @@ export class FabController {
             return;
         const currBookmarkLineRef = this._model.bookmarkSel.lineRef;
         const lineRefVals = AlbumPlayerState.fromLineRef(this._model.bookmarkSel.lineRef);
-        this._mainCtrl._onLoadIntoNavSelector(this._model.bookmarkSel);
+        await this._mainCtrl._onLoadIntoNavSelector(this._model.bookmarkSel);
         this._audDurPromise = new DeferredPromise();
         const alreadyLoaded = await this._mainCtrl._onLoadAudio(this._model.bookmarkSel);
         if (alreadyLoaded)

@@ -1,4 +1,5 @@
 import { AlbumPlayerState, TrackSelection } from "../models/album-player-state.js"
+import { MatchedSearchRef, SearchContext, SearchControl } from "../models/album-storage-queryable.js"
 import { DeferredPromise } from "../runtime/deferred-promise.js"
 import { StringUtils } from '../runtime/string-utils.js'
 import { SuttaPlayerView } from "../views/sutta-player-view.js"
@@ -10,17 +11,14 @@ export interface MatchRef {
 }
 
 export class SearchController {
-    public static DIACRITICS_CHR = ["ā", "ī", "ū", "ṁ", "ṃ", "ṇ", "ṅ", "ñ", "ṣ", "ṭ", "ḍ", "ḷ", "ḥ"]
-    public static DIACRITICS_ALT = ["a", "i", "u", "m", "m", "n", "n", "n", "s", "t", "d", "l", "h"]
-
     private _model: AlbumPlayerState
     private _view: SuttaPlayerView
     private _mainCtrl: SuttaPlayerController
 
-    private _searchSel: TrackSelection = new TrackSelection('searchSel')
-    private _maxSurroundingChars = 150
+    private _searchControl: SearchControl
+    private _occurances = 0
+    private _tracks = 0
     private _idxPosMatchMap = new Map<number, MatchRef>()
-    private _continueSearchDeferred: DeferredPromise<boolean>
 
     public constructor(mdl: AlbumPlayerState, vw: SuttaPlayerView, ctrl: SuttaPlayerController) {
         this._model = mdl
@@ -29,7 +27,7 @@ export class SearchController {
     }
 
     public async setup() {
-        this._registerListeners()
+        await this._registerListeners()
     }
 
     public async tearDown(): Promise<boolean> {
@@ -59,7 +57,7 @@ export class SearchController {
         const searchFormElem = <HTMLFormElement> this._view.searchForElem.parentElement
         searchFormElem.onsubmit = async (e: Event) => {
             e.preventDefault()
-            await this._onSearchFor()
+            await this._onSearch()
         }
         this._view.searchForElem.addEventListener('keyup', (keyboardEvent) => {
             if (keyboardEvent.key === 'Enter') 
@@ -73,17 +71,13 @@ export class SearchController {
             this._onClearSearchResults()
         }
         this._view.searchResultsElem.onclick = async (e: Event) => {
-            this._onSearchResultSelected()
+            await this._onSearchResultSelected()
         }
     }
 
-    private _onPauseSearchResults() {
-        if (this._view.pauseSearchResultsElem.checked)
-            this._continueSearchDeferred = new DeferredPromise<boolean>()
-        else if (this._continueSearchDeferred) {
-            this._continueSearchDeferred.resolve(true)
-            this._continueSearchDeferred = null
-        }
+    private async _onPauseSearchResults() {
+        const isPaused = this._view.pauseSearchResultsElem.checked
+        this._searchControl.pause(isPaused)
     }
 
     private _onClearSearchResults() {
@@ -95,38 +89,29 @@ export class SearchController {
         this._idxPosMatchMap.clear()
     }
 
-    private async _onSearchFor() {
+    private async _onSearch() {
         this._model.startSearch = !this._model.startSearch
-        this._abortSearchIfRequired()
-        if (this._model.startSearch) {
-            this._view.pauseSearchResultsElem.disabled = false  
-            try {
-                this._view.searchSectionLabelElem.setAttribute('aria-busy', 'true')
-                await this.onStartSearch()
-            } finally {
-                this._view.searchSectionLabelElem.setAttribute('aria-busy', 'false')
-                this._model.startSearch = false
-                this._view.pauseSearchResultsElem.disabled = true
-            }
-        }
+        await this._abortSearchIfRequired()
+        if (this._model.startSearch) 
+            await this._search()
     }
 
-    private _abortSearchIfRequired() {
-        if (this._continueSearchDeferred) {
-            this._continueSearchDeferred.reject('Search aborted!')
-            this._continueSearchDeferred = null
+    private async _abortSearchIfRequired() {
+        if (this._searchControl && (this._searchControl.context.state >= -1)) {
+            await this._searchControl.abort()
+            this._searchControl = null
+            this._model.startSearch = false
         }
     }
 
     private async _onSearchResultSelected() {
         if (typeof this._view.searchResultsElem.selectionStart == 'undefined') 
             return false
-        const rsltSel = this._getSearchResultSelection()
+        const rsltSel = await this._getSearchResultSelection()
         if (!rsltSel)
             return false
-        this._mainCtrl._onLoadIntoNavSelector(rsltSel)
-        if (!this._model.linkTextToAudio)
-            await this._mainCtrl._onLoadText(rsltSel)
+        await this._mainCtrl._onLoadIntoNavSelector(rsltSel)
+        await this._mainCtrl._onLoadText(rsltSel)
         this._view.audioPlayerElem.pause()
         const lineChars = AlbumPlayerState.fromLineRef(rsltSel.context)
         this._view.scrollToTextLineNumber(lineChars[0], lineChars[1])
@@ -137,7 +122,7 @@ export class SearchController {
         await this._mainCtrl._onLoadAudio(rsltSel)
     }
 
-    private _getSearchResultSelection(): TrackSelection {
+    private async _getSearchResultSelection(): Promise<TrackSelection> {
         let text = this._view.searchResultsElem.value
         let before = text.substring(0, this._view.searchResultsElem.selectionStart)
         let after = text.substring(this._view.searchResultsElem.selectionEnd, text.length);
@@ -148,129 +133,91 @@ export class SearchController {
         let endPos = after.indexOf("\n") >= 0 ? this._view.searchResultsElem.selectionEnd + after.indexOf("\n") : text.length
         this._view.searchResultsElem.selectionStart = startPos
         this._view.searchResultsElem.selectionEnd = endPos
-        const ret = this._mainCtrl._albumStore.queryTrackSelection(matchRef.baseRef)
+        const ret = await this._mainCtrl._albumStore.queryTrackSelection(matchRef.baseRef)
         ret.context = matchRef.lineRef
         return ret
     }
 
-    public async onStartSearch(): Promise<boolean> {
-        if (!this._model.startSearch) {
-            this._abortSearchIfRequired()
-            return false
-        }
-        this._initialiseSearch()
+    public async _search() {
         if (this._view.searchForElem.value.length === 0) {
             this._view.searchSectionElem.open = false
-            return false
+            return
         }
         if (this._view.searchForElem.value.length < 2) {
             this._mainCtrl.showUserMessage('Search criteria must have at least two characters')
-            return false
+            return
         }
-        try {
-            await this._searchPreferencedAlbums()
-        } catch (e) {
-            this._mainCtrl.showUserMessage((<Error>e).message)
-        }
-        this._model.startSearch = false
-        return true
+        this._initialiseSearchControl()
+        this._registerSearchControlListeners()
+        await this._searchControl.start()
     }
 
-    private _initialiseSearch() {
+    private _initialiseSearchControl() {
         this._view.searchResultsElem.innerHTML = ''
         this._idxPosMatchMap.clear()
         this._view.searchSectionElem.open = true
-        this._maxSurroundingChars = this._estimateNumberOfCharactersForResultsView()
         this._model.searchFor = this._view.searchForElem.value
+        const criteria: SearchContext = {
+            albumIndex: this._model.navSel.albumIndex,
+            searchFor: this._model.searchFor,
+            searchScope: this._model.searchScope,
+            useRegEx: this._model.useRegEx,
+            regExFlags: this._model.regExFlags,
+            ignoreDiacritics: this._model.ignoreDiacritics,
+            maxMatchSurroundingChars: this._estimateNumberOfCharactersForResultsView(),
+            state: -1
+        }
+        this._searchControl = this._mainCtrl._albumStore.createSearchControl(criteria)
+        this._tracks = 0
+        this._occurances = 0
     }
 
-    private async _searchPreferencedAlbums() {
-        let tracks = 0
-        const albumSrcIndexes = this._getAlbumIndexes()
-        for (let i = 0; i < albumSrcIndexes.length; i++) {
-            if (!this._model.startSearch)
-                break
-            this._searchSel.albumIndex = albumSrcIndexes[i]
-            const trackCount = this._getTrackCount()
-            for (let j = 0; j < trackCount; j++) {
-                if (!this._model.startSearch)
-                    break
-                this._searchSel.trackIndex = j
-                this._searchSel.updateBaseRef(this._mainCtrl._albumStore)
-                if (this._model.searchScope === 1) {
-                    const inCache = await this._mainCtrl._albumStore.isInCache(this._searchSel.baseRef, true, false)
-                    if (!inCache[0])
-                        continue
-                }
-                const src = await this._getTrackSource()
-                tracks = await this._reportMatches(src, tracks)
+    private _registerSearchControlListeners() {
+        this._searchControl.onStarted = () => {
+            this._view.pauseSearchResultsElem.disabled = false
+            this._view.searchSectionLabelElem.setAttribute('aria-busy', 'true')
+        }
+        this._searchControl.onMatched = (ref: MatchedSearchRef, cargo?: any) => {
+            let { occurances: occurances, tracks: tracks } = cargo
+            this._occurances = occurances
+            if (tracks > this._tracks) {
+                this._view.searchResultsElem.innerHTML += (this._view.searchResultsElem.textLength === 0 ? '' : '\n\n') + ref.baseRef
+                this._tracks = tracks
+            }
+            this._appendResultToTextArea(ref.baseRef, ref.surroundingContext, ref.totalLength, ref.idxPos, ref.lineNum)
+        }
+        this._searchControl.onPaused = (paused: boolean, cargo?: any) => {
+            if (paused) {
+                let { occurances: occurances, tracks: tracks } = cargo
+                this._occurances = occurances
+                this._tracks = tracks                
+                this._notifySearchProgress()
             }
         }
-        this._notifySearchProgress(tracks)
-    }
-
-    private _notifySearchProgress(tracks: number) {
-        const occurances = this._idxPosMatchMap.size
-        this._mainCtrl.showUserMessage(`${occurances} results in ${tracks} tracks`)
-    }
-
-    private async _reportMatches(src: string, tracks: number): Promise<number> {
-        const searchFor = this._model.searchFor
-        const regExFlags = this._model.regExFlags
-        const indexPositions = this._model.useRegEx ? StringUtils.allIndexOfUsingRegEx(src, searchFor, regExFlags) : StringUtils.allIndexesOf(src, searchFor) 
-        if (indexPositions.length > 0) {
-            tracks++
-            this._view.searchResultsElem.innerHTML += (tracks === 1 ? '' : '\n\n') + this._searchSel.baseRef
-            const linePositions = StringUtils.allLinePositions(src, indexPositions)
-            for (let i = 0; i < indexPositions.length; i++) {
-                if (this._continueSearchDeferred) {
-                    this._notifySearchProgress(tracks)
-                    await this._continueSearchDeferred
-                }
-                this._appendResultToTextArea(src, indexPositions[i], linePositions[i])
-            }
+        this._searchControl.onFinished = (cargo?: any) => {
+            let { occurances: occurances, tracks: tracks } = cargo
+            this._occurances = occurances
+            this._tracks = tracks
+            this._notifySearchProgress()
+            this._model.startSearch = false
+            this._searchControl = null
+            this._view.searchSectionLabelElem.setAttribute('aria-busy', 'false')
+            this._model.startSearch = false
+            this._view.pauseSearchResultsElem.disabled = true
         }
-        return tracks
     }
 
-    private _appendResultToTextArea(src: string, idxPos: number, lineNum: number) {
+    private _notifySearchProgress() {
+        this._mainCtrl.showUserMessage(`${this._occurances} results in ${this._tracks} tracks`)
+    }
+
+    private _appendResultToTextArea(baseRef: string, matchCtx: string, srcLen: number, idxPos: number, lineNum: number) {
         const startPos = this._view.searchResultsElem.textLength + 1
-        let matchCtx = StringUtils.surroundingTrim(src, idxPos, this._maxSurroundingChars).replaceAll('\n', ' ')
         matchCtx = `\n…${matchCtx}… - ${lineNum}`
         this._view.searchResultsElem.innerHTML += matchCtx
-        const perc = (idxPos/src.length)*100
+        const perc = (idxPos/srcLen)*100
         const lineRef = AlbumPlayerState.toLineRef(lineNum, idxPos, perc, 0, 0)
-        this._idxPosMatchMap.set(startPos, {baseRef: this._searchSel.baseRef, lineRef: lineRef})
-    }
-
-    private async _getTrackSource(): Promise<string> {
-        let src = await this._mainCtrl._albumStore.queryTrackText(this._searchSel.baseRef)
-        if (this._model.ignoreDiacritics) 
-            src = this.removeDiacritics(src)
-        return src
-    }
-    
-    private removeDiacritics(src: string): string {
-        for (let i = 0; i < SearchController.DIACRITICS_CHR.length; i++) 
-            src = src.replaceAll(SearchController.DIACRITICS_CHR[i], SearchController.DIACRITICS_ALT[i])
-        return src
-    }
-
-    private _getTrackCount(): number {
-        const trackSrcRefs = this._mainCtrl._albumStore.queryTrackReferences(this._searchSel.albumIndex)
-        return trackSrcRefs.length
-    }
-
-    private _getAlbumIndexes(): number[] {
-        const ret = [this._model.navSel.albumIndex]
-        if (this._model.searchScope > 0) {
-            const albumSrcRefs = this._mainCtrl._albumStore.queryAlbumReferences()
-            for (let i = 0; i < albumSrcRefs.length; i++) {
-                if (ret.indexOf(i) === -1) 
-                    ret.push(i)
-            }
-        } 
-        return ret
+        this._idxPosMatchMap.set(startPos, {baseRef: baseRef, lineRef: lineRef})
     }
 
     private _estimateNumberOfCharactersForResultsView() {

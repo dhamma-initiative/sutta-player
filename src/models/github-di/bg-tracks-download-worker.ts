@@ -32,7 +32,7 @@ class BackgroundTracksDownloadWorker {
     static {
         (async () => {
             const service = new BackgroundTracksDownloadWorker()
-            service.serve()
+            await service.serve()
         })()
     }
 }

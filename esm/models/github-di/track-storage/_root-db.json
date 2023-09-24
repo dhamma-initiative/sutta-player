@@ -1,0 +1,29 @@
+{
+    "albumName": [
+        "Aṅguttara Nikāya | The Numerical Collection",
+        "Dhammapada",
+        "Dīgha Nikāya | The Long Collection",
+        "Itivuttaka | This was said by the Buddha",
+        "Khuddakapāṭha | Short Passages",
+        "Majjhima Nikāya | The Middle Collection",
+        "Saṁyutta Nikāya | The Connected Collection",
+        "Sutta Nipāta | The Discourse Group",
+        "Theragāthā | Poems of the Elder Monks",
+        "Therīgāthā | Poems of the Elder Nuns",
+        "Udāna | Exclamations"
+    ],
+    
+    "albumBaseDirectory": [
+        "AN",
+        "KN/Dhp",
+        "DN",
+        "KN/Iti",
+        "KN/Khp",
+        "MN",
+        "SN",
+        "KN/StNp",
+        "KN/Thag",
+        "KN/Thig",
+        "KN/Ud"
+    ]
+}

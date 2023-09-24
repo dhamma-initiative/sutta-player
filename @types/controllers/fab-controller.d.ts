@@ -12,7 +12,6 @@ export declare class FabController {
     notifyDuration(dur: number): void;
     private _registerListeners;
     private _registerAudioSeekListerners;
-    private _registerDisplayListener;
     private _registerStartStopBookmarkListeners;
     private _onSkipAudioToLine;
     private _managePromisedDuration;

@@ -4,10 +4,10 @@ import { AlbumTrackRqstMsg, CACHED_TRACKS_STATUS_FINISHED_RESP_MSG, CACHED_TRACK
 
 class BackgroundTracksStatusWorker {
     public async serve() {
-        self.addEventListener('message', (event: MessageEvent) => {
+        self.addEventListener('message', async (event: MessageEvent) => {
             const baseMsg: WorkerMessage = event.data
             if (baseMsg.type === CACHED_TRACKS_STATUS_RQST_MSG) {
-                this._queryCachedTracks(baseMsg, <AlbumTrackRqstMsg> baseMsg.payload)
+                await this._queryCachedTracks(baseMsg, <AlbumTrackRqstMsg> baseMsg.payload)
             }
         })
     }
@@ -15,7 +15,7 @@ class BackgroundTracksStatusWorker {
     private async _queryCachedTracks(base: WorkerMessage, msg: AlbumTrackRqstMsg) {
         for (let i = 0; i < msg.tracks.length; i++) {
             if (i > 50 && (i % 5 === 0)) {
-                if (WorkerFactory.wasWorkerHaltSignalled(base.stopToken))
+                if (await WorkerFactory.wasHaltSignalled(base.stopToken))
                     break
             }
             const baseRef = `${msg.albumRef}/${msg.tracks[i].baseRef}`
@@ -41,7 +41,7 @@ class BackgroundTracksStatusWorker {
     static {
         (async () => {
             const service = new BackgroundTracksStatusWorker()
-            service.serve()
+            await service.serve()
         })()
     }
 }

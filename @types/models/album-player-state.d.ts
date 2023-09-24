@@ -1,5 +1,5 @@
 import { LocalStorageState } from '../runtime/localstorage-state.js';
-import { AlbumStorageQueryable } from './album-storage-queryable.js';
+import { AlbumStorageQueryable, QueryService } from './album-storage-queryable.js';
 export declare class TrackSelection extends LocalStorageState {
     context: string;
     albumIndex: number;
@@ -9,7 +9,7 @@ export declare class TrackSelection extends LocalStorageState {
     isLoaded: boolean;
     constructor(ctx: string, albIdx?: number, trkIdx?: number, bRef?: string);
     read(src: TrackSelection): boolean;
-    updateBaseRef(qry: AlbumStorageQueryable): void;
+    updateBaseRef(qry: QueryService): Promise<void>;
     isSimilar(toChk: TrackSelection): boolean;
     reset(ctx?: string, albIdx?: number, trkIdx?: number, bRef?: string): void;
     save(): void;
@@ -30,7 +30,7 @@ export declare class BookmarkedSelection extends TrackSelection {
     reset(ctx?: string, albIdx?: number, trkIdx?: number, bRef?: string): void;
     set(st?: number, et?: number, lr?: string): void;
     createLink(): string;
-    parseLink(qry: AlbumStorageQueryable): void;
+    parseLink(qry: AlbumStorageQueryable): Promise<void>;
     isAwaitingLoad(): boolean;
     isAwaitingAudioEnd(): boolean;
     cancelAwaitingAudioEndIfRqd(): void;
@@ -47,7 +47,6 @@ export declare class AlbumPlayerState extends LocalStorageState {
     currentScrollY: number;
     currentTime: number;
     darkTheme: boolean;
-    showContextControls: boolean;
     searchFor: string;
     searchScope: number;
     useRegEx: boolean;

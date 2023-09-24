@@ -28,8 +28,8 @@ export class TrackSelection extends LocalStorageState {
         this.isLoaded = false;
         return ret;
     }
-    updateBaseRef(qry) {
-        this.baseRef = qry.queryTrackBaseRef(this.albumIndex, this.trackIndex);
+    async updateBaseRef(qry) {
+        this.baseRef = await qry.queryTrackBaseRef(this.albumIndex, this.trackIndex);
         this._refreshDictionary();
     }
     isSimilar(toChk) {
@@ -64,10 +64,14 @@ export class TrackSelection extends LocalStorageState {
     _refreshDictionary() {
         if (this.baseRef !== null) {
             const idxPos = this.baseRef.lastIndexOf('/');
-            if (idxPos > -1)
+            if (idxPos > -1) {
                 this.dictionary['albumRef'] = this.baseRef.substring(0, idxPos);
-            else
+                this.dictionary['trackName'] = this.baseRef.substring(idxPos + 1);
+            }
+            else {
                 this.dictionary['albumRef'] = this.baseRef;
+                this.dictionary['trackName'] = '';
+            }
         }
     }
 }
@@ -123,7 +127,7 @@ export class BookmarkedSelection extends TrackSelection {
         }
         return ret;
     }
-    parseLink(qry) {
+    async parseLink(qry) {
         let href = location.href;
         let url = new URL(href);
         if (url.hash) {
@@ -132,7 +136,7 @@ export class BookmarkedSelection extends TrackSelection {
             let baseRef = url.pathname.substring(this.appRoot.length);
             if (baseRef.startsWith('/'))
                 baseRef = baseRef.substring(1);
-            const urlSel = qry.queryTrackSelection(baseRef);
+            const urlSel = await qry.queryTrackSelection(baseRef);
             if (urlSel.albumIndex > -1 && urlSel.trackIndex > -1) {
                 this.read(urlSel);
                 const st = url.searchParams.get('startTime');
@@ -166,7 +170,6 @@ export class AlbumPlayerState extends LocalStorageState {
     currentScrollY = 0;
     currentTime = 0;
     darkTheme = false;
-    showContextControls = false;
     searchFor = '';
     searchScope = 0; // [selected album: 0, cached tracks: 1, all albums: 2]
     useRegEx = false;
@@ -194,7 +197,6 @@ export class AlbumPlayerState extends LocalStorageState {
         this._setItemNumber('currentScrollY', window.scrollY);
         this._setItemNumber('currentTime', this.currentTime);
         this._setItemBoolean('darkTheme', this.darkTheme);
-        this._setItemBoolean('showContextControls', this.showContextControls);
         this._setItemNumber('concurrencyCount', this.concurrencyCount);
         this._setItemString('searchFor', this.searchFor);
         this._setItemNumber('searchScope', this.searchScope);
@@ -214,7 +216,6 @@ export class AlbumPlayerState extends LocalStorageState {
         this.currentTime = this._getItemNumber('currentTime', this.currentTime);
         this.currentScrollY = this._getItemNumber('currentScrollY', this.currentScrollY);
         this.darkTheme = this._getItemBoolean('darkTheme', this.darkTheme);
-        this.showContextControls = this._getItemBoolean('showContextControls', this.showContextControls);
         this.concurrencyCount = this._getItemNumber('concurrencyCount', this.concurrencyCount);
         this.searchFor = this._getItemString('searchFor', this.searchFor);
         this.searchScope = this._getItemNumber('searchScope', this.searchScope);

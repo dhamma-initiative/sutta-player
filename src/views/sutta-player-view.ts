@@ -11,7 +11,6 @@ export class SuttaPlayerView {
     showLineNumsElem: HTMLInputElement
     searchScopeElem: HTMLSelectElement
     darkThemeElem: HTMLInputElement
-    showContextControlsElem: HTMLInputElement
 
     searchMenuElem: HTMLAnchorElement
     searchDialogElem: HTMLDialogElement
@@ -71,7 +70,8 @@ export class SuttaPlayerView {
     resetAppConfirmElem: HTMLAnchorElement
 
     snackbarElem: HTMLDivElement
-    scrollPlayToggleElem: HTMLInputElement
+    ctxMenuToggleElem: HTMLInputElement
+    ctxPlayToggleElem: HTMLInputElement
     skipAudioToLineElem: HTMLAnchorElement
     scrollTextWithAudioElem: HTMLInputElement
     gotoTopElem: HTMLAnchorElement
@@ -107,7 +107,6 @@ export class SuttaPlayerView {
 
         this.showLineNumsElem.checked = this._model.showLineNums
         this.darkThemeElem.checked = this._model.darkTheme
-        this.showContextControlsElem.checked = this._model.showContextControls
 
         this.searchForElem.value = this._model.searchFor
         this.searchScopeElem.selectedIndex = this._model.searchScope
@@ -121,35 +120,50 @@ export class SuttaPlayerView {
         this.setColorTheme()
         this.toggleLineNums()
         this.refreshSkipAudioToLine()
-        this.showHideContextControls(this._model.showContextControls)
+        this.showHideContextControls(this.ctxMenuToggleElem.checked)
     }
 
     public async refreshTrackSelectionList() {
         this.trackElem.innerHTML = ''
         const albIdx = this._model.navSel.albumIndex
         const trkIdx = this._model.navSel.trackIndex
-        const trackLov = this._albumStore.queryTrackReferences(albIdx)
+        const trackLov = await this._albumStore.queryTrackReferences(albIdx)
         let count = 0
-        this._albumStore.queryAlbumCacheStatus(albIdx, (baseRef, idx, taStatus, cargo) => {
+        await this._albumStore.queryAlbumCacheStatus(albIdx, (baseRef, idx, taStatus, cargo) => {
             if (albIdx !== cargo.albumIndex)
                 return
             count++
-            const cachedChar = (taStatus[0] && taStatus[1]) ? '✔️' : (taStatus[1]) ? '🔊' : (taStatus[0]) ? '👀' : '◻'
             const option = document.createElement('option')
             option.value = `${idx}`
-            option.innerHTML = `${cachedChar} ${trackLov[idx]}`
+            option.innerHTML = this._annotateTrackSelection(taStatus, trackLov[idx])
             this.trackElem.add(option, idx)
             if (count === trackLov.length)
                 this.trackElem.selectedIndex = trkIdx
         })
     }
 
+    public async refreshTrackSelectionLabel(trackSel?: TrackSelection): Promise<void> {
+        if (!trackSel)
+            trackSel = this._model.navSel
+        const option = this.trackElem.children[trackSel.trackIndex]
+        if (!option)
+            return
+        const taStatus = await this._albumStore.isInCache(trackSel.baseRef, true, true)
+        option.innerHTML = this._annotateTrackSelection(taStatus, trackSel.dictionary['trackName'])
+    }
+
+    private _annotateTrackSelection(taStatus: boolean[], trackName: string): string {
+        let ret = (taStatus[0] && taStatus[1]) ? '✔️' : (taStatus[1]) ? '🔊' : (taStatus[0]) ? '👀' : '◻'
+        ret = `${ret} ${trackName}`
+        return ret
+    }
+
     public async loadTrackWith(trackSel: TrackSelection): Promise<string> {
         if (trackSel.baseRef === null) 
             return null
-
         const ret = await this._albumStore.queryTrackText(trackSel.baseRef)
         trackSel.isLoaded = true
+        await this.refreshTrackSelectionLabel(trackSel)
         return ret
     }
 
@@ -359,8 +373,6 @@ export class SuttaPlayerView {
     }
 
     public showHideContextControls(show: boolean) {
-        if (this._model.showContextControls)
-            show = this._model.showContextControls
         const dispStyle = show ? 'block' : 'none'
         const sections = ['lhsFabSection', 'centreFabSection', 'rhsFabSection']
         for (let i = 0; i < sections.length; i++) {
@@ -402,7 +414,6 @@ export class SuttaPlayerView {
         this.showLineNumsElem = <HTMLInputElement>document.getElementById('showLineNums')
 
         this.darkThemeElem = <HTMLInputElement>document.getElementById('darkTheme')
-        this.showContextControlsElem = <HTMLInputElement>document.getElementById('showContextControls')
 
         this.offlineMenuElem = <HTMLAnchorElement>document.getElementById('offlineMenu')
         this.resetAppMenuElem = <HTMLAnchorElement>document.getElementById('resetAppMenu')
@@ -470,7 +481,8 @@ export class SuttaPlayerView {
     }
 
     private _bindMiscElements() {
-        this.scrollPlayToggleElem = <HTMLInputElement>document.getElementById('scrollPlayToggle')
+        this.ctxMenuToggleElem = <HTMLInputElement>document.getElementById('ctxMenuToggle')
+        this.ctxPlayToggleElem = <HTMLInputElement>document.getElementById('ctxPlayToggle')
         this.scrollTextWithAudioElem = <HTMLInputElement>document.getElementById('scrollTextWithAudio')
         this.skipAudioToLineElem = <HTMLAnchorElement>document.getElementById('skipAudioToLine')
         this.gotoTopElem = <HTMLAnchorElement>document.getElementById('gotoTop')
