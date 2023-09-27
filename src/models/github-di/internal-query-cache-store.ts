@@ -3,37 +3,37 @@ import { TrackSelection } from "../album-player-state.js"
 import { CacheService, QueryService } from "../album-storage-queryable.js"
 import { CACHE_NAME, UrlUtils } from "./bg-tracks-commons.js"
 
-import albumDb from './track-storage/_root-db.json' assert { type: 'json' }
+import albumIndexDb from './track-storage/0-album-index-db.json' assert { type: 'json' }
 
-interface RootDbJson {
+interface AlbumIndexDbJson {
     albumName: string[]
     albumBaseDirectory: string[]
 }
 
 export class InternalQueryCacheStore implements QueryService, CacheService {
-    protected _rootDbJson: RootDbJson = albumDb
+    protected _albumIndexDbJson: AlbumIndexDbJson = albumIndexDb
     protected _lastTrackReferencesRqstKey: string = null
     protected _lastTrackReferencesRqstVal: string[] = null
     protected _lastTrackReferencesRqstTimeoutHandle: ReturnType<typeof setTimeout>
 
     public queryAlbumNames(): string[] {
-        return Array.from(this._rootDbJson.albumName)
+        return Array.from(this._albumIndexDbJson.albumName)
     }
 
     public queryAlbumReferences(): string[] {
-        return Array.from(this._rootDbJson.albumBaseDirectory)
+        return Array.from(this._albumIndexDbJson.albumBaseDirectory)
     }
 
     public async queryTrackReferences(albIdx: number): Promise<string[]> {
         albIdx = albIdx === -1 ? 0 : albIdx
-        const albumRef = this._rootDbJson.albumBaseDirectory[albIdx]
+        const albumRef = this._albumIndexDbJson.albumBaseDirectory[albIdx]
         return await this._queryTrackReferences(albumRef)
     }
 
     public async queryTrackBaseRef(albIdx: number, trackIdx: number): Promise<string> {
         if (albIdx === -1 || trackIdx === -1)
             return null
-        const albumRef = this._rootDbJson.albumBaseDirectory[albIdx]
+        const albumRef = this._albumIndexDbJson.albumBaseDirectory[albIdx]
         const tracks = await this._queryTrackReferences(albumRef)
         const trackName = tracks[trackIdx]
         const ret = `${albumRef}/${trackName}`
@@ -47,7 +47,7 @@ export class InternalQueryCacheStore implements QueryService, CacheService {
             albumRef = albumRef.substring(1)
         if (albumRef.endsWith('/'))
             albumRef = albumRef.substring(0, albumRef.length-1)
-        const albIdx = this._rootDbJson.albumBaseDirectory.indexOf(albumRef)
+        const albIdx = this._albumIndexDbJson.albumBaseDirectory.indexOf(albumRef)
         const trackNames = await this._queryTrackReferences(albumRef)
         const trkIdx = trackNames.indexOf(trackName)
         const ret = new TrackSelection('url', albIdx, trkIdx, baseRef)

@@ -1,11 +1,11 @@
 import { TrackSelection } from "../album-player-state.js";
 import { CacheService, QueryService } from "../album-storage-queryable.js";
-interface RootDbJson {
+interface AlbumIndexDbJson {
     albumName: string[];
     albumBaseDirectory: string[];
 }
 export declare class InternalQueryCacheStore implements QueryService, CacheService {
-    protected _rootDbJson: RootDbJson;
+    protected _albumIndexDbJson: AlbumIndexDbJson;
     protected _lastTrackReferencesRqstKey: string;
     protected _lastTrackReferencesRqstVal: string[];
     protected _lastTrackReferencesRqstTimeoutHandle: ReturnType<typeof setTimeout>;

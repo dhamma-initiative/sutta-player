@@ -1,27 +1,27 @@
 import { CacheUtils } from "../../runtime/cache-utils.js";
 import { TrackSelection } from "../album-player-state.js";
 import { CACHE_NAME, UrlUtils } from "./bg-tracks-commons.js";
-import albumDb from './track-storage/_root-db.json' assert { type: 'json' };
+import albumIndexDb from './track-storage/0-album-index-db.json' assert { type: 'json' };
 export class InternalQueryCacheStore {
-    _rootDbJson = albumDb;
+    _albumIndexDbJson = albumIndexDb;
     _lastTrackReferencesRqstKey = null;
     _lastTrackReferencesRqstVal = null;
     _lastTrackReferencesRqstTimeoutHandle;
     queryAlbumNames() {
-        return Array.from(this._rootDbJson.albumName);
+        return Array.from(this._albumIndexDbJson.albumName);
     }
     queryAlbumReferences() {
-        return Array.from(this._rootDbJson.albumBaseDirectory);
+        return Array.from(this._albumIndexDbJson.albumBaseDirectory);
     }
     async queryTrackReferences(albIdx) {
         albIdx = albIdx === -1 ? 0 : albIdx;
-        const albumRef = this._rootDbJson.albumBaseDirectory[albIdx];
+        const albumRef = this._albumIndexDbJson.albumBaseDirectory[albIdx];
         return await this._queryTrackReferences(albumRef);
     }
     async queryTrackBaseRef(albIdx, trackIdx) {
         if (albIdx === -1 || trackIdx === -1)
             return null;
-        const albumRef = this._rootDbJson.albumBaseDirectory[albIdx];
+        const albumRef = this._albumIndexDbJson.albumBaseDirectory[albIdx];
         const tracks = await this._queryTrackReferences(albumRef);
         const trackName = tracks[trackIdx];
         const ret = `${albumRef}/${trackName}`;
@@ -34,7 +34,7 @@ export class InternalQueryCacheStore {
             albumRef = albumRef.substring(1);
         if (albumRef.endsWith('/'))
             albumRef = albumRef.substring(0, albumRef.length - 1);
-        const albIdx = this._rootDbJson.albumBaseDirectory.indexOf(albumRef);
+        const albIdx = this._albumIndexDbJson.albumBaseDirectory.indexOf(albumRef);
         const trackNames = await this._queryTrackReferences(albumRef);
         const trkIdx = trackNames.indexOf(trackName);
         const ret = new TrackSelection('url', albIdx, trkIdx, baseRef);

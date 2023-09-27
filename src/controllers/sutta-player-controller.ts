@@ -10,7 +10,7 @@ import { SearchController } from './search-controller.js'
 import { SettingsController } from './settings-controller.js'
 
 export class SuttaPlayerController {
-    public static VERSION = "v1.0.10"
+    public static VERSION = "v1.0.11"
 
     _albumStore: AlbumStorageQueryable
 

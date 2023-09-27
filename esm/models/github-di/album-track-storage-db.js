@@ -31,7 +31,7 @@ export class GithubDiSuttaStorageDB extends InternalQueryCacheStore {
         await this._albumCacheStatusQuerier.setup();
     }
     async queryAlbumCacheStatus(albIdx, onStatus) {
-        const albumRef = this._rootDbJson.albumBaseDirectory[albIdx];
+        const albumRef = this._albumIndexDbJson.albumBaseDirectory[albIdx];
         const baseRefs = await this.queryTrackReferences(albIdx);
         await this._albumCacheStatusQuerier.run(albIdx, albumRef, baseRefs, onStatus);
     }

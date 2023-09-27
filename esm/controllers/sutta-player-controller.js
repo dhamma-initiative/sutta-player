@@ -7,7 +7,7 @@ import { ResetAppController } from './resetapp-controller.js';
 import { SearchController } from './search-controller.js';
 import { SettingsController } from './settings-controller.js';
 export class SuttaPlayerController {
-    static VERSION = "v1.0.10";
+    static VERSION = "v1.0.11";
     _albumStore;
     _appRoot;
     _model;
