@@ -17,74 +17,78 @@ export class WorkerFactory {
     }
     static async createStopToken() {
         await WorkerFactory._worker_halt_tok_db_Wait;
-        return new Promise((resolve, reject) => {
-            const transaction = WorkerFactory._worker_halt_tok_db.transaction("stop-tokens", "readwrite");
-            const objectStore = transaction.objectStore("stop-tokens");
-            const stopToken = crypto.randomUUID();
-            objectStore.put("0", stopToken);
-            transaction.oncomplete = () => resolve(stopToken);
-            transaction.onerror = (event) => reject(event.target.error);
-        });
+        const ret = new DeferredPromise();
+        const transaction = WorkerFactory._worker_halt_tok_db.transaction("stop-tokens", "readwrite");
+        const objectStore = transaction.objectStore("stop-tokens");
+        const stopToken = crypto.randomUUID();
+        objectStore.put("0", stopToken);
+        transaction.oncomplete = () => ret.resolve(stopToken);
+        transaction.onerror = (event) => ret.reject(event.target.error);
+        return ret;
     }
     static async signalHalt(stopToken, halt = true) {
-        return new Promise((resolve, reject) => {
-            const transaction = WorkerFactory._worker_halt_tok_db.transaction("stop-tokens", "readwrite");
-            const objectStore = transaction.objectStore("stop-tokens");
-            objectStore.put(halt ? "1" : "0", stopToken);
-            transaction.oncomplete = () => resolve();
-            transaction.onerror = (event) => reject(event.target.error);
-        });
+        const ret = new DeferredPromise();
+        const transaction = WorkerFactory._worker_halt_tok_db.transaction("stop-tokens", "readwrite");
+        const objectStore = transaction.objectStore("stop-tokens");
+        objectStore.put(halt ? "1" : "0", stopToken);
+        transaction.oncomplete = () => ret.resolve();
+        transaction.onerror = (event) => ret.reject(event.target.error);
+        return ret;
     }
     static async wasHaltSignalled(stopToken) {
-        return new Promise((resolve, reject) => {
-            const transaction = WorkerFactory._worker_halt_tok_db.transaction("stop-tokens", "readonly");
-            const objectStore = transaction.objectStore("stop-tokens");
-            const getRequest = objectStore.get(stopToken);
-            getRequest.onsuccess = (event) => {
-                const stopTokenValue = event.target.result;
-                resolve(stopTokenValue === "1");
-            };
-            getRequest.onerror = (event) => reject(event.target.error);
-        });
+        const ret = new DeferredPromise();
+        const transaction = WorkerFactory._worker_halt_tok_db.transaction("stop-tokens", "readonly");
+        const objectStore = transaction.objectStore("stop-tokens");
+        const getRequest = objectStore.get(stopToken);
+        getRequest.onsuccess = (event) => {
+            const stopTokenValue = event.target.result;
+            ret.resolve(stopTokenValue === "1");
+        };
+        getRequest.onerror = (event) => ret.reject(event.target.error);
+        return ret;
     }
     static async clearHalt(stopToken) {
-        return new Promise((resolve, reject) => {
-            const transaction = WorkerFactory._worker_halt_tok_db.transaction("stop-tokens", "readwrite");
-            const objectStore = transaction.objectStore("stop-tokens");
-            objectStore.delete(stopToken);
-            transaction.oncomplete = () => resolve();
-            transaction.onerror = (event) => reject(event.target.error);
-        });
+        const ret = new DeferredPromise();
+        const transaction = WorkerFactory._worker_halt_tok_db.transaction("stop-tokens", "readwrite");
+        const objectStore = transaction.objectStore("stop-tokens");
+        objectStore.delete(stopToken);
+        transaction.oncomplete = () => ret.resolve();
+        transaction.onerror = (event) => ret.reject(event.target.error);
+        return ret;
     }
     static async _initialize() {
+        const ret = new DeferredPromise();
         if (WorkerFactory._worker_halt_tok_db === null) {
-            return new Promise((resolve) => {
-                const openRequest = indexedDB.open("worker-halt-tokens");
-                openRequest.onsuccess = (e) => {
-                    WorkerFactory._worker_halt_tok_db = e.target.result;
-                    const transaction = WorkerFactory._worker_halt_tok_db.transaction(WorkerFactory._worker_halt_tok_db.objectStoreNames, 'readwrite');
-                    transaction.onerror = (e) => console.error('Transaction error:', e.target.error);
-                    // Loop through all object stores and clear them.
-                    for (const storeName of transaction.objectStoreNames) {
-                        const objectStore = transaction.objectStore(storeName);
-                        objectStore.clear();
-                    }
-                    transaction.oncomplete = () => {
-                        console.log('All IndexedDB data cleared.');
-                    };
-                    WorkerFactory._worker_halt_tok_db_Wait.resolve();
-                    resolve();
+            const openRequest = indexedDB.open("worker-halt-tokens");
+            openRequest.onsuccess = (e) => {
+                WorkerFactory._worker_halt_tok_db = e.target.result;
+                const transaction = WorkerFactory._worker_halt_tok_db.transaction(WorkerFactory._worker_halt_tok_db.objectStoreNames, 'readwrite');
+                transaction.onerror = (e) => console.error('Transaction error:', e.target.error);
+                // Loop through all object stores and clear them.
+                for (const storeName of transaction.objectStoreNames) {
+                    const objectStore = transaction.objectStore(storeName);
+                    objectStore.clear();
+                }
+                transaction.oncomplete = () => {
+                    console.log('All IndexedDB data cleared.');
                 };
-                openRequest.onupgradeneeded = (e) => {
-                    WorkerFactory._worker_halt_tok_db = e.target.result;
+                WorkerFactory._worker_halt_tok_db_Wait.resolve();
+                ret.resolve();
+            };
+            openRequest.onupgradeneeded = (e) => {
+                WorkerFactory._worker_halt_tok_db = e.target.result;
+                try {
                     WorkerFactory._worker_halt_tok_db.deleteObjectStore('stop-tokens');
-                    const objectStore = WorkerFactory._worker_halt_tok_db.createObjectStore("stop-tokens");
-                    WorkerFactory._worker_halt_tok_db_Wait.resolve();
-                    resolve();
-                };
-            });
+                }
+                catch (err) { }
+                const objectStore = WorkerFactory._worker_halt_tok_db.createObjectStore("stop-tokens");
+                WorkerFactory._worker_halt_tok_db_Wait.resolve();
+                ret.resolve();
+            };
         }
-        return Promise.resolve();
+        else
+            ret.resolve();
+        return ret;
     }
     static {
         (async () => {
