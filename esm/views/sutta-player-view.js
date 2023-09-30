@@ -1,21 +1,25 @@
 import { AlbumPlayerState, BookmarkedSelection } from '../models/album-player-state.js';
 export class SuttaPlayerView {
     static LINEID_PREFIX = '_ln_';
+    // Player menu
+    homeMenuElem;
+    catalogMenuElem;
+    searchMenuElem;
+    playlistMenuElem;
+    offlineMenuElem;
+    homeTabElem;
+    catalogTabElem;
+    searchTabElem;
+    playlistTabElem;
+    offlineTabElem;
     // settings
     autoPlayElem;
     playNextElem;
     repeatElem;
-    linkTextToAudioElem;
+    loadAudioWithTextElem;
     showLineNumsElem;
     searchScopeElem;
     darkThemeElem;
-    searchMenuElem;
-    searchDialogElem;
-    searchDialogCloseElem;
-    useRegExElem;
-    regExFlagsElem;
-    ignoreDiacriticsElem;
-    offlineMenuElem;
     resetAppMenuElem;
     // about
     aboutMenuElem;
@@ -23,35 +27,36 @@ export class SuttaPlayerView {
     aboutDialogCloseElem;
     aboutTextBodyElem;
     // selections
-    albumTrackSelectionElem;
     albumElem;
     trackElem;
-    loadAudioElem;
-    loadTextElem;
-    loadRandomElem;
+    loadCatalogTrackElem;
+    selectRandomElem;
     shareLinkElem;
     // search
     searchForElem;
-    searchSectionElem;
-    searchSectionLabelElem;
+    searchResultsLabelElem;
     pauseSearchResultsElem;
+    abortSearchElem;
     clearSearchResultsElem;
     searchResultsElem;
+    useRegExElem;
+    regExFlagsElem;
+    applyAndBetweenTermsElem;
+    ignoreDiacriticsElem;
     // display
     playingTrackElem;
-    linkNavToAudioElem;
     audioPlayerElem;
     displayingTrackElem;
-    linkNavToTextElem;
+    revealInCatElem;
     trackTextBodyElem;
     // offline
-    offlineDialogElem;
-    offlineDialogCloseElem;
-    offlineTitleElem;
+    offlineAlbumTitleElem;
+    offlineTrackTitleElem;
     concurrencyCountElem;
     downloadAlbumElem;
     deleteAlbumElem;
-    removeAudioFromCacheElem;
+    addTrackToCacheElem;
+    removeTrackFromCacheElem;
     processingInfoElem;
     processingProgressElem;
     // reset app
@@ -60,10 +65,13 @@ export class SuttaPlayerView {
     resetAppConfirmElem;
     snackbarElem;
     ctxMenuToggleElem;
-    ctxPlayToggleElem;
+    ctxMenuToggleIconElem;
     skipAudioToLineElem;
     scrollTextWithAudioElem;
     gotoTopElem;
+    tabSliderElem;
+    tabPageElems = [];
+    tabMenuElems = [];
     _model;
     _albumStore;
     _charPosLineIndex = [];
@@ -77,8 +85,21 @@ export class SuttaPlayerView {
         await this.refreshTrackSelectionList();
         await this.loadTrackTextForUi(cb);
         this.refreshViewSettings();
-        await this.loadTrackAudio();
+        const isNewAwaitDurRqd = [false];
+        await this.loadTrackAudio(isNewAwaitDurRqd);
         this._finaliseShareLinkLoadIfRqd();
+    }
+    openTab(tabNum, prevTabNum) {
+        for (let i = 0; i < this.tabPageElems.length; i++) {
+            if (i === tabNum) {
+                this.tabMenuElems[i].checked = true;
+                this.tabPageElems[i].style.display = 'block';
+            }
+            else
+                this.tabPageElems[i].style.display = 'none';
+        }
+        if (tabNum === 4)
+            this._prepareOfflineTab();
     }
     refreshViewSettings() {
         this.autoPlayElem.checked = this._model.autoPlay;
@@ -86,7 +107,7 @@ export class SuttaPlayerView {
         this.playNextElem.checked = this._model.playNext;
         this.repeatElem.checked = this._model.repeat;
         this.audioPlayerElem.loop = this._model.repeat;
-        this.linkTextToAudioElem.checked = this._model.linkTextToAudio;
+        this.loadAudioWithTextElem.checked = this._model.loadAudioWithText;
         this.scrollTextWithAudioElem.checked = this._model.scrollTextWithAudio;
         this.showLineNumsElem.checked = this._model.showLineNums;
         this.darkThemeElem.checked = this._model.darkTheme;
@@ -94,18 +115,19 @@ export class SuttaPlayerView {
         this.searchScopeElem.selectedIndex = this._model.searchScope;
         this.useRegExElem.checked = this._model.useRegEx;
         this.regExFlagsElem.value = this._model.regExFlags;
+        this.applyAndBetweenTermsElem.checked = this._model.applyAndBetweenTerms;
         this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics;
         this.concurrencyCountElem.selectedIndex = this._model.concurrencyCount;
         this.processingProgressElem.value = 0;
         this.setColorTheme();
         this.toggleLineNums();
         this.refreshSkipAudioToLine();
-        this.showHideContextControls(this.ctxMenuToggleElem.checked);
+        this.showHideContextControls(this._isCtxMenuToggleOpen());
     }
     async refreshTrackSelectionList() {
         this.trackElem.innerHTML = '';
-        const albIdx = this._model.navSel.albumIndex;
-        const trkIdx = this._model.navSel.trackIndex;
+        const albIdx = this._model.catSel.albumIndex;
+        const trkIdx = this._model.catSel.trackIndex;
         const trackLov = await this._albumStore.queryTrackReferences(albIdx);
         let count = 0;
         await this._albumStore.queryAlbumCacheStatus(albIdx, (baseRef, idx, taStatus, cargo) => {
@@ -122,7 +144,7 @@ export class SuttaPlayerView {
     }
     async refreshTrackSelectionLabel(trackSel) {
         if (!trackSel)
-            trackSel = this._model.navSel;
+            trackSel = this._model.catSel;
         const option = this.trackElem.children[trackSel.trackIndex];
         if (!option)
             return;
@@ -143,9 +165,9 @@ export class SuttaPlayerView {
         return ret;
     }
     async loadTrackTextForUi(lineSelCb) {
-        if (this._model.textSel.baseRef === null)
+        if (this._model.homeSel.baseRef === null)
             return;
-        const textBody = await this.loadTrackWith(this._model.textSel);
+        const textBody = await this.loadTrackWith(this._model.homeSel);
         this.trackTextBodyElem.innerHTML = '';
         const lines = textBody.split('\n');
         let totalCharLen = 0;
@@ -162,7 +184,7 @@ export class SuttaPlayerView {
             elem.id = SuttaPlayerView.createLineElementId(i + 1);
             elem.onclick = lineSelCb;
         }
-        this.displayingTrackElem.innerHTML = `${this._model.textSel.baseRef}`;
+        this.displayingTrackElem.innerHTML = `${this._model.homeSel.baseRef}`;
     }
     createLineRefValues(lineNum) {
         const totalCharLen = this._charPosLineIndex[this._charPosLineIndex.length - 1];
@@ -207,7 +229,7 @@ export class SuttaPlayerView {
     syncTextPositionWithAudio() {
         if (!this._model.scrollTextWithAudio)
             return;
-        if (this._model.audioSel.baseRef !== this._model.textSel.baseRef)
+        if (this._model.homeSel.baseRef !== this._model.homeSel.baseRef)
             return;
         const posPerc = this._getAudioPositionAsPerc();
         this.scrollToTextPercCentred(posPerc);
@@ -221,8 +243,8 @@ export class SuttaPlayerView {
         const idRef = `${SuttaPlayerView.LINEID_PREFIX}${lineNum}`;
         return idRef;
     }
-    async loadTrackAudio() {
-        const success = await this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem);
+    async loadTrackAudio(isNewAwaitDurRqd) {
+        const success = await this.loadTrackAudioWith(this._model.homeSel, this.audioPlayerElem, isNewAwaitDurRqd);
         if (success) {
             this.audioPlayerElem.currentTime = this._model.currentTime;
             if (this._model.bookmarkSel.isAwaitingLoad()) {
@@ -235,20 +257,25 @@ export class SuttaPlayerView {
                 }
             }
         }
+        return success;
     }
-    async loadTrackAudioWith(trackSel, audioElem) {
+    async loadTrackAudioWith(trackSel, audioElem, isNewAwaitDurRqd) {
+        isNewAwaitDurRqd[0] = false;
         if (trackSel.baseRef === null)
             return false;
-        this._model.audioState = 0;
         const srcRef = this._albumStore.queryTrackHtmlAudioSrcRef(trackSel.baseRef);
+        if (srcRef === audioElem.src && this._model.getAudioState() >= 1)
+            return true;
+        this._model.setAudioState(0);
         audioElem.src = srcRef;
-        this._model.audioState = 1;
+        isNewAwaitDurRqd[0] = true;
+        this._model.setAudioState(1);
         trackSel.isLoaded = true;
         return true;
     }
     updatePlayingTrackInfo(baseRef, status) {
         const info = status ? ` [${status}]` : '';
-        this.playingTrackElem.innerHTML = `${baseRef}${info}`;
+        this.playingTrackElem.innerHTML = info;
     }
     showMessage(msg, dur = 3000) {
         this.snackbarElem.textContent = msg;
@@ -276,23 +303,12 @@ export class SuttaPlayerView {
             this.aboutTextBodyElem.textContent = '';
         this.aboutDialogElem.open = !this.aboutDialogElem.open;
     }
-    async toggleOfflineDialog(event) {
-        if (event)
-            event.preventDefault();
-        this.offlineDialogElem.open = !this.offlineDialogElem.open;
-        if (!this.offlineDialogElem.open)
-            return;
+    async _prepareOfflineTab() {
         if (this._model.stopDwnlDel === 0) {
             const albumName = this.albumElem.children[this.albumElem.selectedIndex].textContent;
-            this.offlineTitleElem.textContent = albumName;
+            this.offlineAlbumTitleElem.textContent = albumName;
+            this.offlineTrackTitleElem.textContent = this._model.catSel.baseRef;
         }
-        const isCached = await this._albumStore.isInCache(this._model.navSel.baseRef, true, true);
-        if (isCached[0] || isCached[1]) {
-            this.removeAudioFromCacheElem.style.display = "block";
-            this.removeAudioFromCacheElem.innerHTML = `Remove ${this._model.navSel.baseRef} from cache`;
-        }
-        else
-            this.removeAudioFromCacheElem.style.display = "none";
     }
     toggleResetAppDialog(event) {
         if (event)
@@ -312,8 +328,9 @@ export class SuttaPlayerView {
     refreshSkipAudioToLine() {
         if (this._model.bookmarkSel.lineRef) {
             const vals = AlbumPlayerState.fromLineRef(this._model.bookmarkSel.lineRef);
-            this.skipAudioToLineElem.innerHTML = `&nbsp;Line&nbsp;${vals[0]}&nbsp;⏫&nbsp;`;
-            this.skipAudioToLineElem.style.display = 'block';
+            const el = document.getElementById('skipAudioToLineLabel');
+            el.innerHTML = `Line ${vals[0]}`;
+            this.skipAudioToLineElem.style.display = 'initial';
         }
         else
             this.skipAudioToLineElem.style.display = 'none';
@@ -327,7 +344,7 @@ export class SuttaPlayerView {
             option.innerHTML = `${colLov[i]}`;
             this.albumElem.append(option);
         }
-        this.albumElem.selectedIndex = this._model.navSel.albumIndex;
+        this.albumElem.selectedIndex = this._model.catSel.albumIndex;
     }
     showHideContextControls(show) {
         const dispStyle = show ? 'block' : 'none';
@@ -351,7 +368,12 @@ export class SuttaPlayerView {
         else
             window.scroll(0, this._model.currentScrollY);
     }
+    _isCtxMenuToggleOpen() {
+        let colorVal = this.ctxMenuToggleIconElem.getAttribute('color');
+        return colorVal !== null;
+    }
     _bindHtmlElements() {
+        this._bindTabElements();
         this._bindSettingElements();
         this._bindNavigationElements();
         this._bindSearchElements();
@@ -361,56 +383,72 @@ export class SuttaPlayerView {
         this._bindAboutElements();
         this._bindMiscElements();
     }
+    _bindTabElements() {
+        this.homeMenuElem = document.getElementById('homeMenu');
+        this.tabMenuElems.push(this.homeMenuElem);
+        this.homeTabElem = document.getElementById('homeTab');
+        this.tabPageElems.push(this.homeTabElem);
+        this.catalogMenuElem = document.getElementById('catalogMenu');
+        this.tabMenuElems.push(this.catalogMenuElem);
+        this.catalogTabElem = document.getElementById('catalogTab');
+        this.tabPageElems.push(this.catalogTabElem);
+        this.searchMenuElem = document.getElementById('searchMenu');
+        this.tabMenuElems.push(this.searchMenuElem);
+        this.searchTabElem = document.getElementById('searchTab');
+        this.tabPageElems.push(this.searchTabElem);
+        this.playlistMenuElem = document.getElementById('playlistMenu');
+        this.tabMenuElems.push(this.playlistMenuElem);
+        this.playlistTabElem = document.getElementById('playlistTab');
+        this.tabPageElems.push(this.playlistTabElem);
+        this.offlineMenuElem = document.getElementById('offlineMenu');
+        this.tabMenuElems.push(this.offlineMenuElem);
+        this.offlineTabElem = document.getElementById('offlineTab');
+        this.tabPageElems.push(this.offlineTabElem);
+    }
     _bindSettingElements() {
         this.autoPlayElem = document.getElementById('autoPlay');
         this.playNextElem = document.getElementById('playNext');
         this.repeatElem = document.getElementById('repeat');
-        this.linkTextToAudioElem = document.getElementById('linkTextToAudio');
+        this.loadAudioWithTextElem = document.getElementById('loadAudioWithText');
         this.showLineNumsElem = document.getElementById('showLineNums');
         this.darkThemeElem = document.getElementById('darkTheme');
-        this.offlineMenuElem = document.getElementById('offlineMenu');
         this.resetAppMenuElem = document.getElementById('resetAppMenu');
     }
     _bindNavigationElements() {
-        this.albumTrackSelectionElem = document.getElementById('albumTrackSelection');
         this.albumElem = document.getElementById('album');
         this.trackElem = document.getElementById('track');
-        this.loadAudioElem = document.getElementById('loadAudio');
-        this.loadTextElem = document.getElementById('loadText');
-        this.loadRandomElem = document.getElementById('loadRandom');
+        this.loadCatalogTrackElem = document.getElementById('loadCatalogTrack');
+        this.selectRandomElem = document.getElementById('selectRandom');
         this.shareLinkElem = document.getElementById('shareLink');
     }
     _bindSearchElements() {
-        this.searchMenuElem = document.getElementById('searchMenu');
-        this.searchDialogElem = document.getElementById('searchDialog');
-        this.searchDialogCloseElem = document.getElementById('searchDialogClose');
         this.searchForElem = document.getElementById('searchFor');
         this.searchResultsElem = document.getElementById('searchResults');
-        this.searchSectionElem = document.getElementById('searchSection');
-        this.searchSectionLabelElem = document.getElementById('searchSectionLabel');
+        this.searchResultsLabelElem = document.getElementById('searchResultsLabel');
         this.pauseSearchResultsElem = document.getElementById('pauseSearchResults');
         this.clearSearchResultsElem = document.getElementById('clearSearchResults');
+        this.abortSearchElem = document.getElementById('abortSearch');
         this.searchScopeElem = document.getElementById('searchScope');
         this.useRegExElem = document.getElementById('useRegEx');
         this.regExFlagsElem = document.getElementById('regExFlags');
+        this.applyAndBetweenTermsElem = document.getElementById('applyAndBetweenTerms');
         this.ignoreDiacriticsElem = document.getElementById('ignoreDiacritics');
     }
     _bindDisplayElements() {
         this.playingTrackElem = document.getElementById('playingTrack');
         this.audioPlayerElem = document.getElementById('audioPlayer');
-        this.linkNavToAudioElem = document.getElementById('linkNavToAudio');
         this.displayingTrackElem = document.getElementById('displayingTrack');
         this.trackTextBodyElem = document.getElementById('trackTextBody');
-        this.linkNavToTextElem = document.getElementById('linkNavToText');
+        this.revealInCatElem = document.getElementById('revealInCat');
     }
     _bindOfflineElements() {
-        this.offlineDialogElem = document.getElementById('offlineDialog');
-        this.offlineDialogCloseElem = document.getElementById('offlineDialogClose');
-        this.offlineTitleElem = document.getElementById('offlineTitle');
+        this.offlineAlbumTitleElem = document.getElementById('offlineAlbumTitle');
+        this.offlineTrackTitleElem = document.getElementById('offlineTrackTitle');
         this.concurrencyCountElem = document.getElementById('concurrencyCount');
         this.downloadAlbumElem = document.getElementById('downloadAlbum');
         this.deleteAlbumElem = document.getElementById('deleteAlbum');
-        this.removeAudioFromCacheElem = document.getElementById('removeAudioFromCache');
+        this.addTrackToCacheElem = document.getElementById('addTrackToCache');
+        this.removeTrackFromCacheElem = document.getElementById('removeTrackFromCache');
         this.processingInfoElem = document.getElementById('processingInfo');
         this.processingProgressElem = document.getElementById('processingProgress');
     }
@@ -426,11 +464,20 @@ export class SuttaPlayerView {
         this.aboutTextBodyElem = document.getElementById('aboutTextBody');
     }
     _bindMiscElements() {
+        this.ctxMenuToggleIconElem = document.getElementById('ctxMenuToggleIcon');
         this.ctxMenuToggleElem = document.getElementById('ctxMenuToggle');
-        this.ctxPlayToggleElem = document.getElementById('ctxPlayToggle');
+        this.ctxMenuToggleElem.onclick = () => {
+            const isOpen = this._isCtxMenuToggleOpen();
+            if (isOpen)
+                this.ctxMenuToggleIconElem.removeAttribute('color');
+            else
+                this.ctxMenuToggleIconElem.setAttribute('color', 'medium');
+            this.showHideContextControls(!isOpen);
+        };
         this.scrollTextWithAudioElem = document.getElementById('scrollTextWithAudio');
         this.skipAudioToLineElem = document.getElementById('skipAudioToLine');
         this.gotoTopElem = document.getElementById('gotoTop');
+        this.tabSliderElem = document.getElementById('tabSlider');
         this.snackbarElem = document.getElementById('snackbar');
     }
     _getAudioPositionAsPerc() {

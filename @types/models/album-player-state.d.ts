@@ -36,13 +36,13 @@ export declare class BookmarkedSelection extends TrackSelection {
     cancelAwaitingAudioEndIfRqd(): void;
 }
 export declare class AlbumPlayerState extends LocalStorageState {
-    navSel: TrackSelection;
-    textSel: TrackSelection;
-    audioSel: TrackSelection;
+    catSel: TrackSelection;
+    homeSel: TrackSelection;
     autoPlay: boolean;
     playNext: boolean;
     repeat: boolean;
-    linkTextToAudio: boolean;
+    scrollTextWithAudio: boolean;
+    loadAudioWithText: boolean;
     showLineNums: boolean;
     currentScrollY: number;
     currentTime: number;
@@ -50,17 +50,20 @@ export declare class AlbumPlayerState extends LocalStorageState {
     searchFor: string;
     searchScope: number;
     useRegEx: boolean;
+    applyAndBetweenTerms: boolean;
     regExFlags: string;
     ignoreDiacritics: boolean;
     concurrencyCount: number;
-    audioState: number;
     stopDwnlDel: number;
     bookmarkSel: BookmarkedSelection;
     startSearch: boolean;
-    scrollTextWithAudio: boolean;
+    private _audioState;
+    onAudioStateChange: (oldVal: number, newVal: number) => void;
     constructor(bmSel: BookmarkedSelection);
     save(): void;
     restore(): void;
+    setAudioState(val: number): void;
+    getAudioState(): number;
     static toLineRef(lineNum: number, begIdxPos: number, begPerc: number, endIdxPos: number, endPerc: number): string;
     static toLineRefUsingArr(refArr: number[]): string;
     static fromLineRef(lineRef: string): number[];

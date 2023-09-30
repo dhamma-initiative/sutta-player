@@ -8,6 +8,7 @@ export interface SearchContext {
     searchScope: number // [selected album: 0, cached tracks: 1, all albums: 2]
     useRegEx: boolean 
     regExFlags: string
+    applyAndBetweenTerms: boolean
     ignoreDiacritics: boolean
     maxMatchSurroundingChars: number
     state: number  // [started: -1, dispatched: 0, paused: 1, aborted: 2, finished: 3] 
@@ -27,6 +28,7 @@ export type MatchedSearchItem = (matchSearchRef: MatchedSearchRef, cargo?: any) 
 export interface SearchControl {
     context: SearchContext
     onStarted: () => void
+    onSearchingTrack: (baseRef: string, cargo?: any) => void
     onMatched: MatchedSearchItem
     onPaused: (paused: boolean, cargo?: any) => void
     onAborted: () => void

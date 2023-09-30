@@ -2,7 +2,7 @@ import { CACHEFIRST_TEXTANDDOWNLOADS, CacheUtils, REGISTERROUTE, RegisterRoutePa
 import { DeferredPromise } from '../../runtime/deferred-promise.js'
 import { WorkerFactory, WorkerMessage } from '../../runtime/worker-utils.js'
 import { AlbumStorageQueryable, MatchedSearchItem, ProcessedItem, SearchContext, SearchControl } from '../album-storage-queryable.js'
-import { AlbumTrackRqstMsg, CACHED_TRACKS_STATUS_FINISHED_RESP_MSG, CACHED_TRACKS_STATUS_RQST_MSG, CACHE_NAME, DOWNLOAD_TRACKS_RQST_MSG, MatchedTrackRespMsg, ORIGIN, SEARCH_TRACKS_FINISHED_RESP_MSG, SEARCH_TRACKS_PAUSE_CHG_RESP_MSG, SEARCH_TRACKS_RQST_MSG, SEARCH_TRACKS_STATE_CHG_RQST_MSG, SearchTrackRqstMsg, TrackProcessRespMsg, TrackProcessRqstMsg, TrackStatusRespMsg } from './bg-tracks-commons.js'
+import { AlbumTrackRqstMsg, CACHED_TRACKS_STATUS_FINISHED_RESP_MSG, CACHED_TRACKS_STATUS_RQST_MSG, CACHE_NAME, DOWNLOAD_TRACKS_RQST_MSG, MatchedTrackRespMsg, ORIGIN, SEARCH_TRACKS_FINISHED_RESP_MSG, SEARCH_TRACKS_PAUSE_CHG_RESP_MSG, SEARCH_TRACKS_RQST_MSG, SEARCH_TRACKS_SEARCHING_TRACK_RESP_MSG, SEARCH_TRACKS_STATE_CHG_RQST_MSG, TrackProcessRespMsg, TrackProcessRqstMsg, TrackStatusRespMsg } from './bg-tracks-commons.js'
 
 import { InternalQueryCacheStore } from './internal-query-cache-store.js'
 
@@ -21,19 +21,19 @@ export class GithubDiSuttaStorageDB extends InternalQueryCacheStore implements A
     private _albumCacheStatusQuerier = new AlbumCacheStatusQuerier()
 
     public async setup() {
-        if (!CacheUtils.ENABLE_CACHE)
-            return
-        const payload: RegisterRoutePayloadJson = {
-            url_origin: ORIGIN,
-            strategy: {
-                class_name: CACHEFIRST_TEXTANDDOWNLOADS,
-                cacheName: CACHE_NAME,
+        if (CacheUtils.ENABLE_CACHE) {
+            const payload: RegisterRoutePayloadJson = {
+                url_origin: ORIGIN,
+                strategy: {
+                    class_name: CACHEFIRST_TEXTANDDOWNLOADS,
+                    cacheName: CACHE_NAME,
+                }
             }
+            await CacheUtils.postMessage({
+                type: REGISTERROUTE,
+                payload: payload
+            })
         }
-        await CacheUtils.postMessage({
-            type: REGISTERROUTE,
-            payload: payload
-        })
         await this._albumCacheStatusQuerier.setup()
     }
 
@@ -237,6 +237,7 @@ class AlbumCacheStatusQuerier {
 class SearchManager implements SearchControl {
     context: SearchContext
     onStarted: () => void
+    onSearchingTrack: (baseRef: string, cargo?: any) => void
     onMatched: MatchedSearchItem
     onPaused: (paused: boolean, cargo?: any) => void
     onAborted: () => void
@@ -255,6 +256,10 @@ class SearchManager implements SearchControl {
                 const msg: MatchedTrackRespMsg = base.payload
                 if (this.onMatched)
                     this.onMatched(msg, msg.cargo)
+            } else if (base.type === SEARCH_TRACKS_SEARCHING_TRACK_RESP_MSG) {
+                let {occurances, tracks, baseRef} = base.payload
+                if (this.onSearchingTrack)
+                    this.onSearchingTrack(baseRef, {occurances, tracks})
             } else if (base.type === SEARCH_TRACKS_PAUSE_CHG_RESP_MSG) {
                 let {occurances, tracks, paused} = base.payload
                 if (this.onPaused)

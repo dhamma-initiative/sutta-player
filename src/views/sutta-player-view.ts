@@ -3,22 +3,28 @@ import { AlbumStorageQueryable } from "../models/album-storage-queryable.js"
 
 export class SuttaPlayerView {
     public static LINEID_PREFIX = '_ln_'
+    // Player menu
+    homeMenuElem: HTMLInputElement
+    catalogMenuElem: HTMLInputElement
+    searchMenuElem: HTMLInputElement
+    playlistMenuElem: HTMLInputElement
+    offlineMenuElem: HTMLInputElement
+
+    homeTabElem: HTMLDivElement
+    catalogTabElem: HTMLDivElement
+    searchTabElem: HTMLDivElement
+    playlistTabElem: HTMLDivElement
+    offlineTabElem: HTMLDivElement
+
     // settings
     autoPlayElem: HTMLInputElement
     playNextElem: HTMLInputElement
     repeatElem: HTMLInputElement
-    linkTextToAudioElem: HTMLInputElement
+    loadAudioWithTextElem: HTMLInputElement
     showLineNumsElem: HTMLInputElement
     searchScopeElem: HTMLSelectElement
     darkThemeElem: HTMLInputElement
 
-    searchMenuElem: HTMLAnchorElement
-    searchDialogElem: HTMLDialogElement
-    searchDialogCloseElem: HTMLAnchorElement
-    useRegExElem: HTMLInputElement
-    regExFlagsElem: HTMLInputElement
-    ignoreDiacriticsElem: HTMLInputElement
-    offlineMenuElem: HTMLAnchorElement
     resetAppMenuElem: HTMLAnchorElement
 
     // about
@@ -28,39 +34,41 @@ export class SuttaPlayerView {
     aboutTextBodyElem: HTMLParagraphElement
 
     // selections
-    albumTrackSelectionElem: HTMLDetailsElement
     albumElem: HTMLSelectElement
     trackElem: HTMLSelectElement
-    loadAudioElem: HTMLButtonElement
-    loadTextElem: HTMLButtonElement
-    loadRandomElem: HTMLButtonElement
+    loadCatalogTrackElem: HTMLButtonElement
+    selectRandomElem: HTMLButtonElement
     shareLinkElem: HTMLButtonElement
 
     // search
     searchForElem: HTMLInputElement
-    searchSectionElem: HTMLDetailsElement
-    searchSectionLabelElem: HTMLSpanElement
+    searchResultsLabelElem: HTMLSpanElement
     pauseSearchResultsElem: HTMLInputElement
+    abortSearchElem: HTMLAnchorElement
     clearSearchResultsElem: HTMLAnchorElement
     searchResultsElem: HTMLTextAreaElement
 
+    useRegExElem: HTMLInputElement
+    regExFlagsElem: HTMLInputElement
+    applyAndBetweenTermsElem: HTMLInputElement 
+    ignoreDiacriticsElem: HTMLInputElement
+
     // display
     playingTrackElem: HTMLElement
-    linkNavToAudioElem: HTMLAnchorElement
     audioPlayerElem: HTMLAudioElement
 
     displayingTrackElem: HTMLElement
-    linkNavToTextElem: HTMLAnchorElement
+    revealInCatElem: HTMLAnchorElement
     trackTextBodyElem: HTMLDivElement
 
     // offline
-    offlineDialogElem: HTMLDialogElement
-    offlineDialogCloseElem: HTMLAnchorElement
-    offlineTitleElem: HTMLElement
+    offlineAlbumTitleElem: HTMLElement
+    offlineTrackTitleElem: HTMLElement
     concurrencyCountElem: HTMLSelectElement
     downloadAlbumElem: HTMLInputElement
     deleteAlbumElem: HTMLInputElement
-    removeAudioFromCacheElem: HTMLButtonElement
+    addTrackToCacheElem: HTMLButtonElement
+    removeTrackFromCacheElem: HTMLButtonElement
     processingInfoElem: HTMLDivElement
     processingProgressElem: HTMLProgressElement
 
@@ -70,11 +78,16 @@ export class SuttaPlayerView {
     resetAppConfirmElem: HTMLAnchorElement
 
     snackbarElem: HTMLDivElement
-    ctxMenuToggleElem: HTMLInputElement
-    ctxPlayToggleElem: HTMLInputElement
+    ctxMenuToggleElem: HTMLButtonElement
+    ctxMenuToggleIconElem: HTMLElement
     skipAudioToLineElem: HTMLAnchorElement
     scrollTextWithAudioElem: HTMLInputElement
+
     gotoTopElem: HTMLAnchorElement
+    tabSliderElem: HTMLInputElement
+    
+    tabPageElems: HTMLDivElement[] = []
+    tabMenuElems: HTMLInputElement[] = []
 
     private _model: AlbumPlayerState
     private _albumStore: AlbumStorageQueryable
@@ -91,8 +104,21 @@ export class SuttaPlayerView {
         await this.refreshTrackSelectionList()
         await this.loadTrackTextForUi(cb)
         this.refreshViewSettings()
-        await this.loadTrackAudio()
+        const isNewAwaitDurRqd = [false]
+        await this.loadTrackAudio(isNewAwaitDurRqd)
         this._finaliseShareLinkLoadIfRqd()
+    }
+
+    public openTab(tabNum: number, prevTabNum: number) {
+        for (let i = 0; i < this.tabPageElems.length; i++) {
+            if (i === tabNum) {
+                this.tabMenuElems[i].checked = true
+                this.tabPageElems[i].style.display = 'block'
+            } else
+                this.tabPageElems[i].style.display = 'none'
+        }
+        if (tabNum === 4)
+            this._prepareOfflineTab()
     }
 
     public refreshViewSettings() {
@@ -102,7 +128,7 @@ export class SuttaPlayerView {
         this.repeatElem.checked = this._model.repeat
         this.audioPlayerElem.loop = this._model.repeat
 
-        this.linkTextToAudioElem.checked = this._model.linkTextToAudio
+        this.loadAudioWithTextElem.checked = this._model.loadAudioWithText
         this.scrollTextWithAudioElem.checked = this._model.scrollTextWithAudio
 
         this.showLineNumsElem.checked = this._model.showLineNums
@@ -112,6 +138,7 @@ export class SuttaPlayerView {
         this.searchScopeElem.selectedIndex = this._model.searchScope
         this.useRegExElem.checked = this._model.useRegEx
         this.regExFlagsElem.value = this._model.regExFlags
+        this.applyAndBetweenTermsElem.checked = this._model.applyAndBetweenTerms
         this.ignoreDiacriticsElem.checked = this._model.ignoreDiacritics
         
         this.concurrencyCountElem.selectedIndex = this._model.concurrencyCount
@@ -120,13 +147,13 @@ export class SuttaPlayerView {
         this.setColorTheme()
         this.toggleLineNums()
         this.refreshSkipAudioToLine()
-        this.showHideContextControls(this.ctxMenuToggleElem.checked)
+        this.showHideContextControls(this._isCtxMenuToggleOpen())
     }
 
     public async refreshTrackSelectionList() {
         this.trackElem.innerHTML = ''
-        const albIdx = this._model.navSel.albumIndex
-        const trkIdx = this._model.navSel.trackIndex
+        const albIdx = this._model.catSel.albumIndex
+        const trkIdx = this._model.catSel.trackIndex
         const trackLov = await this._albumStore.queryTrackReferences(albIdx)
         let count = 0
         await this._albumStore.queryAlbumCacheStatus(albIdx, (baseRef, idx, taStatus, cargo) => {
@@ -144,7 +171,7 @@ export class SuttaPlayerView {
 
     public async refreshTrackSelectionLabel(trackSel?: TrackSelection): Promise<void> {
         if (!trackSel)
-            trackSel = this._model.navSel
+            trackSel = this._model.catSel
         const option = this.trackElem.children[trackSel.trackIndex]
         if (!option)
             return
@@ -168,10 +195,10 @@ export class SuttaPlayerView {
     }
 
     public async loadTrackTextForUi(lineSelCb: (event: MouseEvent) => void) {
-        if (this._model.textSel.baseRef === null) 
+        if (this._model.homeSel.baseRef === null) 
             return
 
-        const textBody = await this.loadTrackWith(this._model.textSel)
+        const textBody = await this.loadTrackWith(this._model.homeSel)
         this.trackTextBodyElem.innerHTML = ''
         const lines = textBody.split('\n')
         let totalCharLen = 0
@@ -188,7 +215,7 @@ export class SuttaPlayerView {
             elem.id = SuttaPlayerView.createLineElementId(i+1)
             elem.onclick = lineSelCb
         }
-        this.displayingTrackElem.innerHTML = `${this._model.textSel.baseRef}`
+        this.displayingTrackElem.innerHTML = `${this._model.homeSel.baseRef}`
     }
 
     public createLineRefValues(lineNum: number) {
@@ -239,7 +266,7 @@ export class SuttaPlayerView {
     public syncTextPositionWithAudio() {
         if (!this._model.scrollTextWithAudio)
             return
-        if (this._model.audioSel.baseRef !== this._model.textSel.baseRef)
+        if (this._model.homeSel.baseRef !== this._model.homeSel.baseRef)
             return
 
         const posPerc = this._getAudioPositionAsPerc()
@@ -257,8 +284,8 @@ export class SuttaPlayerView {
         return idRef
     }
 
-    public async loadTrackAudio() {
-        const success = await this.loadTrackAudioWith(this._model.audioSel, this.audioPlayerElem)
+    public async loadTrackAudio(isNewAwaitDurRqd: boolean[]): Promise<boolean> {
+        const success = await this.loadTrackAudioWith(this._model.homeSel, this.audioPlayerElem, isNewAwaitDurRqd)
         if (success) {
             this.audioPlayerElem.currentTime = this._model.currentTime
             if (this._model.bookmarkSel.isAwaitingLoad()) {
@@ -270,22 +297,27 @@ export class SuttaPlayerView {
                 }
             }
         }
+        return success
     }
 
-    public async loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement): Promise<boolean> {
+    public async loadTrackAudioWith(trackSel: TrackSelection, audioElem: HTMLAudioElement, isNewAwaitDurRqd: boolean[]): Promise<boolean> {
+        isNewAwaitDurRqd[0] = false
         if (trackSel.baseRef === null)
             return false
-        this._model.audioState = 0
         const srcRef = this._albumStore.queryTrackHtmlAudioSrcRef(trackSel.baseRef)
+        if (srcRef === audioElem.src && this._model.getAudioState() >= 1)
+            return true
+        this._model.setAudioState(0)
         audioElem.src = srcRef
-        this._model.audioState = 1
+        isNewAwaitDurRqd[0] = true
+        this._model.setAudioState(1)
         trackSel.isLoaded = true
         return true
     }
 
     public updatePlayingTrackInfo(baseRef: string, status: string) {
         const info = status ? ` [${status}]` : ''
-        this.playingTrackElem.innerHTML = `${baseRef}${info}`
+        this.playingTrackElem.innerHTML = info
     }
 
     public showMessage(msg: string, dur = 3000) {
@@ -316,22 +348,12 @@ export class SuttaPlayerView {
         this.aboutDialogElem.open = !this.aboutDialogElem.open
     }
 
-    public async toggleOfflineDialog(event: any) {
-        if (event)
-            event.preventDefault()
-        this.offlineDialogElem.open = !this.offlineDialogElem.open
-        if (!this.offlineDialogElem.open)
-            return
+    private async _prepareOfflineTab() {
         if (this._model.stopDwnlDel === 0) {
             const albumName = this.albumElem.children[this.albumElem.selectedIndex].textContent
-            this.offlineTitleElem.textContent = albumName
+            this.offlineAlbumTitleElem.textContent = albumName
+            this.offlineTrackTitleElem.textContent = this._model.catSel.baseRef
         }
-        const isCached = await this._albumStore.isInCache(this._model.navSel.baseRef, true, true)
-        if (isCached[0] || isCached[1]) {
-            this.removeAudioFromCacheElem.style.display = "block"
-            this.removeAudioFromCacheElem.innerHTML = `Remove ${this._model.navSel.baseRef} from cache`
-        } else
-            this.removeAudioFromCacheElem.style.display = "none"
     }
 
     public toggleResetAppDialog(event: any) {
@@ -354,8 +376,9 @@ export class SuttaPlayerView {
     public refreshSkipAudioToLine() {
         if (this._model.bookmarkSel.lineRef) {
             const vals = AlbumPlayerState.fromLineRef(this._model.bookmarkSel.lineRef)
-            this.skipAudioToLineElem.innerHTML = `&nbsp;Line&nbsp;${vals[0]}&nbsp;⏫&nbsp;`
-            this.skipAudioToLineElem.style.display = 'block'
+            const el = document.getElementById('skipAudioToLineLabel')
+            el.innerHTML = `Line ${vals[0]}`
+            this.skipAudioToLineElem.style.display = 'initial'
         } else
             this.skipAudioToLineElem.style.display = 'none'
     }
@@ -369,7 +392,7 @@ export class SuttaPlayerView {
             option.innerHTML = `${colLov[i]}`
             this.albumElem.append(option)
         }
-        this.albumElem.selectedIndex = this._model.navSel.albumIndex
+        this.albumElem.selectedIndex = this._model.catSel.albumIndex
     }
 
     public showHideContextControls(show: boolean) {
@@ -395,7 +418,13 @@ export class SuttaPlayerView {
             window.scroll(0, this._model.currentScrollY)
     }
 
+    private _isCtxMenuToggleOpen(): boolean {
+        let colorVal = this.ctxMenuToggleIconElem.getAttribute('color')
+        return colorVal !== null
+    }
+
     private _bindHtmlElements() {
+        this._bindTabElements()
         this._bindSettingElements()
         this._bindNavigationElements()
         this._bindSearchElements()
@@ -406,63 +435,80 @@ export class SuttaPlayerView {
         this._bindMiscElements()
     }
 
+    private _bindTabElements() {
+        this.homeMenuElem = <HTMLInputElement>document.getElementById('homeMenu')
+        this.tabMenuElems.push(this.homeMenuElem)
+        this.homeTabElem = <HTMLDivElement>document.getElementById('homeTab')
+        this.tabPageElems.push(this.homeTabElem)
+        this.catalogMenuElem = <HTMLInputElement>document.getElementById('catalogMenu')
+        this.tabMenuElems.push(this.catalogMenuElem)
+        this.catalogTabElem = <HTMLDivElement>document.getElementById('catalogTab')
+        this.tabPageElems.push(this.catalogTabElem)
+        this.searchMenuElem = <HTMLInputElement>document.getElementById('searchMenu')
+        this.tabMenuElems.push(this.searchMenuElem)
+        this.searchTabElem = <HTMLDivElement>document.getElementById('searchTab')
+        this.tabPageElems.push(this.searchTabElem)
+        this.playlistMenuElem = <HTMLInputElement>document.getElementById('playlistMenu')
+        this.tabMenuElems.push(this.playlistMenuElem)
+        this.playlistTabElem = <HTMLDivElement>document.getElementById('playlistTab')
+        this.tabPageElems.push(this.playlistTabElem)
+        this.offlineMenuElem = <HTMLInputElement>document.getElementById('offlineMenu')
+        this.tabMenuElems.push(this.offlineMenuElem)
+        this.offlineTabElem = <HTMLDivElement>document.getElementById('offlineTab')
+        this.tabPageElems.push(this.offlineTabElem)
+    }
+
     private _bindSettingElements() {
         this.autoPlayElem = <HTMLInputElement>document.getElementById('autoPlay')
         this.playNextElem = <HTMLInputElement>document.getElementById('playNext')
         this.repeatElem = <HTMLInputElement>document.getElementById('repeat')
-        this.linkTextToAudioElem = <HTMLInputElement>document.getElementById('linkTextToAudio')
+        this.loadAudioWithTextElem = <HTMLInputElement>document.getElementById('loadAudioWithText')
         this.showLineNumsElem = <HTMLInputElement>document.getElementById('showLineNums')
 
         this.darkThemeElem = <HTMLInputElement>document.getElementById('darkTheme')
 
-        this.offlineMenuElem = <HTMLAnchorElement>document.getElementById('offlineMenu')
         this.resetAppMenuElem = <HTMLAnchorElement>document.getElementById('resetAppMenu')
     }
 
     private _bindNavigationElements() {
-        this.albumTrackSelectionElem = <HTMLDetailsElement>document.getElementById('albumTrackSelection')
         this.albumElem = <HTMLSelectElement>document.getElementById('album')
         this.trackElem = <HTMLSelectElement>document.getElementById('track')
-        this.loadAudioElem = <HTMLButtonElement>document.getElementById('loadAudio')
-        this.loadTextElem = <HTMLButtonElement>document.getElementById('loadText')
-        this.loadRandomElem = <HTMLButtonElement>document.getElementById('loadRandom')
+        this.loadCatalogTrackElem = <HTMLButtonElement>document.getElementById('loadCatalogTrack')
+        this.selectRandomElem = <HTMLButtonElement>document.getElementById('selectRandom')
         this.shareLinkElem = <HTMLButtonElement>document.getElementById('shareLink')
     }
 
     private _bindSearchElements() {
-        this.searchMenuElem = <HTMLAnchorElement>document.getElementById('searchMenu')
-        this.searchDialogElem = <HTMLDialogElement>document.getElementById('searchDialog')
-        this.searchDialogCloseElem = <HTMLAnchorElement>document.getElementById('searchDialogClose')
         this.searchForElem = <HTMLInputElement>document.getElementById('searchFor')
         this.searchResultsElem = <HTMLTextAreaElement>document.getElementById('searchResults')
-        this.searchSectionElem = <HTMLDetailsElement>document.getElementById('searchSection')
-        this.searchSectionLabelElem = <HTMLSpanElement>document.getElementById('searchSectionLabel')
+        this.searchResultsLabelElem = <HTMLSpanElement>document.getElementById('searchResultsLabel')
         this.pauseSearchResultsElem = <HTMLInputElement>document.getElementById('pauseSearchResults')
         this.clearSearchResultsElem = <HTMLAnchorElement>document.getElementById('clearSearchResults')
+        this.abortSearchElem = <HTMLAnchorElement>document.getElementById('abortSearch')
 
         this.searchScopeElem = <HTMLSelectElement>document.getElementById('searchScope')
         this.useRegExElem = <HTMLInputElement>document.getElementById('useRegEx')
         this.regExFlagsElem = <HTMLInputElement>document.getElementById('regExFlags')
+        this.applyAndBetweenTermsElem = <HTMLInputElement>document.getElementById('applyAndBetweenTerms')
         this.ignoreDiacriticsElem = <HTMLInputElement>document.getElementById('ignoreDiacritics')
     }
 
     private _bindDisplayElements() {
         this.playingTrackElem = <HTMLElement>document.getElementById('playingTrack')
         this.audioPlayerElem = <HTMLAudioElement>document.getElementById('audioPlayer')
-        this.linkNavToAudioElem = <HTMLAnchorElement>document.getElementById('linkNavToAudio')
         this.displayingTrackElem = <HTMLElement>document.getElementById('displayingTrack')
         this.trackTextBodyElem = <HTMLDivElement>document.getElementById('trackTextBody')
-        this.linkNavToTextElem = <HTMLAnchorElement>document.getElementById('linkNavToText')
+        this.revealInCatElem = <HTMLAnchorElement>document.getElementById('revealInCat')
     }
 
     private _bindOfflineElements() {
-        this.offlineDialogElem = <HTMLDialogElement>document.getElementById('offlineDialog')
-        this.offlineDialogCloseElem = <HTMLAnchorElement>document.getElementById('offlineDialogClose')
-        this.offlineTitleElem = <HTMLElement>document.getElementById('offlineTitle')
+        this.offlineAlbumTitleElem = <HTMLElement>document.getElementById('offlineAlbumTitle')
+        this.offlineTrackTitleElem = <HTMLElement>document.getElementById('offlineTrackTitle')
         this.concurrencyCountElem = <HTMLSelectElement>document.getElementById('concurrencyCount')
         this.downloadAlbumElem = <HTMLInputElement>document.getElementById('downloadAlbum')
         this.deleteAlbumElem = <HTMLInputElement>document.getElementById('deleteAlbum')
-        this.removeAudioFromCacheElem = <HTMLButtonElement>document.getElementById('removeAudioFromCache')
+        this.addTrackToCacheElem = <HTMLButtonElement>document.getElementById('addTrackToCache')
+        this.removeTrackFromCacheElem = <HTMLButtonElement>document.getElementById('removeTrackFromCache')
         this.processingInfoElem = <HTMLDivElement>document.getElementById('processingInfo')
         this.processingProgressElem = <HTMLProgressElement>document.getElementById('processingProgress')
     }
@@ -481,11 +527,21 @@ export class SuttaPlayerView {
     }
 
     private _bindMiscElements() {
-        this.ctxMenuToggleElem = <HTMLInputElement>document.getElementById('ctxMenuToggle')
-        this.ctxPlayToggleElem = <HTMLInputElement>document.getElementById('ctxPlayToggle')
+        this.ctxMenuToggleIconElem = document.getElementById('ctxMenuToggleIcon')
+        this.ctxMenuToggleElem = <HTMLButtonElement>document.getElementById('ctxMenuToggle')
+        this.ctxMenuToggleElem.onclick = () => {
+            const isOpen = this._isCtxMenuToggleOpen()
+            if (isOpen)
+                this.ctxMenuToggleIconElem.removeAttribute('color')
+            else
+                this.ctxMenuToggleIconElem.setAttribute('color', 'medium')
+            this.showHideContextControls(!isOpen)
+
+        }
         this.scrollTextWithAudioElem = <HTMLInputElement>document.getElementById('scrollTextWithAudio')
         this.skipAudioToLineElem = <HTMLAnchorElement>document.getElementById('skipAudioToLine')
         this.gotoTopElem = <HTMLAnchorElement>document.getElementById('gotoTop')
+        this.tabSliderElem = <HTMLInputElement>document.getElementById('tabSlider')
         this.snackbarElem = <HTMLDivElement>document.getElementById('snackbar')
     }
 

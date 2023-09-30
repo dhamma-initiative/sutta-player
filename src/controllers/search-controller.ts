@@ -1,7 +1,5 @@
 import { AlbumPlayerState, TrackSelection } from "../models/album-player-state.js"
 import { MatchedSearchRef, SearchContext, SearchControl } from "../models/album-storage-queryable.js"
-import { DeferredPromise } from "../runtime/deferred-promise.js"
-import { StringUtils } from '../runtime/string-utils.js'
 import { SuttaPlayerView } from "../views/sutta-player-view.js"
 import { SuttaPlayerController } from "./sutta-player-controller.js"
 
@@ -37,19 +35,25 @@ export class SearchController {
     }
 
     private async _registerListeners() {
-        this._view.searchMenuElem.onclick = async (e: Event) => {
-            e.preventDefault()
-            this._view.searchDialogElem.open = !this._view.searchDialogElem.open
-        }
-        this._view.searchDialogCloseElem.onclick = this._view.searchMenuElem.onclick
         this._view.searchScopeElem.onchange = async () => {
             this._model.searchScope = this._view.searchScopeElem.selectedIndex
         }
         this._view.useRegExElem.onchange = async () => {
             this._model.useRegEx = this._view.useRegExElem.checked
+            if (this._model.useRegEx) {
+                this._model.applyAndBetweenTerms = false
+                this._view.applyAndBetweenTermsElem.checked = false
+            }
         }
         this._view.regExFlagsElem.onchange = async () => {
             this._model.regExFlags = this._view.regExFlagsElem.value
+        }
+        this._view.applyAndBetweenTermsElem.onchange = async () => {
+            this._model.applyAndBetweenTerms = this._view.applyAndBetweenTermsElem.checked
+            if (this._model.applyAndBetweenTerms) {
+                this._model.useRegEx = false
+                this._view.useRegExElem.checked = false
+            }
         }
         this._view.ignoreDiacriticsElem.onchange = async () => {
             this._model.ignoreDiacritics = this._view.ignoreDiacriticsElem.checked
@@ -63,9 +67,17 @@ export class SearchController {
             if (keyboardEvent.key === 'Enter') 
                 this._view.searchForElem.blur();
         })
+        const pauseSearchToggleIconElem = <HTMLElement> document.getElementById('pauseSearchToggleIcon')
         this._view.pauseSearchResultsElem.onchange = async () => {
-            this._onPauseSearchResults()
+            const isPaused = this._onPauseSearchResults()
+            const nameVal = isPaused ? 'play' : 'pause'
+            pauseSearchToggleIconElem.setAttribute('name', nameVal)
         }
+        this._view.abortSearchElem.onclick = async (e: Event) => {
+            e.preventDefault()
+            await this._abortSearchIfRequired()
+        }
+
         this._view.clearSearchResultsElem.onclick = async (e: Event) => {
             e.preventDefault()
             this._onClearSearchResults()
@@ -75,9 +87,11 @@ export class SearchController {
         }
     }
 
-    private async _onPauseSearchResults() {
+    private _onPauseSearchResults(): boolean {
         const isPaused = this._view.pauseSearchResultsElem.checked
-        this._searchControl.pause(isPaused)
+        if (this._searchControl)
+            this._searchControl.pause(isPaused)
+        return isPaused
     }
 
     private _onClearSearchResults() {
@@ -110,8 +124,8 @@ export class SearchController {
         const rsltSel = await this._getSearchResultSelection()
         if (!rsltSel)
             return false
-        await this._mainCtrl._onLoadIntoNavSelector(rsltSel)
-        await this._mainCtrl._onLoadText(rsltSel)
+        // await this._mainCtrl._onRevealInCatalog(rsltSel)
+        await this._mainCtrl._onLoadTrack(rsltSel)
         this._view.audioPlayerElem.pause()
         const lineChars = AlbumPlayerState.fromLineRef(rsltSel.context)
         this._view.scrollToTextLineNumber(lineChars[0], lineChars[1])
@@ -140,7 +154,6 @@ export class SearchController {
 
     public async _search() {
         if (this._view.searchForElem.value.length === 0) {
-            this._view.searchSectionElem.open = false
             return
         }
         if (this._view.searchForElem.value.length < 2) {
@@ -155,14 +168,14 @@ export class SearchController {
     private _initialiseSearchControl() {
         this._view.searchResultsElem.innerHTML = ''
         this._idxPosMatchMap.clear()
-        this._view.searchSectionElem.open = true
         this._model.searchFor = this._view.searchForElem.value
         const criteria: SearchContext = {
-            albumIndex: this._model.navSel.albumIndex,
+            albumIndex: this._model.catSel.albumIndex,
             searchFor: this._model.searchFor,
             searchScope: this._model.searchScope,
             useRegEx: this._model.useRegEx,
             regExFlags: this._model.regExFlags,
+            applyAndBetweenTerms: this._model.applyAndBetweenTerms,
             ignoreDiacritics: this._model.ignoreDiacritics,
             maxMatchSurroundingChars: this._estimateNumberOfCharactersForResultsView(),
             state: -1
@@ -175,7 +188,13 @@ export class SearchController {
     private _registerSearchControlListeners() {
         this._searchControl.onStarted = () => {
             this._view.pauseSearchResultsElem.disabled = false
-            this._view.searchSectionLabelElem.setAttribute('aria-busy', 'true')
+            this._view.searchResultsLabelElem.setAttribute('aria-busy', 'true')
+        }
+        this._searchControl.onSearchingTrack = (baseRef: string, cargo?: any) => {
+            let { occurances: occurances, tracks: tracks } = cargo
+            this._occurances = occurances
+            this._tracks = tracks
+            this._view.searchResultsLabelElem.innerHTML = `Searching: ${baseRef}`
         }
         this._searchControl.onMatched = (ref: MatchedSearchRef, cargo?: any) => {
             let { occurances: occurances, tracks: tracks } = cargo
@@ -195,16 +214,22 @@ export class SearchController {
             }
         }
         this._searchControl.onFinished = (cargo?: any) => {
-            let { occurances: occurances, tracks: tracks } = cargo
-            this._occurances = occurances
-            this._tracks = tracks
-            this._notifySearchProgress()
+            if (cargo) {
+                let { occurances: occurances, tracks: tracks } = cargo
+                this._occurances = occurances
+                this._tracks = tracks
+                this._notifySearchProgress()
+            }
             this._model.startSearch = false
             this._searchControl = null
-            this._view.searchSectionLabelElem.setAttribute('aria-busy', 'false')
+            this._view.searchResultsLabelElem.innerHTML = `Results:`
+            this._view.searchResultsLabelElem.setAttribute('aria-busy', 'false')
             this._model.startSearch = false
+            this._view.pauseSearchResultsElem.checked = false
+            this._view.pauseSearchResultsElem.onchange(null)
             this._view.pauseSearchResultsElem.disabled = true
         }
+        this._searchControl.onAborted = this._searchControl.onFinished
     }
 
     private _notifySearchProgress() {

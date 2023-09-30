@@ -46,13 +46,16 @@ export class SettingsController {
                 this._model.playNext = false
             this._view.refreshViewSettings()
         }
+        this._view.scrollTextWithAudioElem.onchange = async () => {
+            this._model.scrollTextWithAudio = this._view.scrollTextWithAudioElem.checked
+        }
     }
 
     private _registerTextListeners() {
-        this._view.linkTextToAudioElem.onchange = async () => {
-            this._model.linkTextToAudio = this._view.linkTextToAudioElem.checked
-            if (this._model.linkTextToAudio)
-                await this._mainCtrl._onLoadText(this._model.audioSel)
+        this._view.loadAudioWithTextElem.onchange = async () => {
+            this._model.loadAudioWithText = this._view.loadAudioWithTextElem.checked
+            if (this._model.loadAudioWithText)
+                await this._mainCtrl._onLoadTrack(this._model.homeSel)
         }
         this._view.showLineNumsElem.onchange = async () => {
             this._model.showLineNums = this._view.showLineNumsElem.checked

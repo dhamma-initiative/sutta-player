@@ -8,15 +8,16 @@ import { OfflineController } from './offline-controller.js'
 import { ResetAppController } from './resetapp-controller.js'
 import { SearchController } from './search-controller.js'
 import { SettingsController } from './settings-controller.js'
+import { DeferredPromise } from '../runtime/deferred-promise.js'
 
 export class SuttaPlayerController {
-    public static VERSION = "v1.0.11"
+    public static VERSION = "v1.0.12"
 
     _albumStore: AlbumStorageQueryable
-
-    private _appRoot: string
     private _model: AlbumPlayerState
     private _view: SuttaPlayerView
+
+    private _appRoot: string
 
     private _settingsController: SettingsController
     private _searchController: SearchController
@@ -31,10 +32,19 @@ export class SuttaPlayerController {
         this._onLineSelected(event)
     }
 
+    tabSelectedIndex: number = -1
+    private _tabWndScrollPosMap = new Map<number, number>()
+    private _onTabEnter: (tabNum: number) => void
+    private _onTabExit: (tabNum: number) => void
+
+    audDurWait: DeferredPromise<number>
+    audDurWaitState: number
+
     public constructor(appRoot: string, albumStorage: AlbumStorageQueryable) {
         this._appRoot = appRoot
         this._albumStore = albumStorage
 
+        this.audDurWait = new DeferredPromise<number>()
         const bookmark = new BookmarkedSelection(appRoot)
         this._model = new AlbumPlayerState(bookmark)
         this._view = new SuttaPlayerView(this._model, this._albumStore)
@@ -51,10 +61,11 @@ export class SuttaPlayerController {
         this._injectVersionInfo()
         this._model.restore()
         await this._loadShareLinkIfSpecified()
-        if (this._model.navSel.baseRef === null)
-            await this._model.navSel.updateBaseRef(this._albumStore)
+        if (this._model.catSel.baseRef === null)
+            await this._model.catSel.updateBaseRef(this._albumStore)
         await this._view.initialise(this._lineSelectionCb)
 		this._registerListeners()
+        this.openTab(0)
         await this._settingsController.setup()
         await this._searchController.setup()
         await this._fabController.setup()
@@ -72,13 +83,42 @@ export class SuttaPlayerController {
         let aboutSaveModel = await this._aboutController.tearDown()
         if (settingsSaveModel && srchSaveModel && fabSaveModel && offlineSaveModel && resetAppSaveModel && aboutSaveModel)
             this._model.save()
+        this._tabWndScrollPosMap.clear()
         this._albumStore.close()
         this._view = null
         this._model = null
     }
 
+    public createAudDurWait() {
+        this.audDurWait = new DeferredPromise<number>()
+        this.audDurWaitState = 0    // pending
+        this.audDurWait.then(() => this.audDurWaitState = 1, () => this.audDurWaitState = -1)
+    }
+
     public showUserMessage(msg: string, dur?: number) {
         this._view.showMessage(msg, dur)
+    }
+
+    public openTab(tabNum: number) {
+        if (tabNum === this.tabSelectedIndex)
+            return
+        if (this.tabSelectedIndex > -1) {
+            this._tabWndScrollPosMap.set(this.tabSelectedIndex, window.scrollY)
+            if (this._onTabExit)
+                this._onTabExit(this.tabSelectedIndex)
+        }
+        const prevTabNum = this.tabSelectedIndex
+        this.tabSelectedIndex = tabNum
+        this._view.openTab(tabNum, prevTabNum)
+        if (this.tabSelectedIndex > -1) {
+            let wndScrollY = this._tabWndScrollPosMap.get(tabNum)
+            if (wndScrollY)
+                window.scroll(0, wndScrollY)
+            if (this._onTabEnter)
+                this._onTabEnter(this.tabSelectedIndex)
+        }
+        this._view.tabMenuElems[tabNum].checked = true
+        this._view.tabSliderElem.value = `${tabNum}`
     }
 
     private _injectVersionInfo() {
@@ -94,24 +134,27 @@ export class SuttaPlayerController {
     }
 
     private _registerNavigationListeners() {
+        // this._view.homeMenuElem.onchange = 
+        let mainMenuOnChangeListener = (e: Event) => {
+            const el = <HTMLInputElement> e.target
+            const tabIdx = parseInt(el.value)
+            this.openTab(tabIdx) 
+        }
+        for (let i = 0; i < this._view.tabMenuElems.length; i++) 
+            this._view.tabMenuElems[i].onchange = mainMenuOnChangeListener
+
         this._view.albumElem.onchange = async () => {
-            if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex)
+            if (this._view.albumElem.selectedIndex !== this._model.catSel.albumIndex)
                 await this._onAlbumSelected(null)
         }
-        // this._view.trackElem.onclick = async () => {
-        //     await this._onTrackSelected(null)
-        // }
         this._view.trackElem.onchange = async () => {
             await this._onTrackSelected(null)
         }
-        this._view.loadAudioElem.onclick = async () => {
-            await this._onLoadAudio(this._model.navSel)
+        this._view.loadCatalogTrackElem.onclick = async () => {
+            await this._onLoadTrack(this._model.catSel)
         }
-        this._view.loadTextElem.onclick = async () => {
-            await this._onLoadText(this._model.navSel)
-        }
-        this._view.loadRandomElem.onclick = async () => {
-            await this._onLoadRandom()
+        this._view.selectRandomElem.onclick = async () => {
+            await this._onSelectRandom()
         }
         this._view.shareLinkElem.onclick = async (e: Event) => {
             e.preventDefault()
@@ -120,32 +163,31 @@ export class SuttaPlayerController {
     }
 
     private _registerDisplayListeners() {
+        this._view.audioPlayerElem.ondurationchange = async () => {
+            if (!isNaN(this._view.audioPlayerElem.duration))
+                this.audDurWait.resolve(this._view.audioPlayerElem.duration)
+        }
         this._view.audioPlayerElem.onloadedmetadata = async () => {
-            this._model.audioState = 2
-            if (!isNaN(this._view.audioPlayerElem.duration)) 
-                this._fabController.notifyDuration(this._view.audioPlayerElem.duration)
-            this._view.ctxPlayToggleElem.disabled = true
+            this._model.setAudioState(2)
+            // if (!isNaN(this._view.audioPlayerElem.duration)) 
+            //     this._fabController.notifyDuration(this._view.audioPlayerElem.duration)
         }
         this._view.audioPlayerElem.onloadeddata = async () => {
-            this._model.audioState = 3
-            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'loaded')
-            this._view.ctxPlayToggleElem.disabled = false
+            this._model.setAudioState(3)
+            this._view.updatePlayingTrackInfo(this._model.homeSel.baseRef, 'audio loaded')
         }
         this._view.audioPlayerElem.onplay = async () => {
-            this._model.audioState = 4
-            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'playing')
+            this._model.setAudioState(4)
+            this._view.updatePlayingTrackInfo(this._model.homeSel.baseRef, 'audio playing')
             this._lastScrollTime = 0
-            this._view.ctxPlayToggleElem.checked = true
         }
         this._view.audioPlayerElem.onpause = async () => {
-            this._model.audioState = 5
-            this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'paused')
-            this._view.ctxPlayToggleElem.checked = false
+            this._model.setAudioState(5)
+            this._view.updatePlayingTrackInfo(this._model.homeSel.baseRef, 'audio paused')
             this._model.bookmarkSel.cancelAwaitingAudioEndIfRqd()
         }
         this._view.audioPlayerElem.onended = async () => {
-            this._model.audioState = 6
-            this._view.ctxPlayToggleElem.checked = false
+            this._model.setAudioState(6)
             this._model.bookmarkSel.cancelAwaitingAudioEndIfRqd()
             await this._onAudioEnded()
         }
@@ -163,65 +205,60 @@ export class SuttaPlayerController {
                 }
             }
         }
-        this._view.linkNavToAudioElem.onclick = async (event: Event) => {
+        this._view.revealInCatElem.onclick = async (event: Event) => {
             event.preventDefault()
-            await this._onLoadIntoNavSelector(this._model.audioSel)
-            this.showUserMessage(`Navigation selection sync'd to ${this._model.audioSel.baseRef}`)
-        }
-        this._view.linkNavToTextElem.onclick = async (event: Event) => {
-            event.preventDefault()
-            await this._onLoadIntoNavSelector(this._model.textSel)
-            this.showUserMessage(`Navigation selection sync'd to ${this._model.textSel.baseRef}`)
+            await this._onRevealInCatalog(this._model.homeSel)
+            this.openTab(1)
         }
     }
 
     private async _onAudioEnded() {
-        this._view.updatePlayingTrackInfo(this._model.audioSel.baseRef, 'played')
+        this._view.updatePlayingTrackInfo(this._model.homeSel.baseRef, 'played')
         if (this._model.playNext) {
             window.scroll(0, 0)
-            const fileList = await this._albumStore.queryTrackReferences(this._model.audioSel.albumIndex)
-            if (this._model.audioSel.trackIndex < fileList.length-1) {
-                this._model.audioSel.trackIndex++
-                this._model.audioSel.isLoaded = false
-                await this._model.audioSel.updateBaseRef(this._albumStore)
-                await this._onLoadAudio(this._model.audioSel)
+            const fileList = await this._albumStore.queryTrackReferences(this._model.homeSel.albumIndex)
+            if (this._model.homeSel.trackIndex < fileList.length-1) {
+                this._model.homeSel.trackIndex++
+                this._model.homeSel.isLoaded = false
+                await this._model.homeSel.updateBaseRef(this._albumStore)
+                this._onLoadTrack(this._model.homeSel)
             }
         }
     }
 
     private async _onAlbumSelected(forceAlbIdx: number) {
-        this._model.navSel.albumIndex = (forceAlbIdx === null) ? Number(this._view.albumElem.value) : forceAlbIdx
-        this._model.navSel.trackIndex = 0
-        this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
-        await this._model.navSel.updateBaseRef(this._albumStore)
+        this._model.catSel.albumIndex = (forceAlbIdx === null) ? Number(this._view.albumElem.value) : forceAlbIdx
+        this._model.catSel.trackIndex = 0
+        this._view.trackElem.selectedIndex = this._model.catSel.trackIndex
+        await this._model.catSel.updateBaseRef(this._albumStore)
         await this._view.refreshTrackSelectionList()
     }
 
     private async _onTrackSelected(forceTrackIdx: number) {
-        this._model.navSel.trackIndex = (forceTrackIdx === null) ?  Number(this._view.trackElem.value) : forceTrackIdx
-        await this._model.navSel.updateBaseRef(this._albumStore)
+        this._model.catSel.trackIndex = (forceTrackIdx === null) ?  Number(this._view.trackElem.value) : forceTrackIdx
+        await this._model.catSel.updateBaseRef(this._albumStore)
     }
 
-    async _onLoadAudio(srcSel: TrackSelection): Promise<boolean> {
-        if (this._model.audioSel.isSimilar(srcSel) && this._model.audioSel.isLoaded)
-            return true
+    async _onLoadAudio(srcSel: TrackSelection): Promise<void> {
         this._model.currentTime = 0
-        this._model.audioState = -1
-        this._model.audioSel.read(srcSel)
+        this._model.homeSel.read(srcSel)
         this._model.bookmarkSel.read(srcSel)
-        if (this._model.linkTextToAudio) 
-            await this._onLoadText(this._model.audioSel)
-        await this._view.loadTrackAudio()
-        return false
+        const isNewAwaitDurRqd = [false]
+        await this._view.loadTrackAudio(isNewAwaitDurRqd)
+        if (isNewAwaitDurRqd[0])
+            this.createAudDurWait()
     }
 
-    async _onLoadText(srcSel: TrackSelection): Promise<boolean> {
-        if (this._model.textSel.isSimilar(srcSel) && this._model.textSel.isLoaded)
+    async _onLoadTrack(srcSel: TrackSelection): Promise<boolean> {
+        this.openTab(0)
+        if (this._model.homeSel.isSimilar(srcSel) && this._model.homeSel.isLoaded)
             return true
         this._model.bookmarkSel.read(srcSel)
         this._view.refreshSkipAudioToLine()
-        this._model.textSel.read(srcSel)
+        this._model.homeSel.read(srcSel)
         await this._view.loadTrackTextForUi(this._lineSelectionCb)
+        if (this._model.loadAudioWithText) 
+            await this._onLoadAudio(srcSel)
         return false
     }
 
@@ -230,6 +267,7 @@ export class SuttaPlayerController {
         const lineNum = this._view.parseLineNumber(elem.id)
         if (!lineNum)
             return
+        this._model.bookmarkSel.read(this._model.homeSel)
         const lineRef = this._view.createLineRefValues(lineNum)
         const lineRefVals = AlbumPlayerState.fromLineRef(lineRef)
         const textLen = elem.textContent.length
@@ -246,18 +284,16 @@ export class SuttaPlayerController {
         this.showUserMessage(`Bookmarked line ${lineNum}`)
     }
 
-    private async _onLoadRandom() {
-        this._model.navSel.albumIndex = Math.round(Math.random() * this._view.albumElem.length)
-        const fileList = await this._albumStore.queryTrackReferences(this._model.navSel.albumIndex)
-        this._model.navSel.trackIndex = Math.round(Math.random() * fileList.length)
-        await this._model.navSel.updateBaseRef(this._albumStore)
-        if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
-            this._view.albumElem.selectedIndex = this._model.navSel.albumIndex
+    private async _onSelectRandom() {
+        this._model.catSel.albumIndex = Math.round(Math.random() * this._view.albumElem.length)
+        const fileList = await this._albumStore.queryTrackReferences(this._model.catSel.albumIndex)
+        this._model.catSel.trackIndex = Math.round(Math.random() * fileList.length)
+        await this._model.catSel.updateBaseRef(this._albumStore)
+        if (this._view.albumElem.selectedIndex !== this._model.catSel.albumIndex) {
+            this._view.albumElem.selectedIndex = this._model.catSel.albumIndex
             await this._view.refreshTrackSelectionList()
         }
-        this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
-        await this._onLoadText(this._model.navSel)
-        await this._onLoadAudio(this._model.navSel)
+        this._view.trackElem.selectedIndex = this._model.catSel.trackIndex
     }
 
     private _onShareLink() {
@@ -266,26 +302,25 @@ export class SuttaPlayerController {
         this.showUserMessage('Share Link copied to clipboard')
     }
 
-    async _onLoadIntoNavSelector(srcSel: TrackSelection) {
-        this._model.navSel.read(srcSel)
-        if (this._view.albumElem.selectedIndex !== this._model.navSel.albumIndex) {
-            this._view.albumElem.selectedIndex = this._model.navSel.albumIndex
+    async _onRevealInCatalog(srcSel: TrackSelection) {
+        this._model.catSel.read(srcSel)
+        if (this._view.albumElem.selectedIndex !== this._model.catSel.albumIndex) {
+            this._view.albumElem.selectedIndex = this._model.catSel.albumIndex
             await this._view.refreshTrackSelectionList()
         }
-        this._view.trackElem.selectedIndex = this._model.navSel.trackIndex
-        this.showUserMessage('Track loaded into Navigator selection')
+        this._view.trackElem.selectedIndex = this._model.catSel.trackIndex
+        this.showUserMessage('Track revealed into catalog')
     }
 
     private async _loadShareLinkIfSpecified() {
         await this._model.bookmarkSel.parseLink(this._albumStore)
         if (this._model.bookmarkSel.isAwaitingLoad()) {
-            this._model.navSel.read(this._model.bookmarkSel)
-            this._model.audioSel.read(this._model.bookmarkSel)
-            this._model.textSel.read(this._model.bookmarkSel)
+            this._model.catSel.read(this._model.bookmarkSel)
+            this._model.homeSel.read(this._model.bookmarkSel)
+            this._model.homeSel.read(this._model.bookmarkSel)
             if (this._model.bookmarkSel.startTime > -1)
                 this._model.currentTime = this._model.bookmarkSel.startTime
             this._view.refreshSkipAudioToLine()
-            this._view.albumTrackSelectionElem.open = false
         }
     }
-} 
+}

@@ -52,9 +52,14 @@ export class InternalQueryCacheStore {
         return UrlUtils.queryTrackHtmlAudioSrcRef(baseRef);
     }
     async readTextFile(url) {
-        const resp = await fetch(url);
-        const text = await resp.text();
-        return text;
+        try {
+            const resp = await fetch(url);
+            const text = await resp.text();
+            return text;
+        }
+        catch (e) {
+            return 'Network error was error encountered!\nPlease check connection and reload app.';
+        }
     }
     async isInCache(baseRef, txt, aud) {
         const src = this._prepareBaseRefAsUrls(baseRef, txt, aud);

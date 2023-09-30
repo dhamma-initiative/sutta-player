@@ -38,7 +38,8 @@ header hgroup {
 }
 
 .shortenedHeader {
-  height: 150px;
+  /* height: 150px; */
+  display: contents;
 }
 
 /* Nav */
@@ -169,15 +170,19 @@ pre {
 #lhsFabSection {
   display: none;
   position: fixed;
-  bottom: 20px;
+  bottom: 15px;
   left: 30px;
 }
 
 #rhsFabSection {
   display: none;
   position: fixed;
-  bottom: 60px;
+  bottom: 100px;
   right: 30px;
+}
+
+.fabSectionMax {
+  width: calc(100% - 60px);
 }
 
 #centreFabSection {
@@ -189,12 +194,8 @@ pre {
 
 #rhsCtxFabSection {
   position: fixed;
-  bottom: 20px;
+  bottom: 0px;
   right: 30px;
-}
-
-.linkNavButton {
-  outline: auto;
 }
 
 [data-theme="dark"] code,
@@ -206,7 +207,6 @@ pre {
 #searchResults {
   padding: 8px;
   white-space: pre-line;
-  font-size: smaller; 
   resize: none;
   width: 100%;
 }
@@ -218,18 +218,21 @@ pre {
   width: 100%;
 }
 
-.sbsAlbumTrackComboBox {
+.sbsFiftyPercent {
   float: left;
   width: 50%;
-}      
-
-.sbsLoadElement {
-  float: left;
-  width: 25%;
 }
 
-.sbsLoadLabel {
-  display: flex;
-  align-items: center;
-  height: 50px;  
+.alnLeft {
+  position: absolute;
+  right: 20px;
+}
+
+#tabSlider {
+  left: -40px;
+  position: relative;  
+}
+
+#skipAudioToLineLabel {
+  vertical-align: top;
 }

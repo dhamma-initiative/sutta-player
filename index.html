@@ -20,13 +20,47 @@
         <nav class="container-fluid">
             <ul>
                 <li>
-                    <div class="contrast"><strong>Sutta Player</strong></div>
+                    <details role="list">
+                        <summary aria-haspopup="listbox" role="link" class="contrast"><strong><ion-icon name="menu"></ion-icon> Sutta Player</strong></summary>
+                        <ul role="listbox">
+                            <li>
+                                <label for="homeMenu">
+                                    <input type="radio" id="homeMenu" name="selection" value="0" checked>
+                                    <ion-icon name="home"></ion-icon> Home
+                                    </label>
+                            </li>
+                            <li>
+                                <label for="catalogMenu">
+                                    <input type="radio" id="catalogMenu" name="selection" value="1">
+                                    <ion-icon name="library"></ion-icon> Catalog
+                                    </label>
+                            </li>
+                            <li>
+                                <label for="searchMenu">
+                                    <input type="radio" id="searchMenu" name="selection" value="2">
+                                    <ion-icon name="search"></ion-icon> Search
+                                    </label>
+                            </li>
+                            <li>
+                                <label for="playlistMenu">
+                                    <input type="radio" id="playlistMenu" name="selection" value="3">
+                                    <ion-icon name="list"></ion-icon> Playlist
+                                </label>
+                            </li>
+                            <li>
+                                <label for="offlineMenu">
+                                    <input type="radio" id="offlineMenu" name="selection" value="4">
+                                    <ion-icon name="cloud-offline"></ion-icon> Offline
+                                </label>
+                            </li>
+                        </ul>
+                    </details>
                 </li>
             </ul>
             <ul>
                 <li>
                     <details role="list" dir="rtl">
-                        <summary aria-haspopup="listbox" role="link" class="contrast">⚙️ Settings</summary>
+                        <summary aria-haspopup="listbox" role="link" class="contrast"><ion-icon name="settings"></ion-icon> Settings</summary>
                         <ul role="listbox">
                             <li>:Audio</li>
                             <li>
@@ -49,9 +83,15 @@
                             </li>
                             <li>:Text</li>
                             <li>
-                                <label for="linkTextToAudio">
-                                    Link text to audio
-                                    <input type="checkbox" role="switch" id="linkTextToAudio" name="linkTextToAudio" />
+                                <label for="loadAudioWithText">
+                                    Load audio with text
+                                    <input type="checkbox" role="switch" id="loadAudioWithText" name="loadAudioWithText" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="scrollTextWithAudio">
+                                    Auto scroll text with audio
+                                    <input type="checkbox" role="switch" id="scrollTextWithAudio" name="scrollTextWithAudio" />
                                 </label>
                             </li>
                             <li>
@@ -68,7 +108,6 @@
                                 </label>
                             </li>
                             <li>:Storage</li>
-                            <li><a id="offlineMenu" href="#"></span>...Offline</a></li>
                             <li><a id="resetAppMenu" href="#">...Reset App</a></li>
                         </ul>
                     </details>
@@ -78,12 +117,16 @@
                 </li>
             </ul>
         </nav>
+
         <header class="container shortenedHeader">
             <hgroup>
-                <h2>
-                    Listen to, lend ear, set your heart on
-                    knowing, and regard as worth grasping & mastering the words of the Tathāgata.
-                </h2>
+                <blockquote>
+                    Listen to, lend ear, set your heart on knowing, 
+                    and regard as worth grasping & mastering the words of the Tathāgata.
+                    <footer>
+                        <cite>- AN 2:46</cite>
+                      </footer>                                                    
+                </blockquote>
             </hgroup>
         </header>
     </div>
@@ -91,53 +134,119 @@
 
     <!-- Main -->
     <main class="container">
-        <details id="albumTrackSelection" open>
-            <summary>☰ Album/Track selections</summary>
+        <div id="catalogTab" style="display: none;">
+            <summary><ion-icon name="library"></ion-icon> Catalog</summary>
+            <br>
+            <label for="album">Collection:</label>
+            <select id="album" required>
+            </select>
+            <label for="album">Sutta:</label>
+            <select id="track" required>
+            </select>
+
             <div class="sideBySideContainer">
-                <div class="sbsAlbumTrackComboBox">
-                    <select id="album" required>
-                    </select>
-                </div>
-                <div class="sbsAlbumTrackComboBox">
-                    <select id="track" required>
-                    </select>
-                </div>
+                <button id="loadCatalogTrack" title="Load track into player" class="sbsFiftyPercent"><ion-icon name="open"></ion-icon> Load</button>
+                <button id="selectRandom" title="Select a random track into the catalog" class="secondary sbsFiftyPercent"><ion-icon name="shuffle"></ion-icon> Random</button>
             </div>
+        </div>
+
+        <div id="playlistTab" style="display: none;">
+            TODO
+        </div>
+        <div>
+
+        </div>
+        <div id="searchTab" style="display: none;">
+            <summary><ion-icon name="search"></ion-icon> Search</summary>
+            <br>
+            <label for="searchScope">
+                Scope:
+                <select id="searchScope">
+                    <option value="0">The selected catalog collection only</option>
+                    <option value="1">All cached sutta texts (ie. 👀 or ✔️) </option>
+                    <option value="2">The entire catalog</option>
+                </select>
+            </label>
+            
             <div class="sideBySideContainer">
-                <span class="sbsLoadElement sbsLoadLabel">↡&nbsp;Load:</span>
-                <button id="loadAudio" title="Load track into audio player" class="sbsLoadElement">🔊 Aud</button>
-                <button id="loadText" title="Load text into text viewer" class="secondary sbsLoadElement">👀 Txt</button>
-                <button id="loadRandom" title="Load a random track into player & viewer" class="contrast sbsLoadElement">💣 Rnd</button>
+                <label for="useRegEx" class="sbsFiftyPercent">
+                    Use RegEx w/ flags:
+                    <input type="checkbox" role="switch" id="useRegEx" name="useRegEx" />
+                </label>
+                <label for="regExFlags" class="sbsFiftyPercent">
+                    <input type="text" id="regExFlags" name="regExFlags" placeholder="RegEx Flags" />
+                </label>
             </div>
+            <label for="applyAndBetweenTerms">
+                <input type="checkbox" role="switch" id="applyAndBetweenTerms" name="applyAndBetweenTerms" checked/>
+                Apply "and" between terms:
+            </label>
+            <label for="ignoreDiacritics">
+                <input type="checkbox" role="switch" id="ignoreDiacritics" name="ignoreDiacritics" checked/>
+                Ignore diacritics:
+            </label>
+            <br/>
+            <hr/>
+            <br/>
+            <form>
+                <input type="search" id="searchFor" name="searchFor" placeholder="Search">
+            </form>
             <div>
-                <form>
-                    <input type="search" id="searchFor" name="searchFor" placeholder="Search">
-                </form>
+                <ion-icon id="pauseSearchToggleIcon" name="pause"></ion-icon><input type="checkbox" role="switch" id="pauseSearchResults" name="pauseSearchResults" disabled/>&nbsp;&nbsp;&nbsp;
+                <a href="#" id="abortSearch"><ion-icon name="close"></ion-icon> Abort</a>&nbsp;&nbsp;&nbsp;
+                <a id="clearSearchResults" href="#"><ion-icon name="trash"></ion-icon> Clear</a>&nbsp;&nbsp;&nbsp;
+                <span id="searchResultsLabel"> Results:</span> 
             </div>
-            <details id="searchSection">
-                <summary>
-                    <span id="searchSectionLabel">Search results</span>&nbsp;
-                    <a id="clearSearchResults" href="#" class="linkNavButton">&nbsp;✖️&nbsp;</a>&nbsp;&nbsp;⏸️
-                    <input type="checkbox" role="switch" id="pauseSearchResults" name="pauseSearchResults" disabled/>
-                    &nbsp;|&nbsp;<a id="searchMenu" href="#" class="linkNavButton">&nbsp;🔍&nbsp;Options&nbsp;</a>
-                </summary>
-                <textarea id="searchResults" rows="10" wrap="off" readonly>
-                </textarea>
-            </details>
-        </details>
+            <textarea id="searchResults" rows="10" wrap="off" readonly>
+            </textarea>
+        </div>
 
-        <details open>
-            <summary><a href="#" id="linkNavToAudio" title="Link Navigation to audio selection" class="linkNavButton">&nbsp;🔊&nbsp;🔃&nbsp;</a>&nbsp;<span id="playingTrack">awaiting load</span></summary>
-            <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload" crossorigin="anonymous">
-            </audio>
-        </details>
-
-        <details open>
-            <summary><a href="#" id="linkNavToText" title="Link Navigation to text selection" class="linkNavButton">&nbsp;👀&nbsp;🔃&nbsp;</a>&nbsp;<span id="displayingTrack">awaiting load</span></summary>
+        <div id="homeTab">
+            <summary><ion-icon name="game-controller"></ion-icon> <span id="displayingTrack">Awaiting load</span>&nbsp;<span id="playingTrack">[Audio: Awaiting load]</span>&nbsp;<a href="#" id="revealInCat" title="Reveal in catalog" class="alnLeft"><ion-icon name="library"></ion-icon></a></summary>
             <pre>
-<code id="trackTextBody" class="displayLineNums"></code>
+<code id="trackTextBody" class="displayLineNums">
+Use the main menu to load a Sutta from any one of:
+    - Catalog
+    - Search
+    - Playlist
+</code>
             </pre>                
-        </details>
+        </div>
+
+        <div id="offlineTab" style="display: none;">
+            <summary><ion-icon name="cloud-offline"></ion-icon> Offline</summary>
+            <br/>
+            <label for="concurrencyCount"># of concurrent download threads</label>
+            <select id="concurrencyCount" required>
+                <option value="0" selected>None; Use main App Thread</option>
+                <option value="1" selected>1 Worker</option>
+                <option value="2" selected>2 Workers</option>
+                <option value="3" selected>3 Workers</option>
+            </select>                    
+            <br/>
+            <article>
+                <p><strong id="offlineAlbumTitle"></strong></p>
+                <label for="downloadAlbum">
+                  <input type="checkbox" role="switch" id="downloadAlbum" name="offlineAction" value="downloadAlbum">
+                  Download Collection for offline use<br>
+                </label>
+                <label for="deleteAlbum">
+                  <input type="checkbox" role="switch" id="deleteAlbum" name="offlineAction" value="deleteAlbum">
+                  Remove Collection to reclaim storage<br>
+                </label>
+            </article>
+            <article>
+                <p><strong id="offlineTrackTitle"></strong></p>
+                <button id="addTrackToCache" title="Add current audio track to cache">Download Sutta</button>
+                <button id="removeTrackFromCache" title="Remove current audio track from cache">Remove Sutta</button>
+            </article>
+            <article>
+                <div id="processingInfo"></div>
+                <progress id="processingProgress" value="0" max="100"></progress>
+                <p>Beware, there are currently 1,344 mp3 files, spanning 113 hours, totalling 3GB of storage!</p>
+                <p>The cached status of each Sutta is indicated in the Catalog and denoted with a marker: ✔️ - both text & audio, 👀 - text only, 🔊 - audio only, or ◻ - neither cached. Unlike audio, the text is cached on demand. Hence, if you wish to cache audio then you must explicitly download either the Collection or an individual Sutta.</p>
+            </article>
+        </div>
 
         <dialog id="aboutDialog">
             <article>
@@ -149,75 +258,11 @@
             </article>
         </dialog>
 
-        <dialog id="searchDialog">
-            <article>
-                <header>
-                    <a id="searchDialogClose" href="#" aria-label="Close" class="close"></a>
-                    <h3>Search options</h3>
-                </header>
-                <label for="searchScope">
-                    Scope:
-                    <select id="searchScope">
-                        <option value="0">Selected Albums</option>
-                        <option value="1">Cached Tracks</option>
-                        <option value="2">All Albums</option>
-                    </select>
-                </label>
-                <label for="useRegEx">
-                    RegEx
-                    <input type="checkbox" role="switch" id="useRegEx" name="useRegEx" />
-                </label>
-                <label for="regExFlags">
-                    RegEx Flags:
-                    <input type="text" id="regExFlags" name="regExFlags" placeholder="RegEx Flags" required>
-                </label>
-                <label for="ignoreDiacritics">
-                    Ignore diacritics
-                    <input type="checkbox" role="switch" id="ignoreDiacritics" name="ignoreDiacritics" checked/>
-                </label>
-            </article>
-        </dialog>
-
-        <dialog id="offlineDialog">
-            <article>
-                <header>
-                    <a id="offlineDialogClose" href="#" aria-label="Close" class="close"></a>
-                    <h3>Offline Album Management</h3>
-                </header>
-                <p><strong id="offlineTitle"></strong></p>
-                <fieldset>
-                    <legend>Offline Action</legend>
-                    <label for="concurrencyCount"># of concurrent download threads</label>
-                    <select id="concurrencyCount" required>
-                      <option value="0" selected>None; Use main App Thread</option>
-                      <option value="1" selected>1 Worker</option>
-                      <option value="2" selected>2 Workers</option>
-                      <option value="3" selected>3 Workers</option>
-                    </select>                    
-                    <label for="downloadAlbum">
-                      <input type="checkbox" role="switch" id="downloadAlbum" name="offlineAction" value="downloadAlbum">
-                      Download Album for offline use<br>
-                    </label>
-                    <label for="deleteAlbum">
-                      <input type="checkbox" role="switch" id="deleteAlbum" name="offlineAction" value="deleteAlbum">
-                      Remove Album to reclaim storage<br>
-                    </label>
-                    <button id="removeAudioFromCache" title="Remove current audio track from cache">REPLACE</button>
-                </fieldset>
-                <div id="processingInfo"></div>
-                <progress id="processingProgress" value="0" max="100"></progress>
-                <p>Beware, there are currently 1,344 mp3 files, spanning 113 hours, totalling 3GB of storage!</p>
-                <p>When the download is initiated, this dialog can be closed and returned to later and the rest of the App will remain fully functional. Tracks are downloaded in the same order as that listed in the navigation Track selector. Each downloaded track is displayed above the progress bar in real-time for monitoring purposes.</p>
-                <p>You may safely interupt the download process by toggling the switch. All previously downloaded tracks in the selected Album will be retained and the next download initiation will continue from the last position.</p>
-                <p>Non-downloaded tracks are streamed and cached on demand. If a track is loaded through search it will likely only get partially downloaded. This may result in subsequent failed loads attempts of that track. Use the 'Remove Track from cache' button to remove the partial cache and then re-stream the track.</p>
-            </article>
-        </dialog>
-
         <dialog id="resetAppDialog">
             <article>
                 <h3>Reset Sutta Player App</h3>
                 <ul>
-                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.11</span></li>
+                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.12</span></li>
                     <li>App JS Controller version: <span id="appJsCtrlVer">REPLACE</span></li>
                 </ul>
                 <p>
@@ -232,40 +277,42 @@
         </dialog>
 
         <div id="lhsFabSection">
-            <label class="fabHdrLabel">Text:</label>
-            <label for="scrollTextWithAudio">
-                <input type="checkbox" role="switch" id="scrollTextWithAudio" name="scrollTextWithAudio" />
-                Auto scroll
-            </label>
+            <label class="fabHdrLabel">Link/Share:</label>
+            <a href="#" id="setStartAtBookmark" class="secondary"><ion-icon name="play-outline" size="large"></ion-icon></a>&nbsp;&nbsp;<ion-icon name="bookmarks"></ion-icon>&nbsp;&nbsp;<a href="#" id="setStopAtBookmark" class="secondary"><ion-icon name="stop-outline" size="large"></ion-icon></a>
             <hr/>
-            <label class="fabHdrLabel">Link:</label>
-            <a href="#" id="setStartAtBookmark" class="linkNavButton">&nbsp;▶️&nbsp;</a>&nbsp;&nbsp;🔊&nbsp;&nbsp;<a href="#" id="setStopAtBookmark" class="linkNavButton">&nbsp;⏹️&nbsp;</a>
-            <hr/>
-            <a id="shareLink" href="#" title="Copy link to clipboard" class="linkNavButton">&nbsp;📎&nbsp;Share&nbsp;</a>
+            <a id="shareLink" href="#" title="Copy link to clipboard" class="secondary"><ion-icon name="share-social" size="large"></ion-icon></a>
         </div>
         <div id="rhsFabSection" dir="rtl">
-            <label class="fabHdrLabel">:Audio</label>
-            <label for="ctxPlayToggle">
-                <input type="checkbox" role="switch" id="ctxPlayToggle" name="ctxPlayToggle" disabled/>
-                ▶️
+            <label class="fabHdrLabel">:Audio
+                <input type="checkbox" role="switch" id="maxRhsFabSection" name="maxRhsFabSection"/>
             </label>
-            <hr/>
-            <a href="#" id="skipsFwd5Sec" class="linkNavButton">&nbsp;⏩&nbsp;</a>&nbsp;sec&nbsp;5&nbsp;<a href="#" id="skipsBack5Sec" class="linkNavButton">&nbsp;⏪&nbsp;</a>
-            <hr/>
-            <a href="#" id="skipAudioToLine" class="linkNavButton">REPLACE</a>            
+            <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload" crossorigin="anonymous"></audio>
+            <br/>
+            <br/>
+            <a href="#" id="skipsFwd5Sec" class="secondary"><ion-icon name="play-forward" size="large"></ion-icon></a>
+            &nbsp;
+            <a href="#" id="skipAudioToLine" class="secondary"><span id="skipAudioToLineLabel">REPLACE</span></a>
+            &nbsp;
+            <a href="#" id="skipsBack5Sec" class="secondary"><ion-icon name="play-back" size="large"></ion-icon></a>
+            <br/>
+            <br/>
         </div>
         <div id="rhsCtxFabSection" dir="rtl">
-            <label for="ctxMenuToggle">
-                <input type="checkbox" role="switch" id="ctxMenuToggle" name="ctxMenuToggle"/>
-                🎮
-            </label>
+            <button href="" id="ctxMenuToggle" title="Toggle player controls" class="outline">
+                <ion-icon id="ctxMenuToggleIcon" name="game-controller" size="large"></ion-icon>
+            </button>
         </div>
         <div id="centreFabSection">
             <a href="#" id="gotoTop" title="Go to top" class="contrast">Top</a>
+            <br/>
+            <label for="range">
+                <input type="range" min="0" max="4" value="0" id="tabSlider" name="range">
+            </label>            
         </div>
         <div id="snackbar"></div>
     </main>
 
     <script src="esm/sutta-player-app.js" type="module"></script>
+    <script type="module" src="ionicons/ionicons.esm.js"></script>
 </body>
 </html>

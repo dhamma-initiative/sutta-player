@@ -69,9 +69,13 @@ export class InternalQueryCacheStore implements QueryService, CacheService {
     }
 
     public async readTextFile(url: string): Promise<string> {
-        const resp = await fetch(url)
-        const text = await resp.text()
-        return text
+        try {
+            const resp = await fetch(url)
+            const text = await resp.text()
+            return text
+        } catch (e) {
+            return 'Network error was error encountered!\nPlease check connection and reload app.'
+        }
     }
 
     public async isInCache(baseRef: string, txt: boolean, aud: boolean): Promise<boolean[]> {

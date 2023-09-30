@@ -1,7 +1,7 @@
 import { CACHEFIRST_TEXTANDDOWNLOADS, CacheUtils, REGISTERROUTE } from '../../runtime/cache-utils.js';
 import { DeferredPromise } from '../../runtime/deferred-promise.js';
 import { WorkerFactory } from '../../runtime/worker-utils.js';
-import { CACHED_TRACKS_STATUS_FINISHED_RESP_MSG, CACHED_TRACKS_STATUS_RQST_MSG, CACHE_NAME, DOWNLOAD_TRACKS_RQST_MSG, ORIGIN, SEARCH_TRACKS_FINISHED_RESP_MSG, SEARCH_TRACKS_PAUSE_CHG_RESP_MSG, SEARCH_TRACKS_RQST_MSG, SEARCH_TRACKS_STATE_CHG_RQST_MSG } from './bg-tracks-commons.js';
+import { CACHED_TRACKS_STATUS_FINISHED_RESP_MSG, CACHED_TRACKS_STATUS_RQST_MSG, CACHE_NAME, DOWNLOAD_TRACKS_RQST_MSG, ORIGIN, SEARCH_TRACKS_FINISHED_RESP_MSG, SEARCH_TRACKS_PAUSE_CHG_RESP_MSG, SEARCH_TRACKS_RQST_MSG, SEARCH_TRACKS_SEARCHING_TRACK_RESP_MSG, SEARCH_TRACKS_STATE_CHG_RQST_MSG } from './bg-tracks-commons.js';
 import { InternalQueryCacheStore } from './internal-query-cache-store.js';
 export async function createAlbumStorageQueryable() {
     GithubDiSuttaStorageDB.SINGLETON = new GithubDiSuttaStorageDB();
@@ -15,19 +15,19 @@ export class GithubDiSuttaStorageDB extends InternalQueryCacheStore {
     _downloadScheduler = new DownloadWorkerScheduler();
     _albumCacheStatusQuerier = new AlbumCacheStatusQuerier();
     async setup() {
-        if (!CacheUtils.ENABLE_CACHE)
-            return;
-        const payload = {
-            url_origin: ORIGIN,
-            strategy: {
-                class_name: CACHEFIRST_TEXTANDDOWNLOADS,
-                cacheName: CACHE_NAME,
-            }
-        };
-        await CacheUtils.postMessage({
-            type: REGISTERROUTE,
-            payload: payload
-        });
+        if (CacheUtils.ENABLE_CACHE) {
+            const payload = {
+                url_origin: ORIGIN,
+                strategy: {
+                    class_name: CACHEFIRST_TEXTANDDOWNLOADS,
+                    cacheName: CACHE_NAME,
+                }
+            };
+            await CacheUtils.postMessage({
+                type: REGISTERROUTE,
+                payload: payload
+            });
+        }
         await this._albumCacheStatusQuerier.setup();
     }
     async queryAlbumCacheStatus(albIdx, onStatus) {
@@ -211,6 +211,7 @@ class AlbumCacheStatusQuerier {
 class SearchManager {
     context;
     onStarted;
+    onSearchingTrack;
     onMatched;
     onPaused;
     onAborted;
@@ -227,6 +228,11 @@ class SearchManager {
                 const msg = base.payload;
                 if (this.onMatched)
                     this.onMatched(msg, msg.cargo);
+            }
+            else if (base.type === SEARCH_TRACKS_SEARCHING_TRACK_RESP_MSG) {
+                let { occurances, tracks, baseRef } = base.payload;
+                if (this.onSearchingTrack)
+                    this.onSearchingTrack(baseRef, { occurances, tracks });
             }
             else if (base.type === SEARCH_TRACKS_PAUSE_CHG_RESP_MSG) {
                 let { occurances, tracks, paused } = base.payload;

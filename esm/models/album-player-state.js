@@ -159,13 +159,13 @@ export class BookmarkedSelection extends TrackSelection {
     }
 }
 export class AlbumPlayerState extends LocalStorageState {
-    navSel = new TrackSelection('navSel');
-    textSel = new TrackSelection('textSel');
-    audioSel = new TrackSelection('audioSel');
+    catSel = new TrackSelection('catSel');
+    homeSel = new TrackSelection('homeSel');
     autoPlay = true;
     playNext = true;
     repeat = false;
-    linkTextToAudio = true;
+    scrollTextWithAudio = false;
+    loadAudioWithText = true;
     showLineNums = true;
     currentScrollY = 0;
     currentTime = 0;
@@ -173,26 +173,27 @@ export class AlbumPlayerState extends LocalStorageState {
     searchFor = '';
     searchScope = 0; // [selected album: 0, cached tracks: 1, all albums: 2]
     useRegEx = false;
+    applyAndBetweenTerms = true;
     regExFlags = 'gm';
     ignoreDiacritics = true;
     concurrencyCount = 0;
-    audioState = -1; // transient [unspecified: -1, specified: 0, assigned: 1, loadedMetadata: 2, loaded: 3, playing: 4, paused: 5, ended: 6]
     stopDwnlDel = 0; // transient
     bookmarkSel; // transient
     startSearch = false; // transient
-    scrollTextWithAudio = false; // transient
+    _audioState = -1; // transient [unspecified: -1, specified: 0, assigned: 1, loadedMetadata: 2, loaded: 3, playing: 4, paused: 5, ended: 6]
+    onAudioStateChange;
     constructor(bmSel) {
         super();
         this.bookmarkSel = bmSel;
     }
     save() {
-        this.navSel.save();
-        this.textSel.save();
-        this.audioSel.save();
+        this.catSel.save();
+        this.homeSel.save();
         this._setItemBoolean('autoPlay', this.autoPlay);
         this._setItemBoolean('playNext', this.playNext);
         this._setItemBoolean('repeat', this.repeat);
-        this._setItemBoolean('linkTextToAudio', this.linkTextToAudio);
+        this._setItemBoolean('scrollTextWithAudio', this.scrollTextWithAudio);
+        this._setItemBoolean('loadAudioWithText', this.loadAudioWithText);
         this._setItemBoolean('showLineNums', this.showLineNums);
         this._setItemNumber('currentScrollY', window.scrollY);
         this._setItemNumber('currentTime', this.currentTime);
@@ -202,16 +203,17 @@ export class AlbumPlayerState extends LocalStorageState {
         this._setItemNumber('searchScope', this.searchScope);
         this._setItemBoolean('useRegEx', this.useRegEx);
         this._setItemString('regExFlags', this.regExFlags);
+        this._setItemBoolean('applyAndBetweenTerms', this.applyAndBetweenTerms);
         this._setItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
     }
     restore() {
-        this.navSel.restore();
-        this.textSel.restore();
-        this.audioSel.restore();
+        this.catSel.restore();
+        this.homeSel.restore();
         this.autoPlay = this._getItemBoolean('autoPlay', this.autoPlay);
         this.playNext = this._getItemBoolean('playNext', this.playNext);
         this.repeat = this._getItemBoolean('repeat', this.repeat);
-        this.linkTextToAudio = this._getItemBoolean('linkTextToAudio', this.linkTextToAudio);
+        this.scrollTextWithAudio = this._getItemBoolean('scrollTextWithAudio', this.scrollTextWithAudio);
+        this.loadAudioWithText = this._getItemBoolean('loadAudioWithText', this.loadAudioWithText);
         this.showLineNums = this._getItemBoolean('showLineNums', this.showLineNums);
         this.currentTime = this._getItemNumber('currentTime', this.currentTime);
         this.currentScrollY = this._getItemNumber('currentScrollY', this.currentScrollY);
@@ -221,7 +223,17 @@ export class AlbumPlayerState extends LocalStorageState {
         this.searchScope = this._getItemNumber('searchScope', this.searchScope);
         this.useRegEx = this._getItemBoolean('useRegEx', this.useRegEx);
         this.regExFlags = this._getItemString('regExFlags', this.regExFlags);
+        this.applyAndBetweenTerms = this._getItemBoolean('applyAndBetweenTerms', this.applyAndBetweenTerms);
         this.ignoreDiacritics = this._getItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
+    }
+    setAudioState(val) {
+        let oldVal = this._audioState;
+        this._audioState = val;
+        if (this.onAudioStateChange)
+            this.onAudioStateChange(oldVal, val);
+    }
+    getAudioState() {
+        return this._audioState;
     }
     static toLineRef(lineNum, begIdxPos, begPerc, endIdxPos, endPerc) {
         return `${lineNum}:${begIdxPos}:${begPerc.toFixed(3)}:${endIdxPos}:${endPerc.toFixed(3)}`;

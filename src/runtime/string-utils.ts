@@ -1,4 +1,7 @@
 export class StringUtils {
+    public static DIACRITICS_CHR = ["ā", "ī", "ū", "ṁ", "ṃ", "ṇ", "ṅ", "ñ", "ṣ", "ṭ", "ḍ", "ḷ", "ḥ"]
+    public static DIACRITICS_ALT = ["a", "i", "u", "m", "m", "n", "n", "n", "s", "t", "d", "l", "h"]
+
     public static allIndexesOf(src: string, srch: string, ignoreCase = true): number[] {
         const ret = []
         let lastPos = -1
@@ -61,6 +64,13 @@ export class StringUtils {
         }
         const ret = src.substring(startPos, endPos).trim()
         return ret
+    }
+
+
+    public static removeDiacritics(src: string): string {
+        for (let i = 0; i < StringUtils.DIACRITICS_CHR.length; i++) 
+            src = src.replaceAll(StringUtils.DIACRITICS_CHR[i], StringUtils.DIACRITICS_ALT[i])
+        return src
     }
 }
 

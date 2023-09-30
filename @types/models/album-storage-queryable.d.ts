@@ -6,6 +6,7 @@ export interface SearchContext {
     searchScope: number;
     useRegEx: boolean;
     regExFlags: string;
+    applyAndBetweenTerms: boolean;
     ignoreDiacritics: boolean;
     maxMatchSurroundingChars: number;
     state: number;
@@ -22,6 +23,7 @@ export type MatchedSearchItem = (matchSearchRef: MatchedSearchRef, cargo?: any) 
 export interface SearchControl {
     context: SearchContext;
     onStarted: () => void;
+    onSearchingTrack: (baseRef: string, cargo?: any) => void;
     onMatched: MatchedSearchItem;
     onPaused: (paused: boolean, cargo?: any) => void;
     onAborted: () => void;

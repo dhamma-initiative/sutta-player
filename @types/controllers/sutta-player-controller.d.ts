@@ -1,11 +1,12 @@
 import { TrackSelection } from '../models/album-player-state.js';
 import { AlbumStorageQueryable } from "../models/album-storage-queryable.js";
+import { DeferredPromise } from '../runtime/deferred-promise.js';
 export declare class SuttaPlayerController {
     static VERSION: string;
     _albumStore: AlbumStorageQueryable;
-    private _appRoot;
     private _model;
     private _view;
+    private _appRoot;
     private _settingsController;
     private _searchController;
     private _fabController;
@@ -14,10 +15,18 @@ export declare class SuttaPlayerController {
     private _aboutController;
     private _lastScrollTime;
     private _lineSelectionCb;
+    tabSelectedIndex: number;
+    private _tabWndScrollPosMap;
+    private _onTabEnter;
+    private _onTabExit;
+    audDurWait: DeferredPromise<number>;
+    audDurWaitState: number;
     constructor(appRoot: string, albumStorage: AlbumStorageQueryable);
     setup(): Promise<void>;
     tearDown(): Promise<void>;
+    createAudDurWait(): void;
     showUserMessage(msg: string, dur?: number): void;
+    openTab(tabNum: number): void;
     private _injectVersionInfo;
     private _registerListeners;
     private _registerNavigationListeners;
@@ -25,11 +34,11 @@ export declare class SuttaPlayerController {
     private _onAudioEnded;
     private _onAlbumSelected;
     private _onTrackSelected;
-    _onLoadAudio(srcSel: TrackSelection): Promise<boolean>;
-    _onLoadText(srcSel: TrackSelection): Promise<boolean>;
+    _onLoadAudio(srcSel: TrackSelection): Promise<void>;
+    _onLoadTrack(srcSel: TrackSelection): Promise<boolean>;
     private _onLineSelected;
-    private _onLoadRandom;
+    private _onSelectRandom;
     private _onShareLink;
-    _onLoadIntoNavSelector(srcSel: TrackSelection): Promise<void>;
+    _onRevealInCatalog(srcSel: TrackSelection): Promise<void>;
     private _loadShareLinkIfSpecified;
 }

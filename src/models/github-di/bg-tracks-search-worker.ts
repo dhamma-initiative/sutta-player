@@ -1,15 +1,11 @@
-// import { DeferredPromise } from "../../runtime/deferred-promise.js"
 import { DeferredPromise } from "../../runtime/deferred-promise.js"
 import { StringUtils } from "../../runtime/string-utils.js"
 import { WorkerFactory, WorkerMessage } from "../../runtime/worker-utils.js"
 import { TrackSelection } from "../album-player-state.js"
-import { MatchedTrackRespMsg, SEARCH_TRACKS_FINISHED_RESP_MSG, SEARCH_TRACKS_PAUSE_CHG_RESP_MSG, SEARCH_TRACKS_RQST_MSG, SEARCH_TRACKS_STATE_CHG_RQST_MSG, SearchTrackRqstMsg } from "./bg-tracks-commons.js"
+import { MatchedTrackRespMsg, SEARCH_TRACKS_FINISHED_RESP_MSG, SEARCH_TRACKS_PAUSE_CHG_RESP_MSG, SEARCH_TRACKS_RQST_MSG, SEARCH_TRACKS_SEARCHING_TRACK_RESP_MSG, SEARCH_TRACKS_STATE_CHG_RQST_MSG, SearchTrackRqstMsg } from "./bg-tracks-commons.js"
 import { InternalQueryCacheStore } from "./internal-query-cache-store.js"
 
 class BackgroundSearchTracksWorker {
-    public static DIACRITICS_CHR = ["ā", "ī", "ū", "ṁ", "ṃ", "ṇ", "ṅ", "ñ", "ṣ", "ṭ", "ḍ", "ḷ", "ḥ"]
-    public static DIACRITICS_ALT = ["a", "i", "u", "m", "m", "n", "n", "n", "s", "t", "d", "l", "h"]
-
     private _albumStore = new InternalQueryCacheStore()
     private _searchSel = new TrackSelection('srchSrcIterator')
     private _baseMsg: WorkerMessage
@@ -43,10 +39,10 @@ class BackgroundSearchTracksWorker {
             const trackCount = await this._getTrackCount()
             for (let j = 0; j < trackCount; j++) {
                 if (await WorkerFactory.wasHaltSignalled(this._baseMsg.stopToken)) {
-                    this._dispatchPauseChangedResponse(occurances[0], tracks, true)
+                    this._dispatchPauseChangedResponse(true, occurances[0], tracks)
                     await this._resumeAfterPauseWait
                     this._resumeAfterPauseWait = new DeferredPromise<boolean>()
-                    this._dispatchPauseChangedResponse(occurances[0], tracks, false)
+                    this._dispatchPauseChangedResponse(false, occurances[0], tracks)
                 }
                 this._searchSel.trackIndex = j
                 await this._searchSel.updateBaseRef(this._albumStore)
@@ -56,6 +52,7 @@ class BackgroundSearchTracksWorker {
                         continue
                 }
                 const src = await this._getTrackSource()
+                this._dispatchSearchingTrack(this._searchSel.baseRef, occurances[0], tracks)
                 tracks = await this._checkForMatches(src, occurances, tracks)
             }
         }
@@ -63,18 +60,58 @@ class BackgroundSearchTracksWorker {
     }
     
     private async _checkForMatches(src: string, occurances: number[], tracks: number): Promise<number> {
-        const searchFor = this._criteria.searchFor
+        const searchForAll = this._remDiacriticsAndSplitSearchTermsIfRqd(this._criteria.searchFor)
+        const searchFor = searchForAll[0]
         const regExFlags = this._criteria.regExFlags
         const indexPositions = this._criteria.useRegEx ? StringUtils.allIndexOfUsingRegEx(src, searchFor, regExFlags) : StringUtils.allIndexesOf(src, searchFor) 
         if (indexPositions.length > 0) {
+            if (this._criteria.applyAndBetweenTerms) {
+                const hasRemainingTerms = this._doesSrcIncludeAllRemainingTerms(src, searchForAll)
+                if (!hasRemainingTerms)
+                    return tracks
+            }
             tracks++
             const linePositions = StringUtils.allLinePositions(src, indexPositions)
             for (let i = 0; i < indexPositions.length; i++) {
                 occurances[0]++
-                this._dispatchMatchResponse(src, indexPositions[i], linePositions[i], tracks, occurances[0])
+                this._dispatchMatchResponse(src, indexPositions[i], linePositions[i], occurances[0], tracks)
             }
         }
         return tracks
+    }
+
+    private _remDiacriticsAndSplitSearchTermsIfRqd(searchFor: string): string[] {
+        let ret: string[]
+        if (this._criteria.applyAndBetweenTerms) {
+            const terms = searchFor.split(' ').map((v, i, a) => {
+                return v.toLowerCase()
+            })
+            ret = terms
+        } else
+            ret = [searchFor]
+        if (this._criteria.ignoreDiacritics)
+            ret = ret.map((v, i, a) => {
+                return StringUtils.removeDiacritics(v)
+            })
+        return ret
+    }
+
+    private _doesSrcIncludeAllRemainingTerms(src: string, searchForAll: string[], ignoreCase = true) {
+        let useSrc = ignoreCase ? src.toLowerCase() : src
+        if (this._criteria.ignoreDiacritics)
+            useSrc = StringUtils.removeDiacritics(useSrc)
+        for (let i = 1; i < searchForAll.length; i++) {
+            if (useSrc.indexOf(searchForAll[i]) === -1)
+                return false
+        }
+        return true
+    }
+
+    private _dispatchSearchingTrack(baseRef: string, occurances: number, tracks: number) {
+        const resp = {...this._baseMsg} 
+        resp.type = SEARCH_TRACKS_SEARCHING_TRACK_RESP_MSG
+        const respMsg = WorkerFactory.createRespMsg(resp, {occurances: occurances, tracks: tracks, baseRef: baseRef})
+        self.postMessage(respMsg)        
     }
 
     private _dispatchMatchResponse(src: string, idxPos: number, lineNum: number, occurances: number, tracks: number) {
@@ -93,7 +130,7 @@ class BackgroundSearchTracksWorker {
         self.postMessage(respMsg)        
     }
 
-    private _dispatchPauseChangedResponse(occurances: number, tracks: number, paused: boolean) {
+    private _dispatchPauseChangedResponse(paused: boolean, occurances: number, tracks: number) {
         const resp = {...this._baseMsg} 
         resp.type = SEARCH_TRACKS_PAUSE_CHG_RESP_MSG
         const respMsg = WorkerFactory.createRespMsg(resp, {occurances: occurances, tracks: tracks, paused: paused})
@@ -110,13 +147,7 @@ class BackgroundSearchTracksWorker {
     private async _getTrackSource(): Promise<string> {
         let src = await this._albumStore.queryTrackText(this._searchSel.baseRef)
         if (this._criteria.ignoreDiacritics) 
-            src = this.removeDiacritics(src)
-        return src
-    }
-
-    private removeDiacritics(src: string): string {
-        for (let i = 0; i < BackgroundSearchTracksWorker.DIACRITICS_CHR.length; i++) 
-            src = src.replaceAll(BackgroundSearchTracksWorker.DIACRITICS_CHR[i], BackgroundSearchTracksWorker.DIACRITICS_ALT[i])
+            src = StringUtils.removeDiacritics(src)
         return src
     }
 
