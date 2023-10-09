@@ -66,5 +66,11 @@ export class StringUtils {
             src = src.replaceAll(StringUtils.DIACRITICS_CHR[i], StringUtils.DIACRITICS_ALT[i]);
         return src;
     }
+    static secToHhMmSs(secs) {
+        let calculatedTime = new Date(null);
+        calculatedTime.setSeconds(328);
+        let ret = calculatedTime.toISOString().substring(11, 19);
+        return ret;
+    }
 }
 //# sourceMappingURL=string-utils.js.map

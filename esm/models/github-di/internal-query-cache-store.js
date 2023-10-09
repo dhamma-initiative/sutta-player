@@ -41,8 +41,15 @@ export class InternalQueryCacheStore {
         return ret;
     }
     async queryTrackText(baseRef) {
+        let ret = null;
         const url = this.queryTrackTextUrl(baseRef);
-        const ret = await this.readTextFile(url);
+        const isInCacheChk = await this.isInCache(baseRef, true, false);
+        if (isInCacheChk[0]) {
+            const resp = await CacheUtils.getFromCache(CACHE_NAME, [url]);
+            ret = await resp[0].text();
+        }
+        else
+            ret = await this.readTextFile(url);
         return ret;
     }
     queryTrackTextUrl(baseRef) {

@@ -20,6 +20,13 @@ export class LocalStorageState {
             ret = val;
         return ret;
     }
+    _getItemJson(key, defVal) {
+        let ret = defVal;
+        const val = localStorage.getItem(key);
+        if (val)
+            ret = JSON.parse(val);
+        return ret;
+    }
     _setItemBoolean(key, val) {
         localStorage.setItem(key, val ? '1' : '0');
     }
@@ -29,6 +36,12 @@ export class LocalStorageState {
     _setItemString(key, val) {
         if (val !== null)
             localStorage.setItem(key, val);
+    }
+    _setItemJson(key, val) {
+        if (val !== null) {
+            const jsonAsStr = JSON.stringify(val);
+            localStorage.setItem(key, jsonAsStr);
+        }
     }
 }
 //# sourceMappingURL=localstorage-state.js.map

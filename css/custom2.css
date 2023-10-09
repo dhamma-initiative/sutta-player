@@ -1,0 +1,220 @@
+.banner {
+  background-color: #394046;
+  background-image: url('../img/dhamma-chakka.png');
+  background-position: center;
+  background-size: cover;
+  height: 200px;
+}
+
+.container, .container-fluid {
+  padding: 15px;
+}
+
+.shortenedHeader {
+  padding: 0;
+}
+
+header {
+  margin: 0px;
+}
+
+header hgroup {
+  margin: 0px;
+}
+
+#appDescBq {
+  margin: 5px;
+  color: white;
+  padding: 5px;
+}
+
+pre {
+  background-color: #fff;
+}
+
+#trackTextBody {
+  counter-reset: line-numbering;
+  font-family: revert;
+  white-space: pre-wrap;
+}
+
+.displayLineNums .line::before {
+  content: counter(line-numbering);
+  counter-increment: line-numbering;
+  padding-right: .8em;
+  /* space after numbers */
+  margin-right: 5px;
+  opacity: 0.25;
+}
+
+#snackbar {
+  visibility: hidden;
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  padding: 16px;
+  position: fixed;
+  z-index: 1;
+  left: 50%;
+  bottom: 30px;
+  font-size: 17px;
+}
+
+#snackbar.show {
+  visibility: visible;
+  -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+#snackbar p {
+  color: white;
+}
+
+@-webkit-keyframes fadein {
+  from {
+    bottom: 0;
+    opacity: 0;
+  }
+
+  to {
+    bottom: 30px;
+    opacity: 1;
+  }
+}
+
+@keyframes fadein {
+  from {
+    bottom: 0;
+    opacity: 0;
+  }
+
+  to {
+    bottom: 30px;
+    opacity: 1;
+  }
+}
+
+@-webkit-keyframes fadeout {
+  from {
+    bottom: 30px;
+    opacity: 1;
+  }
+
+  to {
+    bottom: 0;
+    opacity: 0;
+  }
+}
+
+@keyframes fadeout {
+  from {
+    bottom: 30px;
+    opacity: 1;
+  }
+
+  to {
+    bottom: 0;
+    opacity: 0;
+  }
+}
+
+.fabHdrLabel {
+  font-weight: bold;
+}
+
+#lhsFabSection {
+  display: none;
+  position: fixed;
+  bottom: 15px;
+  left: 30px;
+}
+
+#rhsFabSection {
+  display: none;
+  position: fixed;
+  bottom: 100px;
+  right: 30px;
+  width: calc(100% - 60px);
+}
+
+.fabSectionMax {
+  width: calc(100% - 60px);
+}
+
+#centreFabSection {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+}
+
+#rhsCtxFabSection {
+  position: fixed;
+  bottom: 0px;
+  right: 30px;
+}
+
+[data-theme="dark"] code,
+[data-theme="dark"] kbd,
+[data-theme="dark"] pre {
+    background-color: #11191f !important;
+}
+
+#searchResults {
+  padding: 8px;
+  white-space: pre-line;
+  resize: none;
+  width: 100%;
+}
+
+.sideBySideContainer {
+  content: "";
+  display: table;
+  clear: both;
+  width: 100%;
+}
+
+.sbsFiftyPercent {
+  float: left;
+  width: 50%;
+}
+
+.sbsThirtyThreePercent {
+  float: left;
+  width: 33%;
+}
+
+.alnLeft {
+  position: absolute;
+  right: 20px;
+}
+
+#tabSlider {
+  left: -55px;
+  position: relative;  
+}
+
+#skipAudioToLineLabel {
+  vertical-align: top;
+}
+
+#audioPlayer {
+  opacity: 65%;
+}
+
+article {
+  margin: 5px;
+  padding: 20px;
+}
+
+#playList {
+  overflow: auto;
+  overflow-y:auto;
+}
+
+.playlistItemDraggable {
+  float: right;
+}

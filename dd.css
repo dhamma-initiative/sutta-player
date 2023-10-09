@@ -1,0 +1,10 @@
+#playlistTab_ {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+#playList_ {
+    flex: 1; /* This will make the div consume all remaining vertical space */
+    overflow-y: auto;
+}

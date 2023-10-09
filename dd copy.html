@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<style>
+#div1, #drag1 {
+  width: 350px;
+  height: 70px;
+  padding: 10px;
+  border: 1px solid #aaaaaa;
+}
+</style>
+
+<script src="https://www.timr.co/mobile-drag-drop/release/index.js"></script>
+<script src="https://www.timr.co/mobile-drag-drop/release/scroll-behaviour.js"></script>
+
+<script>
+
+function dragEnter(ev) {
+    ev.preventDefault();
+    ev.stopPropagation();    
+}   
+
+function allowDrop(ev) {
+  ev.preventDefault();
+}
+
+function drag(ev) {
+  ev.dataTransfer.setData("text", ev.target.id);
+}
+
+function drop(ev) {
+  ev.preventDefault();
+  var data = ev.dataTransfer.getData("text");
+  ev.target.appendChild(document.getElementById(data));
+}
+</script>
+</head>
+<body>
+
+<div id="div1" ondragover="allowDrop(event)"></div>
+
+<p>Drag the W3Schools image into the rectangle:</p>
+
+<div id="div1" ondrop="drop(event)" ondragover="allowDrop(event)"" ondragenter="dragEnter(event)"></div>
+<br>
+<div id="drag1" draggable="true" ondragstart="drag(event)" style="background-color: red;"></div>
+
+<script>
+    MobileDragDrop.polyfill({
+        // use this to make use of the scroll behaviour
+        dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+    });
+
+    // workaround for iOS10/iOS11 touchmove behaviour (https://github.com/timruffles/mobile-drag-drop/issues/77)
+    // try {
+    //     window.addEventListener('touchmove', function () {
+    //     }, {passive: false})
+    // } catch (e) {
+    // }    
+</script>
+</body>
+</html>
+

@@ -6,4 +6,5 @@ export declare class StringUtils {
     static allLinePositions(src: string, allIndicies: number[]): number[];
     static surroundingTrim(src: string, pos: number, captureLen: number): string;
     static removeDiacritics(src: string): string;
+    static secToHhMmSs(secs: number): string;
 }

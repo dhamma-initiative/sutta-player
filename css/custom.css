@@ -1,23 +1,4 @@
-/* Global CSS variables */
-:root {
-  --spacing-company: 3rem;
-  --font-weight: 400;
-  --border-radius: 0;
-}
-
-/* Typography */
-h2,
-h3,
-hgroup> :last-child {
-  font-weight: 200;
-}
-
-small {
-  color: var(--muted-color);
-}
-
-/* Header */
-.hero {
+.banner {
   background-color: #394046;
   background-image: url('../img/dhamma-chakka.png');
   background-position: center;
@@ -25,53 +6,26 @@ small {
   height: 200px;
 }
 
-header {
-  padding: var(--spacing-company) 0;
-}
-
-header hgroup> :last-child {
-  color: var(--h3-color);
-}
-
-header hgroup {
-  margin-bottom: var(--spacing-company);
+.container, .container-fluid {
+  padding: 15px;
 }
 
 .shortenedHeader {
-  /* height: 150px; */
-  display: contents;
+  padding: 0;
 }
 
-/* Nav */
-summary[role="link"].contrast:is([aria-current], :hover, :active, :focus) {
-  background-color: transparent;
-  color: var(--contrast-hover);
+header {
+  margin: 0px;
 }
 
-/* Main */
-@media (min-width: 992px) {
-  main .grid {
-    grid-column-gap: var(--spacing-company);
-    grid-template-columns: auto 25%;
-  }
+header hgroup {
+  margin: 0px;
 }
 
-form.grid {
-  grid-row-gap: 0;
-}
-
-/* Aside nav */
-aside img {
-  margin-bottom: 0.25rem;
-}
-
-aside p {
-  margin-bottom: var(--spacing-company);
-  line-height: 1.25;
-}
-
-fieldset label {
-  height: 50px;
+#appDescBq {
+  margin: 5px;
+  color: white;
+  padding: 5px;
 }
 
 pre {
@@ -113,6 +67,10 @@ pre {
   visibility: visible;
   -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
   animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+#snackbar p {
+  color: white;
 }
 
 @-webkit-keyframes fadein {
@@ -174,15 +132,19 @@ pre {
   left: 30px;
 }
 
-#rhsFabSection {
-  display: none;
-  position: fixed;
-  bottom: 100px;
-  right: 30px;
+#rhsFabSectionAudio {
+  width: calc(100% - 60px);
+  bottom: 280px;
 }
 
-.fabSectionMax {
-  width: calc(100% - 60px);
+#rhsFabSection {
+  bottom: 100px;
+}
+
+#rhsFabSection, #rhsFabSectionAudio {
+  display: none;
+  position: fixed;
+  right: 30px;
 }
 
 #centreFabSection {
@@ -223,16 +185,39 @@ pre {
   width: 50%;
 }
 
+.sbsThirtyThreePercent {
+  float: left;
+  width: 33%;
+}
+
 .alnLeft {
   position: absolute;
   right: 20px;
 }
 
 #tabSlider {
-  left: -40px;
+  left: -55px;
   position: relative;  
 }
 
 #skipAudioToLineLabel {
   vertical-align: top;
+}
+
+#audioPlayer {
+  opacity: 65%;
+}
+
+article {
+  margin: 5px;
+  padding: 20px;
+}
+
+#playList {
+  overflow: auto;
+  overflow-y:auto;
+}
+
+.playlistItemDraggable {
+  float: right;
 }

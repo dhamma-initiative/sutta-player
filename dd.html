@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sutta Player</title>
+    <meta name="description" content="Listen to, lend ear, set your heart on
+    knowing, and regard as worth grasping & mastering the words of the Tathāgata." />
+    <link rel="shortcut icon" href="favicon.ico" />
+
+    <link rel="stylesheet" href="dd.css" />
+
+    <link rel="stylesheet" href="css/pico-1.5.9/pico.min.css" />
+    <link rel="stylesheet" href="css/custom2.css" />
+    <!-- <link rel="stylesheet" href="lib/mobile-drag-drop/3.0.0-rc.0/default.css">
+    <script src="lib/mobile-drag-drop/3.0.0-rc.0/index.min.js"></script>
+    <script src="lib/mobile-drag-drop/3.0.0-rc.0/scroll-behaviour.min.js"></script>
+    <script>
+      MobileDragDrop.polyfill({
+          // use this to make use of the scroll behaviour
+          dragImageTranslateOverride: MobileDragDrop.scrollBehaviourDragImageTranslateOverride
+      });
+  </script> -->
+    <script src="dragdroptouch/DragDropTouch.js"></script>
+    <link rel="manifest" href="manifest.json">
+</head>
+
+<body>
+    <div class="banner" data-theme="dark">
+        <nav class="container-fluid">
+            <ul>
+                <li>
+                    <details role="list">
+                        <summary aria-haspopup="listbox" role="link" class="contrast"><strong><ion-icon name="menu"></ion-icon> Sutta Player</strong></summary>
+                        <ul role="listbox">
+                            <li>
+                                <label for="homeMenu">
+                                    <input type="radio" id="homeMenu" name="selection" value="0" checked>
+                                    <ion-icon name="home"></ion-icon> Home
+                                    </label>
+                            </li>
+                            <li>
+                                <label for="catalogMenu">
+                                    <input type="radio" id="catalogMenu" name="selection" value="1">
+                                    <ion-icon name="library"></ion-icon> Catalog
+                                    </label>
+                            </li>
+                            <li>
+                                <label for="searchMenu">
+                                    <input type="radio" id="searchMenu" name="selection" value="2">
+                                    <ion-icon name="search"></ion-icon> Search
+                                    </label>
+                            </li>
+                            <li>
+                                <label for="playlistMenu">
+                                    <input type="radio" id="playlistMenu" name="selection" value="3">
+                                    <ion-icon name="list"></ion-icon> Playlist
+                                </label>
+                            </li>
+                            <li>
+                                <label for="offlineMenu">
+                                    <input type="radio" id="offlineMenu" name="selection" value="4">
+                                    <ion-icon name="cloud-offline"></ion-icon> Offline
+                                </label>
+                            </li>
+                        </ul>
+                    </details>
+                </li>
+            </ul>
+            <ul>
+                <li>
+                    <details role="list" dir="rtl">
+                        <summary aria-haspopup="listbox" role="link" class="contrast"><ion-icon name="settings"></ion-icon> Settings</summary>
+                        <ul role="listbox">
+                            <li>:Audio</li>
+                            <li>
+                                <label for="autoPlay">
+                                    Auto play
+                                    <input type="checkbox" role="switch" id="autoPlay" name="autoPlay" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="playNext">
+                                    Play next
+                                    <input type="checkbox" role="switch" id="playNext" name="playNext" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="repeat">
+                                    Repeat track
+                                    <input type="checkbox" role="switch" id="repeat" name="repeat" />
+                                </label>
+                            </li>
+                            <li>:Text</li>
+                            <li>
+                                <label for="loadAudioWithText">
+                                    Load audio with text
+                                    <input type="checkbox" role="switch" id="loadAudioWithText" name="loadAudioWithText" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="scrollTextWithAudio">
+                                    Auto scroll text with audio
+                                    <input type="checkbox" role="switch" id="scrollTextWithAudio" name="scrollTextWithAudio" />
+                                </label>
+                            </li>
+                            <li>
+                                <label for="showLineNums">
+                                    Show text line numbers
+                                    <input type="checkbox" role="switch" id="showLineNums" name="showLineNums" />
+                                </label>
+                            </li>
+                            <li>:Appearance</li>
+                            <li>
+                                <label for="darkTheme">
+                                    Dark/night theme
+                                    <input type="checkbox" role="switch" id="darkTheme" name="darkTheme" />
+                                </label>
+                            </li>
+                            <li>:Storage</li>
+                            <li><a id="resetAppMenu" href="#">...Reset App</a></li>
+                        </ul>
+                    </details>
+                </li>
+                <li>
+                    <a id="aboutMenu" href="#" role="button" class="contrast">About</a>
+                </li>
+            </ul>
+        </nav>
+
+        <header class="container-fluid shortenedHeader">
+            <hgroup>
+                <blockquote id="appDescBq">
+                    Listen to, lend ear, set your heart on knowing, 
+                    and regard as worth grasping & mastering the words of the Tathāgata. <cite>- AN 2:46</cite>
+                </blockquote>
+            </hgroup>
+        </header>
+    </div>
+
+    <!-- Main -->
+    <main class="container">
+        <div id="playlistTab_">
+            <dialog id="addEditPlaylistDialog">
+                <article>
+                    <label for="listName">
+                        Playlist name:
+                        <input type="text" id="listName" name="listName" placeholder="Play List Name" required>
+                    </label>                    
+                    <footer>
+                      <a href="#" id="cancelAddEditPlaylist" role="button" class="secondary">Cancel</a>
+                      <a href="#" id="saveAddEditPlaylist" role="button">Save</a>
+                    </footer>
+                  </article>                
+            </dialog>
+            <summary><ion-icon name="list"></ion-icon> Playlist</summary>
+            <br>
+            <select id="playlists" required>
+            </select>
+            <div class="sideBySideContainer">
+                <button id="createNewPlaylist" title="Create a new playlist" class="sbsThirtyThreePercent"><ion-icon name="add-outline"></ion-icon> New</button>
+                <button id="editPlaylist" title="Edit playlist" class="secondary sbsThirtyThreePercent"><ion-icon name="pencil-outline"></ion-icon> Edit</button>
+                <button id="removePlaylist" title="Remove selected playlist" class="contrast sbsThirtyThreePercent"><ion-icon name="close-outline"></ion-icon> Del</button>
+            </div>
+            <div>
+                <a href="#" id="addToPlaylist"><ion-icon name="bookmark-outline"></ion-icon> Add bookmark to playlist</a>
+            </div>
+            <div id="playList_">
+                <article draggable="true">
+                    <input type="radio" id="_pl_sel_0" name="_pl_sel">
+                    <strong id="_pl_0">AN/AN2_0</strong>
+                    <br>
+                    <small>line ⓘ 23:2233; audio ▶️: 121.23; audio ⏹️: 232.22</small>
+                </article>
+                <article draggable="true">
+                  <input type="radio" id="_pl_sel_1" name="_pl_sel">
+                  <strong id="_pl_1">AN/AN2_1</strong>
+                  <br>
+                  <small>line ⓘ 23:2233; audio ▶️: 121.23; audio ⏹️: 232.22</small>
+                </article>
+                <article draggable="true">
+                  <input type="radio" id="_pl_sel_2" name="_pl_sel">
+                  <strong id="_pl_2">AN/AN2_2</strong>
+                  <br>
+                  <small>line ⓘ 23:2233; audio ▶️: 121.23; audio ⏹️: 232.22</small>
+                </article>
+                <article draggable="true">
+                  <input type="radio" id="_pl_sel_3" name="_pl_sel">
+                  <strong id="_pl_3">AN/AN2_3</strong>
+                  <br>
+                  <small>line ⓘ 23:2233; audio ▶️: 121.23; audio ⏹️: 232.22</small>
+                </article>
+                <article draggable="true">
+                  <input type="radio" id="_pl_sel_4" name="_pl_sel">
+                  <strong id="_pl_4">AN/AN2_4</strong>
+                  <br>
+                  <small>line ⓘ 23:2233; audio ▶️: 121.23; audio ⏹️: 232.22</small>
+                </article>
+            </div>
+        </div>
+    </main>
+    <script type="module" src="ionicons/ionicons.esm.js"></script>
+</body>
+</html>

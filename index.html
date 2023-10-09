@@ -15,9 +15,8 @@
 </head>
 
 <body>
-    <!-- Hero -->
-    <div class="hero" data-theme="dark">
-        <nav class="container-fluid">
+    <div class="banner" data-theme="dark">
+        <nav id="MainMenuView" class="container-fluid">
             <ul>
                 <li>
                     <details role="list">
@@ -120,21 +119,16 @@
 
         <header class="container shortenedHeader">
             <hgroup>
-                <blockquote>
+                <blockquote id="appDescBq">
                     Listen to, lend ear, set your heart on knowing, 
-                    and regard as worth grasping & mastering the words of the Tathāgata.
-                    <footer>
-                        <cite>- AN 2:46</cite>
-                      </footer>                                                    
+                    and regard as worth grasping & mastering the words of the Tathāgata. <cite>- AN 2:46</cite>
                 </blockquote>
             </hgroup>
         </header>
     </div>
-    <!-- ./ Hero -->
 
-    <!-- Main -->
     <main class="container">
-        <div id="catalogTab" style="display: none;">
+        <div id="CatalogTabPageView" style="display: none;">
             <summary><ion-icon name="library"></ion-icon> Catalog</summary>
             <br>
             <label for="album">Collection:</label>
@@ -151,43 +145,80 @@
         </div>
 
         <div id="playlistTab" style="display: none;">
-            TODO
+            <dialog id="addEditPlaylistDialog">
+                <article>
+                    <label for="listName">
+                        Playlist name:
+                        <input type="text" id="listName" name="listName" placeholder="Play List Name" required>
+                    </label>                    
+                    <footer>
+                      <a href="#" id="cancelAddEditPlaylist" role="button" class="secondary">Cancel</a>
+                      <a href="#" id="saveAddEditPlaylist" role="button">Save</a>
+                    </footer>
+                  </article>                
+            </dialog>
+            <summary><ion-icon name="list"></ion-icon> Playlist</summary>
+            <br>
+            <select id="playlists" required>
+            </select>
+            <div class="sideBySideContainer">
+                <button id="createNewPlaylist" title="Create a new playlist" class="sbsThirtyThreePercent"><ion-icon name="add-outline"></ion-icon> New</button>
+                <button id="editPlaylist" title="Edit playlist" class="secondary sbsThirtyThreePercent"><ion-icon name="pencil-outline"></ion-icon> Edit</button>
+                <button id="removePlaylist" title="Remove selected playlist" class="contrast sbsThirtyThreePercent"><ion-icon name="close-outline"></ion-icon> Del</button>
+            </div>
+            <div>
+                <a href="#" id="addToPlaylist"><ion-icon name="bookmark-outline"></ion-icon> Add bookmark to playlist</a>
+            </div>
+            <div id="playList_template" style="display: none">
+                <article id="_pl_template" >
+                    <strong id="_pl_0">AN/AN2_5</strong>
+                    <br>
+                    <small>line ⓘ 23:2233; audio ▶️: 121.23; audio ⏹️: 232.22</small>
+                </article>
+            </div>
+            <div id="playList">
+                <!-- <article>
+                    <strong id="_pl_0">AN/AN2_5</strong>
+                    <br>
+                    <small>line ⓘ 23:2233; audio ▶️: 121.23; audio ⏹️: 232.22</small>
+                </article> -->
+            </div>
         </div>
-        <div>
 
-        </div>
         <div id="searchTab" style="display: none;">
             <summary><ion-icon name="search"></ion-icon> Search</summary>
-            <br>
-            <label for="searchScope">
-                Scope:
-                <select id="searchScope">
-                    <option value="0">The selected catalog collection only</option>
-                    <option value="1">All cached sutta texts (ie. 👀 or ✔️) </option>
-                    <option value="2">The entire catalog</option>
-                </select>
-            </label>
-            
-            <div class="sideBySideContainer">
-                <label for="useRegEx" class="sbsFiftyPercent">
-                    Use RegEx w/ flags:
-                    <input type="checkbox" role="switch" id="useRegEx" name="useRegEx" />
-                </label>
-                <label for="regExFlags" class="sbsFiftyPercent">
-                    <input type="text" id="regExFlags" name="regExFlags" placeholder="RegEx Flags" />
-                </label>
-            </div>
-            <label for="applyAndBetweenTerms">
-                <input type="checkbox" role="switch" id="applyAndBetweenTerms" name="applyAndBetweenTerms" checked/>
-                Apply "and" between terms:
-            </label>
-            <label for="ignoreDiacritics">
-                <input type="checkbox" role="switch" id="ignoreDiacritics" name="ignoreDiacritics" checked/>
-                Ignore diacritics:
-            </label>
             <br/>
-            <hr/>
-            <br/>
+            <details open>
+                <summary>Criteria</summary>
+                <article>
+                    <label for="searchScope">
+                        Scope:
+                        <select id="searchScope">
+                            <option value="0">The selected catalog collection only</option>
+                            <option value="1">All cached sutta texts (ie. 👀 or ✔️) </option>
+                            <option value="2">The entire catalog</option>
+                        </select>
+                    </label>
+                    
+                    <div class="sideBySideContainer">
+                        <label for="useRegEx" class="sbsFiftyPercent">
+                            Use RegEx w/ flags:
+                            <input type="checkbox" role="switch" id="useRegEx" name="useRegEx" />
+                        </label>
+                        <label for="regExFlags" class="sbsFiftyPercent">
+                            <input type="text" id="regExFlags" name="regExFlags" placeholder="RegEx Flags" />
+                        </label>
+                    </div>
+                    <label for="applyAndBetweenTerms">
+                        <input type="checkbox" role="switch" id="applyAndBetweenTerms" name="applyAndBetweenTerms" checked/>
+                        Apply "and" between terms:
+                    </label>
+                    <label for="ignoreDiacritics">
+                        <input type="checkbox" role="switch" id="ignoreDiacritics" name="ignoreDiacritics" checked/>
+                        Ignore diacritics:
+                    </label>
+                </article>
+            </details>
             <form>
                 <input type="search" id="searchFor" name="searchFor" placeholder="Search">
             </form>
@@ -201,16 +232,22 @@
             </textarea>
         </div>
 
-        <div id="homeTab">
-            <summary><ion-icon name="game-controller"></ion-icon> <span id="displayingTrack">Awaiting load</span>&nbsp;<span id="playingTrack">[Audio: Awaiting load]</span>&nbsp;<a href="#" id="revealInCat" title="Reveal in catalog" class="alnLeft"><ion-icon name="library"></ion-icon></a></summary>
+        <div id="HomeTabPageView">
+            <summary><ion-icon name="home"></ion-icon> <span id="displayingTrack">Awaiting load</span></summary>
             <pre>
 <code id="trackTextBody" class="displayLineNums">
-Use the main menu to load a Sutta from any one of:
+Use the ☰ main menu to load a Sutta from any one of:
     - Catalog
     - Search
     - Playlist
 </code>
-            </pre>                
+            </pre>
+            <div id="HomeTabPageViewCtxMenu" style="display: none;">
+                <a href="#" id="skipAudioToLine" title="Skip audio to approx. line position"><ion-icon name="play-skip-forward-outline" size="large"></ion-icon><span id="skipAudioToLineLabel">REPLACE</span></a>
+                <br/>
+                <br/>
+                <a href="#" id="revealInCat" title="Reveal in catalog"><ion-icon name="library-outline" size="large"></ion-icon></a>      
+            </div>
         </div>
 
         <div id="offlineTab" style="display: none;">
@@ -225,20 +262,23 @@ Use the main menu to load a Sutta from any one of:
             </select>                    
             <br/>
             <article>
-                <p><strong id="offlineAlbumTitle"></strong></p>
+                <p>Entire: <strong id="offlineAlbumTitle"></strong></p>
                 <label for="downloadAlbum">
                   <input type="checkbox" role="switch" id="downloadAlbum" name="offlineAction" value="downloadAlbum">
-                  Download Collection for offline use<br>
+                  <ion-icon name="cloud-download-outline"></ion-icon> Download for offline use<br>
                 </label>
+                <br/>
                 <label for="deleteAlbum">
                   <input type="checkbox" role="switch" id="deleteAlbum" name="offlineAction" value="deleteAlbum">
-                  Remove Collection to reclaim storage<br>
+                  <ion-icon name="close-outline"></ion-icon> Remove to reclaim storage<br>
                 </label>
             </article>
             <article>
-                <p><strong id="offlineTrackTitle"></strong></p>
-                <button id="addTrackToCache" title="Add current audio track to cache">Download Sutta</button>
-                <button id="removeTrackFromCache" title="Remove current audio track from cache">Remove Sutta</button>
+                <p>Individual Sutta: <strong id="offlineTrackTitle"></strong></p>
+                <div class="sideBySideContainer">
+                    <button id="addTrackToCache" title="Add current audio track to cache" class="sbsFiftyPercent"><ion-icon name="cloud-download-outline"></ion-icon> Download</button>
+                    <button id="removeTrackFromCache" title="Remove current audio track from cache" class="contrast sbsFiftyPercent"><ion-icon name="close-outline"></ion-icon> Remove</button>
+                    </div>
             </article>
             <article>
                 <div id="processingInfo"></div>
@@ -262,7 +302,7 @@ Use the main menu to load a Sutta from any one of:
             <article>
                 <h3>Reset Sutta Player App</h3>
                 <ul>
-                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.12</span></li>
+                    <li>App HTML View version: <span id="appHtmlViewVer">v1.0.13</span></li>
                     <li>App JS Controller version: <span id="appJsCtrlVer">REPLACE</span></li>
                 </ul>
                 <p>
@@ -276,40 +316,47 @@ Use the main menu to load a Sutta from any one of:
               </article>            
         </dialog>
 
-        <div id="lhsFabSection">
-            <label class="fabHdrLabel">Link/Share:</label>
-            <a href="#" id="setStartAtBookmark" class="secondary"><ion-icon name="play-outline" size="large"></ion-icon></a>&nbsp;&nbsp;<ion-icon name="bookmarks"></ion-icon>&nbsp;&nbsp;<a href="#" id="setStopAtBookmark" class="secondary"><ion-icon name="stop-outline" size="large"></ion-icon></a>
-            <hr/>
-            <a id="shareLink" href="#" title="Copy link to clipboard" class="secondary"><ion-icon name="share-social" size="large"></ion-icon></a>
+        <div id="SuttaPlayerFabView">
+            <div id="lhsFabSection">
+            </div>
+            <div id="rhsFabSectionAudio">
+                <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload" crossorigin="anonymous"></audio>
+                <br/>
+                <br/>
+            </div>
+            <div id="rhsFabSection" dir="rtl">
+                <a href="#" id="nextTrack" class="secondary"><ion-icon name="play-skip-forward-outline" size="large" title="Go to next track"></ion-icon></a>
+                &nbsp;
+                <a href="#" id="skipsFwd5Sec" class="secondary"><ion-icon name="play-forward-outline" size="large" title="Skip forward 5 seconds"></ion-icon></a>
+                &nbsp;
+                <a href="#" id="skipsBack5Sec" class="secondary"><ion-icon name="play-back-outline" size="large" title="Skip backward 5 seconds"></ion-icon></a>
+                &nbsp;
+                <a href="#" id="previousTrack" class="secondary"><ion-icon name="play-skip-back-outline" size="large" title="Go to previous track"></ion-icon></a>
+                <br/>
+                <br/>
+                <label class="fabHdrLabel">Bookmarking/Share</label>
+                <a href="#" id="clearBookmarkPositions" class="secondary" title="Clear the bookmark text & audio positions"><ion-icon name="close-outline" size="large"></ion-icon></a>
+                &nbsp;&nbsp;&nbsp;&nbsp;
+                <a href="#" id="setStopAtBookmark" class="secondary" title="Set bookmark audio stop position"><ion-icon name="stop-outline" size="large"></ion-icon></a>
+                &nbsp;&nbsp;
+                <a href="#" id="setStartAtBookmark" class="secondary" title="Set bookmark audio start position"><ion-icon name="play-outline" size="large"></ion-icon></a>
+                <hr/>
+                <a id="shareLink" href="#" title="Copy link to clipboard" class="secondary"><ion-icon name="share-social" size="large"></ion-icon></a>
+            </div>
+            <div id="rhsCtxFabSection" dir="rtl">
+                <button href="" id="ctxMenuToggle" title="Toggle player controls" class="outline">
+                    <ion-icon id="ctxMenuToggleIcon" name="game-controller" size="large"></ion-icon>
+                </button>
+            </div>
+            <div id="centreFabSection">
+                <a href="#" id="gotoTop" title="Go to top" class="contrast">Top</a>
+                <br/>
+                <label for="range">
+                    <input type="range" min="0" max="4" value="0" id="tabSlider" name="range" title="Slide to change active tab view">
+                </label>            
+            </div>
+            <div id="snackbar"></div>
         </div>
-        <div id="rhsFabSection" dir="rtl">
-            <label class="fabHdrLabel">:Audio
-                <input type="checkbox" role="switch" id="maxRhsFabSection" name="maxRhsFabSection"/>
-            </label>
-            <audio controls style="min-width: 100%;" id="audioPlayer" controlsList="nodownload" crossorigin="anonymous"></audio>
-            <br/>
-            <br/>
-            <a href="#" id="skipsFwd5Sec" class="secondary"><ion-icon name="play-forward" size="large"></ion-icon></a>
-            &nbsp;
-            <a href="#" id="skipAudioToLine" class="secondary"><span id="skipAudioToLineLabel">REPLACE</span></a>
-            &nbsp;
-            <a href="#" id="skipsBack5Sec" class="secondary"><ion-icon name="play-back" size="large"></ion-icon></a>
-            <br/>
-            <br/>
-        </div>
-        <div id="rhsCtxFabSection" dir="rtl">
-            <button href="" id="ctxMenuToggle" title="Toggle player controls" class="outline">
-                <ion-icon id="ctxMenuToggleIcon" name="game-controller" size="large"></ion-icon>
-            </button>
-        </div>
-        <div id="centreFabSection">
-            <a href="#" id="gotoTop" title="Go to top" class="contrast">Top</a>
-            <br/>
-            <label for="range">
-                <input type="range" min="0" max="4" value="0" id="tabSlider" name="range">
-            </label>            
-        </div>
-        <div id="snackbar"></div>
     </main>
 
     <script src="esm/sutta-player-app.js" type="module"></script>

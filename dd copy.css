@@ -1,0 +1,17 @@
+.container {
+    height: 100vh; /* Set a fixed height for the container (viewport height) */
+    display: flex;
+    flex-direction: column;
+  }
+
+#playlistTab_ {
+    display: flex;
+    flex-direction: column;
+    flex: 1; /* This will make the #playlistTab_ div occupy all available vertical space */
+    overflow-y: auto; /* Add a scrollbar if content overflows */
+}
+
+#playList_ {
+    flex: 1; /* This will make the div consume all remaining vertical space */
+    overflow-y: auto; /* Add a scrollbar if content overflows */
+}

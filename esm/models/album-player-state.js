@@ -4,7 +4,10 @@ export class TrackSelection extends LocalStorageState {
     albumIndex;
     trackIndex;
     baseRef;
-    dictionary = {};
+    startTime;
+    stopTime;
+    lineRef;
+    dictionary = {}; // transient
     isLoaded = false; // transient
     constructor(ctx, albIdx = 0, trkIdx = 0, bRef = null) {
         super();
@@ -23,6 +26,18 @@ export class TrackSelection extends LocalStorageState {
         if (this.baseRef !== src.baseRef) {
             this.baseRef = src.baseRef;
             this._refreshDictionary();
+            ret = true;
+        }
+        if (this.startTime !== src.startTime) {
+            this.startTime = src.startTime;
+            ret = true;
+        }
+        if (this.stopTime !== src.stopTime) {
+            this.stopTime = src.stopTime;
+            ret = true;
+        }
+        if (this.lineRef !== src.lineRef) {
+            this.lineRef = src.lineRef;
             ret = true;
         }
         this.isLoaded = false;
@@ -50,15 +65,46 @@ export class TrackSelection extends LocalStorageState {
         this.isLoaded = false;
         this._refreshDictionary();
     }
+    setDetails(lr, st, et) {
+        this.lineRef = lr;
+        if (st !== null)
+            this.startTime = st;
+        if (et !== null)
+            this.stopTime = et;
+    }
+    _prepareSaveIntoJson() {
+        let json = { albumIndex: this.albumIndex, trackIndex: this.trackIndex, baseRef: this.baseRef };
+        if (this.lineRef)
+            json = { ...json, lineRef: this.lineRef };
+        if (this.startTime !== null && this.startTime !== -1)
+            json = { ...json, startTime: this.startTime };
+        if (this.stopTime !== null && this.stopTime !== -1)
+            json = { ...json, stopTime: this.stopTime };
+        return json;
+    }
     save() {
-        this._setItemNumber(`${this.context}.albumIndex`, this.albumIndex);
-        this._setItemNumber(`${this.context}.trackIndex`, this.trackIndex);
-        this._setItemString(`${this.context}.baseRef`, this.baseRef);
+        const json = this._prepareSaveIntoJson();
+        this._setItemJson(this.context, json);
+    }
+    _prepareRestoreFromJson(json) {
+        const { source: source, albumIndex: albumIndex, trackIndex: trackIndex, baseRef: baseRef } = json;
+        if (albumIndex)
+            this.albumIndex = albumIndex;
+        if (trackIndex)
+            this.trackIndex = trackIndex;
+        if (baseRef)
+            this.baseRef = baseRef;
+        const { lineRef: lineRef, startTime: startTime, stopTime: stopTime } = json;
+        if (lineRef)
+            this.lineRef = lineRef;
+        if (startTime)
+            this.startTime = startTime;
+        if (stopTime)
+            this.stopTime = stopTime;
     }
     restore() {
-        this.albumIndex = this._getItemNumber(`${this.context}.albumIndex`, this.albumIndex);
-        this.trackIndex = this._getItemNumber(`${this.context}.trackIndex`, this.trackIndex);
-        this.baseRef = this._getItemString(`${this.context}.baseRef`, this.baseRef);
+        const json = this._getItemJson(this.context, {});
+        this._prepareRestoreFromJson(json);
         this._refreshDictionary();
     }
     _refreshDictionary() {
@@ -81,45 +127,33 @@ export class BookmarkedSelection extends TrackSelection {
     static AWAITING_AUDIO_END = 'awaiting_audio_end';
     static BUILD = 'build';
     appRoot;
-    startTime;
-    endTime;
-    lineRef;
     constructor(root = '/', ctx = BookmarkedSelection.CONTEXT, albIdx = 0, trkIdx = 0, bRef = null) {
         super(ctx, albIdx, trkIdx, bRef);
         this.appRoot = root;
         this.reset(ctx, albIdx, trkIdx, bRef);
     }
     read(src) {
+        this.startTime = -1;
+        this.stopTime = -1;
+        this.lineRef = null;
         let ret = super.read(src);
-        if (ret) {
-            this.startTime = -1;
-            this.endTime = -1;
-            this.lineRef = null;
-        }
         return ret;
     }
     reset(ctx = BookmarkedSelection.CONTEXT, albIdx = 0, trkIdx = 0, bRef = null) {
         super.reset(ctx, albIdx, trkIdx, bRef);
-        this.startTime = -1;
-        this.endTime = -1;
-        this.lineRef = null;
+        this.setDetails(null, -1, -1);
     }
-    set(st, et, lr) {
+    setDetails(lr, st, et) {
         this.context = BookmarkedSelection.CONTEXT;
-        if (st !== null)
-            this.startTime = st;
-        if (et !== null)
-            this.endTime = et;
-        if (lr !== null)
-            this.lineRef = lr;
+        super.setDetails(lr, st, et);
     }
     createLink() {
         let ret = location.protocol + '//' + location.host + this.appRoot + '#' + this.baseRef + '?';
         if (this.startTime > -1)
             ret += `startTime=${this.startTime}`;
-        if (this.endTime > -1) {
+        if (this.stopTime > -1) {
             const amp = ret.endsWith('?') ? '' : '&';
-            ret += `${amp}endTime=${this.endTime}`;
+            ret += `${amp}stopTime=${this.stopTime}`;
         }
         if (this.lineRef !== null) {
             const amp = ret.endsWith('?') ? '' : '&';
@@ -140,9 +174,9 @@ export class BookmarkedSelection extends TrackSelection {
             if (urlSel.albumIndex > -1 && urlSel.trackIndex > -1) {
                 this.read(urlSel);
                 const st = url.searchParams.get('startTime');
-                const et = url.searchParams.get('endTime');
+                const et = url.searchParams.get('stopTime');
                 const lr = url.searchParams.get('lineRef');
-                this.set(st !== null ? Number(st) : null, et !== null ? Number(et) : null, lr);
+                this.setDetails(lr, st !== null ? Number(st) : null, et !== null ? Number(et) : null);
                 this.context = BookmarkedSelection.ONLOAD;
             }
         }
@@ -159,8 +193,11 @@ export class BookmarkedSelection extends TrackSelection {
     }
 }
 export class AlbumPlayerState extends LocalStorageState {
-    catSel = new TrackSelection('catSel');
+    catSel = new TrackSelection('catalogSel');
+    playlistSel = new TrackSelection('playlistSel');
     homeSel = new TrackSelection('homeSel');
+    playlists = [];
+    currentPlaylist;
     autoPlay = true;
     playNext = true;
     repeat = false;
@@ -177,6 +214,8 @@ export class AlbumPlayerState extends LocalStorageState {
     regExFlags = 'gm';
     ignoreDiacritics = true;
     concurrencyCount = 0;
+    lastPlaylistIterator = null;
+    playlistIterator;
     stopDwnlDel = 0; // transient
     bookmarkSel; // transient
     startSearch = false; // transient
@@ -189,6 +228,7 @@ export class AlbumPlayerState extends LocalStorageState {
     save() {
         this.catSel.save();
         this.homeSel.save();
+        this.playlistSel.save();
         this._setItemBoolean('autoPlay', this.autoPlay);
         this._setItemBoolean('playNext', this.playNext);
         this._setItemBoolean('repeat', this.repeat);
@@ -199,16 +239,20 @@ export class AlbumPlayerState extends LocalStorageState {
         this._setItemNumber('currentTime', this.currentTime);
         this._setItemBoolean('darkTheme', this.darkTheme);
         this._setItemNumber('concurrencyCount', this.concurrencyCount);
+        this._setItemString('lastPlaylistIterator', this.lastPlaylistIterator);
         this._setItemString('searchFor', this.searchFor);
         this._setItemNumber('searchScope', this.searchScope);
         this._setItemBoolean('useRegEx', this.useRegEx);
         this._setItemString('regExFlags', this.regExFlags);
         this._setItemBoolean('applyAndBetweenTerms', this.applyAndBetweenTerms);
         this._setItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
+        this.playlists.sort((a, b) => a.name.localeCompare(b.name));
+        this._setItemJson('playLists', this.playlists);
     }
     restore() {
         this.catSel.restore();
         this.homeSel.restore();
+        this.playlistSel.restore();
         this.autoPlay = this._getItemBoolean('autoPlay', this.autoPlay);
         this.playNext = this._getItemBoolean('playNext', this.playNext);
         this.repeat = this._getItemBoolean('repeat', this.repeat);
@@ -219,12 +263,14 @@ export class AlbumPlayerState extends LocalStorageState {
         this.currentScrollY = this._getItemNumber('currentScrollY', this.currentScrollY);
         this.darkTheme = this._getItemBoolean('darkTheme', this.darkTheme);
         this.concurrencyCount = this._getItemNumber('concurrencyCount', this.concurrencyCount);
+        this.lastPlaylistIterator = this._getItemString('lastPlaylistIterator', this.lastPlaylistIterator);
         this.searchFor = this._getItemString('searchFor', this.searchFor);
         this.searchScope = this._getItemNumber('searchScope', this.searchScope);
         this.useRegEx = this._getItemBoolean('useRegEx', this.useRegEx);
         this.regExFlags = this._getItemString('regExFlags', this.regExFlags);
         this.applyAndBetweenTerms = this._getItemBoolean('applyAndBetweenTerms', this.applyAndBetweenTerms);
         this.ignoreDiacritics = this._getItemBoolean('ignoreDiacritics', this.ignoreDiacritics);
+        this.playlists = this._getItemJson('playLists', this.playlists);
     }
     setAudioState(val) {
         let oldVal = this._audioState;
@@ -235,8 +281,37 @@ export class AlbumPlayerState extends LocalStorageState {
     getAudioState() {
         return this._audioState;
     }
+    loadPlaylist(idx) {
+        let ret = { header: null, list: null };
+        if (idx === -1 || this.playlists.length === 0) {
+            ret.header = {
+                id: crypto.randomUUID(),
+                name: 'New Playlist',
+            };
+            ret.list = {
+                id: ret.header.id,
+                list: []
+            };
+            this.playlists.push(ret.header);
+            this.savePlaylist(ret);
+        }
+        else {
+            ret.header = this.playlists[idx];
+            const plKey = `pl.${ret.header.id}`;
+            ret.list = this._getItemJson(plKey, { id: ret.header.id, list: [] });
+        }
+        return ret;
+    }
+    savePlaylist(plTuple) {
+        const plKey = `pl.${plTuple.list.id}`;
+        this._setItemJson(plKey, plTuple.list);
+        this._setItemJson('playLists', this.playlists);
+    }
     static toLineRef(lineNum, begIdxPos, begPerc, endIdxPos, endPerc) {
-        return `${lineNum}:${begIdxPos}:${begPerc.toFixed(3)}:${endIdxPos}:${endPerc.toFixed(3)}`;
+        let ret = `${lineNum}:${begIdxPos}:${begPerc.toFixed(3)}`;
+        if (endIdxPos && endPerc)
+            ret += `:${endIdxPos}:${endPerc.toFixed(3)}`;
+        return ret;
     }
     static toLineRefUsingArr(refArr) {
         const ret = AlbumPlayerState.toLineRef(refArr[0], refArr[1], refArr[2], refArr[3], refArr[4]);

@@ -57,7 +57,7 @@ class BackgroundSearchTracksWorker {
         this._dispatchFinishedResponse(occurances[0], tracks);
     }
     async _checkForMatches(src, occurances, tracks) {
-        const searchForAll = this._remDiacriticsAndSplitSearchTermsIfRqd(this._criteria.searchFor);
+        const searchForAll = this._remDiacriticsAndSplitSearchTermsIfRqd(this._criteria.searchFor.trim());
         const searchFor = searchForAll[0];
         const regExFlags = this._criteria.regExFlags;
         const indexPositions = this._criteria.useRegEx ? StringUtils.allIndexOfUsingRegEx(src, searchFor, regExFlags) : StringUtils.allIndexesOf(src, searchFor);
@@ -80,7 +80,7 @@ class BackgroundSearchTracksWorker {
         let ret;
         if (this._criteria.applyAndBetweenTerms) {
             const terms = searchFor.split(' ').map((v, i, a) => {
-                return v.toLowerCase();
+                return v.toLowerCase().trim();
             });
             ret = terms;
         }
